@@ -76,6 +76,11 @@ def clone_private_repo(
             if destination.exists():
                 shutil.rmtree(destination)
             stderr = exc.stderr.replace(token, "***") if exc.stderr else "git command failed"
+            if "403" in stderr or "access to repository not granted" in stderr:
+                raise RuntimeError(
+                    "GitHub denied repository contents access. Use a fine-grained token "
+                    "restricted to this repository with Contents: Read-only."
+                ) from exc
             raise RuntimeError(f"Private repository checkout failed: {stderr}") from exc
 
     commit = git_revision(destination)
