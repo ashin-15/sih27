@@ -100,6 +100,7 @@ def install_requirements(requirements_path: str | Path) -> None:
             "pip",
             "install",
             "--disable-pip-version-check",
+            "--no-deps",
             "-r",
             str(requirements_path),
         ],
