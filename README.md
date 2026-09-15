@@ -41,6 +41,10 @@ Do not commit credentials or place them in the Git remote.
 
 Kaggle Secrets are attached through the notebook UI/API rather than committed to metadata.
 
+### Troubleshooting
+
+If `kaggle_secrets` reports `Connection error trying to communicate with service` or DNS fails with `Temporary failure in name resolution`, the current notebook session has Internet disabled even if the secrets exist. Open the notebook settings, enable **Internet**, save the notebook, and use **Run All** rather than rerunning only the failed cell.
+
 ## Phase 1 outputs
 
 A clean Kaggle run writes under `/kaggle/working/artifacts/phase1/`:
