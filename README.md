@@ -43,7 +43,7 @@ Kaggle Secrets are attached through the notebook UI/API rather than committed to
 
 ### Troubleshooting
 
-If `kaggle_secrets` reports `Connection error trying to communicate with service` or DNS fails with `Temporary failure in name resolution`, the current notebook session has Internet disabled even if the secrets exist. Open the notebook settings, enable **Internet**, save the notebook, and use **Run All** rather than rerunning only the failed cell.
+If `kaggle_secrets` reports `Connection error trying to communicate with service` or DNS fails with `Temporary failure in name resolution`, the current notebook session has Internet disabled even if the secrets exist. Open the notebook settings, enable **Internet**, save the notebook, and use **Run All** rather than rerunning only the failed cell. If the underlying secret request returns HTTP 400 or 404, the labels are missing or not attached to `ashin15/lidar-2-5d`; Kaggle Secrets are attached per notebook.
 
 If cloning reports HTTP 403 or `access to repository not granted`, the GitHub token is missing repository `Contents` access. Create a new fine-grained token, select only `ashin-15/sih27`, grant **Contents: Read-only**, and update `GITHUB_READ_TOKEN`. Do not paste the token into notebook code, Git, or chat.
 

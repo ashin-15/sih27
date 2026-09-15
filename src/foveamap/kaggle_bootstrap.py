@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from urllib.error import HTTPError
 from urllib.parse import urlsplit, urlunsplit
 
 from .runtime import git_revision, is_kaggle
@@ -14,7 +15,13 @@ from .runtime import git_revision, is_kaggle
 def get_kaggle_secret(label: str) -> str:
     from kaggle_secrets import UserSecretsClient  # type: ignore
 
-    return UserSecretsClient().get_secret(label)
+    try:
+        return UserSecretsClient().get_secret(label)
+    except ConnectionError as exc:
+        cause = exc.__cause__
+        if isinstance(cause, HTTPError) and cause.code in {400, 404}:
+            raise RuntimeError(f"Kaggle secret '{label}' is missing or not attached to this kernel") from exc
+        raise RuntimeError("Kaggle Secrets service is unreachable; enable Internet and rerun") from exc
 
 
 def _auth_url(repo_url: str) -> tuple[str, str]:
