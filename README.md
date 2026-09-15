@@ -47,7 +47,7 @@ If `kaggle_secrets` reports `Connection error trying to communicate with service
 
 If cloning reports HTTP 403 or `access to repository not granted`, the GitHub token is missing repository `Contents` access. Create a new fine-grained token, select only `ashin-15/sih27`, grant **Contents: Read-only**, and update `GITHUB_READ_TOKEN`. Do not paste the token into notebook code, Git, or chat.
 
-`nuscenes-devkit==1.2.0` declares `numpy<2`, while current Kaggle images contain packages built for NumPy 2. The bootstrap installs the devkit with `--no-deps`, installs the small `pyquaternion` import dependency separately, and verifies that NumPy is unchanged. If an older run already downgraded NumPy, restart the Kaggle session and use **Run All** to return to the clean base image.
+`nuscenes-devkit==1.2.0` declares `numpy<2`, while current Kaggle images contain packages built for NumPy 2. The bootstrap installs the devkit with `--no-deps`, installs the small `pyquaternion` import dependency separately, and verifies that NumPy is unchanged. If an older run already downgraded NumPy, restart the Kaggle session and use **Run All** to return to the clean base image. A `numpy.dtype size changed` error means the running session still contains mismatched NumPy binaries and must be restarted.
 
 ## Phase 1 outputs
 

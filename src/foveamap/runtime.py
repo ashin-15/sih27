@@ -83,6 +83,9 @@ def accelerator_report() -> dict[str, Any]:
         import torch  # type: ignore
     except ImportError:
         return report
+    except Exception as exc:
+        report["torch_import_error"] = f"{type(exc).__name__}: {exc}"
+        return report
 
     report["torch_available"] = True
     report["torch_version"] = torch.__version__
@@ -130,12 +133,28 @@ def seed_everything(seed: int = 26053) -> int:
         import numpy as np  # type: ignore
     except ImportError:
         np = None
+    except Exception as exc:
+        raise RuntimeError(
+            "NumPy failed to import cleanly. Restart the Kaggle session to restore "
+            "the base image before rerunning Phase 1."
+        ) from exc
     if np is not None:
-        np.random.seed(seed)
+        try:
+            np.random.seed(seed)
+        except Exception as exc:
+            raise RuntimeError(
+                "NumPy binary components are inconsistent. Restart the Kaggle "
+                "session and rerun Phase 1 from the clean base image."
+            ) from exc
     try:
         import torch  # type: ignore
     except ImportError:
         torch = None
+    except Exception as exc:
+        raise RuntimeError(
+            "PyTorch failed to import cleanly. Restart the Kaggle session and "
+            "rerun Phase 1 from the clean base image."
+        ) from exc
     if torch is not None:
         torch.manual_seed(seed)
         if torch.cuda.is_available():
