@@ -22,11 +22,11 @@ The local `.venv` is only for Kaggle CLI and repository/tooling tasks. Scientifi
 
 ## Kaggle prerequisites
 
-Create an empty private GitHub repository and provide its clean HTTPS URL. Create a fine-grained token restricted to that repository with `Contents: Read-only`.
+The private repository is `ashin-15/sih27`. Local Git access uses the configured SSH remote. Kaggle needs the clean HTTPS URL `https://github.com/ashin-15/sih27.git` and a fine-grained token restricted to that repository with `Contents: Read-only`.
 
 Attach these Kaggle Secrets to the private notebook:
 
-- `FOVEAMAP_REPO_URL` — clean HTTPS repository URL, without credentials
+- `FOVEAMAP_REPO_URL` — `https://github.com/ashin-15/sih27.git`
 - `GITHUB_READ_TOKEN` — fine-grained read-only token
 
 Do not commit credentials or place them in the Git remote.
