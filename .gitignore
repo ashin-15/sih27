@@ -25,5 +25,4 @@ build/
 *.env
 *.pem
 *.key
-.kaggle/
-secrets/
+vrgrid-26
