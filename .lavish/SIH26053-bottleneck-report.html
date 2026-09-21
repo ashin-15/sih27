@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en" data-theme="luxury">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SIH26053 - Adaptive 2.5D LiDAR Navigation GIS Bottlenecks</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :where(.grid, .flex, .layout-grid, .layout-flex) > *,
+    :where([style*="display: grid"], [style*="display:grid"], [style*="display: flex"], [style*="display:flex"]) > * { min-width: 0; }
+    :where(p, h1, h2, h3, h4, h5, h6, li, dd, blockquote, figcaption, td, th, .badge, .label) { overflow-wrap: anywhere; }
+    :where(img, svg, video, canvas, iframe) { max-width: 100%; height: auto; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--color-base-300); color: var(--color-base-content); }
+    .shell { width: min(1180px, calc(100% - 2rem)); margin-inline: auto; }
+    .eyebrow { letter-spacing: .14em; text-transform: uppercase; font-size: .72rem; font-weight: 750; }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, .65fr); gap: 1.25rem; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
+    .risk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .risk-card { border-left: 4px solid var(--color-warning); }
+    .risk-card.critical { border-left-color: var(--color-error); }
+    .risk-card.engineering { border-left-color: var(--color-info); }
+    .risk-id { font-variant-numeric: tabular-nums; letter-spacing: .08em; }
+    .source-list li { margin-block: .45rem; }
+    .source-list a { text-decoration: underline; text-underline-offset: 3px; }
+    .flow-label { font: 700 15px ui-sans-serif, system-ui, sans-serif; fill: currentColor; }
+    .flow-small { font: 500 12px ui-sans-serif, system-ui, sans-serif; fill: currentColor; opacity: .78; }
+    .svg-stroke { stroke: currentColor; }
+    .toc a { display: block; padding: .38rem .65rem; border-radius: .55rem; }
+    .toc a:hover { background: color-mix(in oklab, var(--color-base-content) 8%, transparent); }
+    .table td, .table th { vertical-align: top; }
+    .table td { white-space: normal; }
+    .decision { border: 1px solid color-mix(in oklab, var(--color-primary) 45%, transparent); }
+    .failure { border: 1px solid color-mix(in oklab, var(--color-error) 35%, transparent); }
+    @media (max-width: 850px) {
+      .hero-grid, .risk-grid { grid-template-columns: 1fr; }
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 520px) {
+      .shell { width: min(100% - 1rem, 1180px); }
+      .metric-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 2.1rem !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="border-b border-base-content/10 bg-base-200">
+    <div class="shell py-10 lg:py-16">
+      <div class="hero-grid items-end">
+        <div>
+          <div class="eyebrow text-primary">SIH26053 research brief</div>
+          <h1 class="mt-3 text-4xl font-black leading-tight lg:text-6xl">Where an adaptive 2.5D LiDAR navigation GIS actually breaks</h1>
+          <p class="mt-5 max-w-3xl text-lg leading-relaxed opacity-80">A prioritized bottleneck inventory for building a navigation GIS that converts moving 3D LiDAR scans into distance-adaptive elevation, terrain, static-object, dynamic-object, and routing layers.</p>
+        </div>
+        <div class="alert alert-warning alert-soft">
+          <div>
+            <div class="font-bold">Hard constraint</div>
+            <div class="text-sm">A one-height-per-XY-cell map cannot be lossless. Multiple surfaces, overhangs, vertical faces, and mixed semantics must be summarized, split, or stored elsewhere.</div>
+          </div>
+        </div>
+      </div>
+      <div class="metric-grid mt-8">
+        <div class="stat rounded-box bg-base-100 shadow"><div class="stat-title">Uniform 5 cm to 100 m</div><div class="stat-value text-2xl">12.57M</div><div class="stat-desc">circular cells</div></div>
+        <div class="stat rounded-box bg-base-100 shadow"><div class="stat-title">5 cm near + 50 cm far</div><div class="stat-value text-2xl">250K</div><div class="stat-desc">two-zone estimate</div></div>
+        <div class="stat rounded-box bg-base-100 shadow"><div class="stat-title">Nominal reduction</div><div class="stat-value text-2xl">50.3x</div><div class="stat-desc">before structure overhead</div></div>
+        <div class="stat rounded-box bg-base-100 shadow"><div class="stat-title">Main risk classes</div><div class="stat-value text-2xl">15</div><div class="stat-desc">geometry, time, scale, compute</div></div>
+      </div>
+      <p class="mt-3 text-xs opacity-60">Cell estimate assumes circular coverage, 5 cm cells inside 10 m, and 50 cm cells from 10 m to 100 m. Eight float32 layers would be about 402 MB versus 8 MB before metadata and allocator overhead.</p>
+    </div>
+  </header>
+
+  <main class="shell py-8 lg:py-12">
+    <nav class="toc card card-border bg-base-100 mb-8">
+      <div class="card-body py-5">
+        <div class="eyebrow opacity-60">Jump to</div>
+        <div class="grid gap-1 sm:grid-cols-2 lg:grid-cols-5">
+          <a href="#failure">Failure mechanism</a>
+          <a href="#bottlenecks">Prioritized list</a>
+          <a href="#structures">Data structures</a>
+          <a href="#pipeline">Projection pipeline</a>
+          <a href="#sources">Research sources</a>
+        </div>
+      </div>
+    </nav>
+
+    <section id="failure" class="card card-border bg-base-100 mb-10">
+      <div class="card-body">
+        <div class="eyebrow text-secondary">Core mechanism</div>
+        <h2 class="card-title mt-1 text-2xl">Why errors enter during 3D to 2.5D conversion</h2>
+        <div class="grid items-center gap-6 lg:grid-cols-[1.2fr_.8fr]">
+          <figure class="rounded-box bg-base-200 p-4">
+            <svg viewBox="0 0 760 330" role="img" aria-labelledby="projection-title projection-desc" style="width:100%;">
+              <title id="projection-title">Three-dimensional LiDAR surfaces collapsing into an adaptive elevation grid</title>
+              <desc id="projection-desc">A bridge, vehicle, road and pothole project into near fine cells and far coarse cells. Several surfaces collide in the same XY cells, and the resolution boundary introduces a seam.</desc>
+              <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/></marker>
+                <pattern id="fine-grid" width="18" height="18" patternUnits="userSpaceOnUse"><path d="M18 0H0V18" fill="none" stroke="currentColor" stroke-opacity=".22"/></pattern>
+                <pattern id="coarse-grid" width="54" height="54" patternUnits="userSpaceOnUse"><path d="M54 0H0V54" fill="none" stroke="currentColor" stroke-opacity=".3"/></pattern>
+              </defs>
+              <g id="scene-3d"><title>Input point cloud with multiple vertical surfaces</title>
+                <rect x="24" y="28" width="286" height="210" rx="18" fill="var(--color-base-300)" stroke="currentColor" stroke-opacity=".3"/>
+                <text x="44" y="58" class="flow-label">3D observations</text>
+                <path d="M42 200 C100 190 145 205 215 190 S275 195 295 184" fill="none" stroke="var(--color-success)" stroke-width="9" stroke-linecap="round"/>
+                <path d="M68 182 Q92 145 118 181" fill="none" stroke="var(--color-warning)" stroke-width="7"/>
+                <path d="M155 125 H260" stroke="var(--color-primary)" stroke-width="12" stroke-linecap="round"/>
+                <path d="M168 127 V187 M247 127 V188" stroke="var(--color-primary)" stroke-width="8"/>
+                <circle cx="203" cy="161" r="6" fill="var(--color-error)"/><circle cx="218" cy="171" r="5" fill="var(--color-error)"/><circle cx="231" cy="153" r="5" fill="var(--color-error)"/>
+                <text x="50" y="224" class="flow-small">pothole + road + bridge + object</text>
+              </g>
+              <g id="projection-edge"><title>Projection collapses Z into XY cell summaries</title>
+                <line x1="330" y1="132" x2="410" y2="132" stroke="currentColor" stroke-width="3" marker-end="url(#arrow)"/>
+                <text x="338" y="110" class="flow-small">quantize + fuse</text>
+              </g>
+              <g id="adaptive-grid"><title>Adaptive grid with a fine-to-coarse resolution seam</title>
+                <rect x="430" y="28" width="300" height="210" rx="18" fill="var(--color-base-300)" stroke="currentColor" stroke-opacity=".3"/>
+                <text x="450" y="58" class="flow-label">Adaptive 2.5D cells</text>
+                <rect x="450" y="78" width="126" height="126" fill="url(#fine-grid)" stroke="var(--color-info)" stroke-width="2"/>
+                <rect x="576" y="78" width="126" height="126" fill="url(#coarse-grid)" stroke="var(--color-warning)" stroke-width="2"/>
+                <line x1="576" y1="73" x2="576" y2="210" stroke="var(--color-error)" stroke-width="4" stroke-dasharray="7 6"/>
+                <circle cx="526" cy="150" r="10" fill="var(--color-success)"/><circle cx="526" cy="150" r="5" fill="var(--color-primary)"/>
+                <rect x="620" y="120" width="50" height="50" rx="5" fill="var(--color-error)" opacity=".75"/>
+                <text x="454" y="226" class="flow-small">collision</text><text x="578" y="226" class="flow-small">scale seam</text>
+              </g>
+              <g id="losses"><title>Three common output failures</title>
+                <rect x="78" y="270" width="176" height="38" rx="19" fill="var(--color-error)" opacity=".9"/><text x="100" y="294" class="flow-label" style="fill:var(--color-error-content)">vertical loss</text>
+                <rect x="292" y="270" width="176" height="38" rx="19" fill="var(--color-warning)" opacity=".9"/><text x="310" y="294" class="flow-label" style="fill:var(--color-warning-content)">aliasing + holes</text>
+                <rect x="506" y="270" width="176" height="38" rx="19" fill="var(--color-info)" opacity=".9"/><text x="525" y="294" class="flow-label" style="fill:var(--color-info-content)">temporal ghosts</text>
+              </g>
+            </svg>
+            <figcaption class="mt-3 text-sm opacity-70">The output error is not just a neural-network error. It begins when several 3D facts are forced into one cell and then re-quantized across space and time.</figcaption>
+          </figure>
+          <div class="space-y-3">
+            <div class="alert alert-error alert-soft"><span><strong>Irreversible loss:</strong> one stored height cannot encode road under bridge, curb face, tree canopy, or a pedestrian above the same XY footprint.</span></div>
+            <div class="alert alert-warning alert-soft"><span><strong>Conditional loss:</strong> aggregation policy decides whether a pothole, curb, overhang, or obstacle disappears.</span></div>
+            <div class="alert alert-info alert-soft"><span><strong>Accumulating error:</strong> timestamp, pose, calibration, and resampling errors compound when scans are fused.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="bottlenecks" class="mb-10">
+      <div class="mb-5">
+        <div class="eyebrow text-primary">Prioritized inventory</div>
+        <h2 class="text-3xl font-black">15 current bottlenecks</h2>
+        <p class="mt-2 max-w-3xl opacity-70">P0 items can create unsafe geometry or systematic map misalignment. P1 items usually determine whether the system remains accurate and real time outside a demo.</p>
+      </div>
+      <div class="risk-grid">
+        <article id="risk-01" class="card bg-base-100 shadow risk-card critical"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-error">P0</span><span class="risk-id text-xs opacity-50">01</span></div><h3 class="card-title">Single-surface representation loss</h3><p>A standard elevation cell assumes <code>z = f(x,y)</code>. Bridges, underpasses, vegetation canopies, vertical walls, and stacked returns violate that assumption. No aggregation rule can reconstruct data that was never retained.</p><p class="text-sm opacity-65"><strong>Failure:</strong> false free space, missing overhead obstacle, or phantom ground.</p></div></article>
+        <article id="risk-02" class="card bg-base-100 shadow risk-card critical"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-error">P0</span><span class="risk-id text-xs opacity-50">02</span></div><h3 class="card-title">Many-to-one cell collisions</h3><p>Multiple points with different heights, labels, intensities, and motion states map to one XY cell. Keeping nearest, highest, lowest, mean, or last-written point each destroys a different class of evidence.</p><p class="text-sm opacity-65"><strong>Failure:</strong> max height hides potholes, min height hides overhangs, mean creates a surface that never existed, last-write creates nondeterminism.</p></div></article>
+        <article id="risk-03" class="card bg-base-100 shadow risk-card critical"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-error">P0</span><span class="risk-id text-xs opacity-50">03</span></div><h3 class="card-title">Resolution-boundary seams</h3><p>If 5 cm and 50 cm zones use independent origins or non-integer ratios, cells overlap or leave gaps. Even with aligned power-of-two levels, neighborhood operations encounter T-junctions and unequal support areas.</p><p class="text-sm opacity-65"><strong>Failure:</strong> cracks, duplicated obstacles, discontinuous slope, and planner cost jumps at zone edges.</p></div></article>
+        <article id="risk-04" class="card bg-base-100 shadow risk-card critical"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-error">P0</span><span class="risk-id text-xs opacity-50">04</span></div><h3 class="card-title">Unstable coordinate indexing</h3><p>Floating-point division plus <code>floor</code>/<code>round</code>, negative coordinates, changing map origins, and inconsistent closed intervals can assign the same world point to different cells across frames or modules.</p><p class="text-sm opacity-65"><strong>Failure:</strong> one-cell jitter, double insertion on borders, holes, and non-reproducible maps.</p></div></article>
+        <article id="risk-05" class="card bg-base-100 shadow risk-card critical"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-error">P0</span><span class="risk-id text-xs opacity-50">05</span></div><h3 class="card-title">Intra-scan motion distortion</h3><p>A spinning LiDAR does not capture all points at one instant. Projecting a whole sweep with one pose bends walls and curbs before gridding. Deskew requires per-point time plus a sufficiently accurate continuous pose estimate.</p><p class="text-sm opacity-65"><strong>Failure:</strong> smeared edges and systematic misalignment that resembles poor calibration.</p></div></article>
+        <article id="risk-06" class="card bg-base-100 shadow risk-card critical"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-error">P0</span><span class="risk-id text-xs opacity-50">06</span></div><h3 class="card-title">Pose, clock, and extrinsic calibration error</h3><p>LiDAR-to-IMU extrinsics, timestamp offsets, roll/pitch error, vertical drift, and scan-matching drift move points before fusion. Angular error becomes larger lateral displacement with range.</p><p class="text-sm opacity-65"><strong>Failure:</strong> doubled curbs, wavy roads, thick walls, and long-range cell shifts.</p></div></article>
+        <article id="risk-07" class="card bg-base-100 shadow risk-card critical"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-error">P0</span><span class="risk-id text-xs opacity-50">07</span></div><h3 class="card-title">Unknown space confused with free space</h3><p>Far cells are sparse because angular sampling spreads with range; occlusion, grazing angles, dark/reflective materials, rain, and limited vertical channels create missing returns. Empty cells are not evidence of traversability.</p><p class="text-sm opacity-65"><strong>Failure:</strong> unsafe free-space inference or over-conservative unexplored regions.</p></div></article>
+        <article id="risk-08" class="card bg-base-100 shadow risk-card critical"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-error">P0</span><span class="risk-id text-xs opacity-50">08</span></div><h3 class="card-title">Dynamic-object ghosts and state oscillation</h3><p>Moving points corrupt registration and leave trails when fused into the static layer. A temporarily stopped vehicle can be classified as static; removing whole detections can also delete nearby permanent structure.</p><p class="text-sm opacity-65"><strong>Failure:</strong> false obstacles, damaged background, unstable localization, and motion-label flicker.</p></div></article>
+        <article id="risk-09" class="card bg-base-100 shadow risk-card"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-warning">P1</span><span class="risk-id text-xs opacity-50">09</span></div><h3 class="card-title">Cross-resolution fusion is not neutral</h3><p>A 50 cm parent summarizes 100 cells at 5 cm. Height mean, max, variance, occupancy, semantic probability, and dynamic probability require different reduction rules. Most are not reversible, and repeated downsample-upsample cycles amplify bias.</p><p class="text-sm opacity-65"><strong>Failure:</strong> semantic bleeding, underestimated uncertainty, lost curbs and potholes.</p></div></article>
+        <article id="risk-10" class="card bg-base-100 shadow risk-card"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-warning">P1</span><span class="risk-id text-xs opacity-50">10</span></div><h3 class="card-title">Uncertainty is correlated and range dependent</h3><p>Sensor noise, pose uncertainty, and resampling affect many cells together, but simple per-cell Kalman updates often treat measurements as independent. Coarse cells receive more points and can become falsely overconfident.</p><p class="text-sm opacity-65"><strong>Failure:</strong> confidence values that look precise but do not bound the real height error.</p></div></article>
+        <article id="risk-11" class="card bg-base-100 shadow risk-card"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-warning">P1</span><span class="risk-id text-xs opacity-50">11</span></div><h3 class="card-title">Feature scale changes with cell size</h3><p>Curbs, potholes, poles, and feet can be smaller than a far cell. Surface normals, roughness, connected components, and slope thresholds behave differently when their metric support changes across levels.</p><p class="text-sm opacity-65"><strong>Failure:</strong> the same object changes class or disappears only because it crossed a resolution ring.</p></div></article>
+        <article id="risk-12" class="card bg-base-100 shadow risk-card"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-warning">P1</span><span class="risk-id text-xs opacity-50">12</span></div><h3 class="card-title">Semantic and geometry layers age differently</h3><p>Elevation, class probability, occupancy, instance ID, velocity, visibility, and timestamp may update on different schedules. Regridding one layer without all validity masks creates internally inconsistent cells.</p><p class="text-sm opacity-65"><strong>Failure:</strong> a fresh height paired with a stale label or velocity.</p></div></article>
+        <article id="risk-13" class="card bg-base-100 shadow risk-card engineering"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-info">P1 compute</span><span class="risk-id text-xs opacity-50">13</span></div><h3 class="card-title">Adaptive structures fight regular compute</h3><p>Quadtrees and per-cell lists save empty space but introduce tree walks, dynamic allocation, irregular neighbors, poor cache locality, and GPU branch divergence. Polar grids need seam-aware convolutions. Standard CNNs and costmaps expect regular arrays.</p><p class="text-sm opacity-65"><strong>Failure:</strong> memory savings do not translate into latency savings.</p></div></article>
+        <article id="risk-14" class="card bg-base-100 shadow risk-card engineering"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-info">P1 compute</span><span class="risk-id text-xs opacity-50">14</span></div><h3 class="card-title">The moving fovea causes map churn</h3><p>As the vehicle moves, world regions repeatedly enter and leave fine resolution. Naive reallocation or resampling makes features flicker, discards history, and causes latency spikes exactly near safety boundaries.</p><p class="text-sm opacity-65"><strong>Failure:</strong> temporal instability and unpredictable frame time.</p></div></article>
+        <article id="risk-15" class="card bg-base-100 shadow risk-card engineering"><div class="card-body"><div class="flex items-center justify-between gap-3"><span class="badge badge-info">P1 validation</span><span class="risk-id text-xs opacity-50">15</span></div><h3 class="card-title">Benchmarks hide distance and topology failures</h3><p>Global mIoU, mean height RMSE, and average FPS can hide small near-field hazards, far-field class collapse, boundary cracks, temporal ghosts, and missed overhangs. Public labels also rarely provide synchronized multi-surface elevation ground truth.</p><p class="text-sm opacity-65"><strong>Failure:</strong> a system passes aggregate metrics but fails the safety cases in this statement.</p></div></article>
+      </div>
+    </section>
+
+    <section id="structures" class="card card-border bg-base-100 mb-10">
+      <div class="card-body">
+        <div class="eyebrow text-secondary">Representation choice</div>
+        <h2 class="card-title mt-1 text-2xl">Data structures and their bottlenecks</h2>
+        <p class="opacity-70">No structure wins every axis. For a navigation GIS, the internal map must serve perception and planning while still publishing stable, georeferenced, queryable spatial layers.</p>
+        <div class="overflow-x-auto rounded-box border border-base-content/10 mt-4">
+          <table class="table table-zebra table-sm">
+            <thead><tr><th>Structure</th><th>Strength</th><th>Main bottleneck</th><th>Fit for SIH26053</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Uniform layered Cartesian grid</strong></td><td>O(1) indexing, contiguous memory, simple CNN and planner integration</td><td>Memory grows with area divided by cell-size squared; fixed resolution; single-height loss</td><td><span class="badge badge-warning badge-soft">Baseline only</span></td></tr>
+              <tr><td><strong>Nested Cartesian tile pyramid</strong></td><td>Regular arrays inside tiles; levels can share a global integer lattice; GPU-friendly</td><td>Restriction/prolongation rules, halo exchange, tile eviction, and moving-level churn</td><td><span class="badge badge-success badge-soft">Best core candidate</span></td></tr>
+              <tr><td><strong>Quadtree</strong></td><td>Exact hierarchical 2D coverage and local refinement</td><td>Variable neighborhoods, pointer/hash overhead, costly traversal, awkward dense convolution</td><td><span class="badge badge-info badge-soft">Good sparse map</span></td></tr>
+              <tr><td><strong>Polar or log-polar grid</strong></td><td>Matches angular LiDAR sampling and balances near/far point counts</td><td>Anisotropic cells, 0/2pi seam, distorted object shapes, conversion to Cartesian costmaps</td><td><span class="badge badge-info badge-soft">Good perception view</span></td></tr>
+              <tr><td><strong>Sparse blocked hash grid</strong></td><td>Allocate only active fixed-size tiles; reasonable GPU locality</td><td>Hash collisions, capacity spikes, multi-level key design, and seam management</td><td><span class="badge badge-success badge-soft">Strong implementation option</span></td></tr>
+              <tr><td><strong>Multi-level surface cells</strong></td><td>Stores several vertical surface patches per XY cell</td><td>Variable memory, surface data association, split/merge thresholds, harder learning interface</td><td><span class="badge badge-success badge-soft">Needed escape hatch</span></td></tr>
+              <tr><td><strong>Full 3D octree or voxel map</strong></td><td>Represents occupied, free, unknown, overhangs, and multi-level structure</td><td>Ray insertion and memory/latency are much higher than 2.5D; downstream conversion still needed</td><td><span class="badge badge-warning badge-soft">Reference or exception layer</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="decision alert alert-success alert-soft mt-5">
+          <div><strong>Lowest-risk architecture for a navigation GIS prototype:</strong> globally anchored Cartesian tiles at integer-related resolutions, such as 5, 10, 20, and 40 or 50 cm, with half-open integer indexing and an explicit map coordinate reference system. Store per-cell sufficient statistics and a small multi-surface or 3D exception representation for ambiguous vertical structure. Publish versioned raster or vector tiles for routing and visualization. A raw 5 cm to 50 cm jump is a 10:1 ratio and is harder to handle than power-of-two levels.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pipeline" class="mb-10">
+      <div class="mb-5"><div class="eyebrow text-primary">Algorithm audit</div><h2 class="text-3xl font-black">3D to adaptive 2.5D conversion pipeline</h2><p class="mt-2 opacity-70">Each stage needs an explicit contract. Skipping any contract converts an upstream error into a permanent map artifact.</p></div>
+      <div class="grid gap-3 lg:grid-cols-2">
+        <div class="collapse collapse-arrow bg-base-100"><input type="checkbox" checked><div class="collapse-title font-bold">1. Timestamp, synchronize, and calibrate</div><div class="collapse-content"><p>Retain per-point acquisition time, LiDAR ring/channel, sensor frame, transform version, and calibration version. Reject scans without a valid time-aligned pose interval.</p></div></div>
+        <div class="collapse collapse-arrow bg-base-100"><input type="checkbox"><div class="collapse-title font-bold">2. Deskew in continuous time</div><div class="collapse-content"><p>Transform every point to a common scan time using IMU/LiDAR odometry. Do not apply one rigid transform to a moving-platform sweep.</p></div></div>
+        <div class="collapse collapse-arrow bg-base-100"><input type="checkbox"><div class="collapse-title font-bold">3. Transform to one gravity-aligned frame</div><div class="collapse-content"><p>Use one explicit frame convention and propagate pose covariance. Delay map-relative quantization until after all transforms.</p></div></div>
+        <div class="collapse collapse-arrow bg-base-100"><input type="checkbox"><div class="collapse-title font-bold">4. Assign semantic and motion evidence per point</div><div class="collapse-content"><p>Keep class probabilities and motion probability, not only hard labels. Treat potentially dynamic objects separately from confirmed moving objects.</p></div></div>
+        <div class="collapse collapse-arrow bg-base-100"><input type="checkbox"><div class="collapse-title font-bold">5. Select level from policy, not point density alone</div><div class="collapse-content"><p>Distance can choose a target level, but uncertainty, predicted stopping corridor, object boundary, and hazard salience may require refinement. Add hysteresis so cells do not oscillate between levels.</p></div></div>
+        <div class="collapse collapse-arrow bg-base-100"><input type="checkbox"><div class="collapse-title font-bold">6. Convert world coordinates to stable integer keys</div><div class="collapse-content"><p>Define a global origin, integer scale, half-open cell bounds, negative-coordinate behavior, and parent-child key mapping. Test points exactly on every boundary.</p></div></div>
+        <div class="collapse collapse-arrow bg-base-100"><input type="checkbox"><div class="collapse-title font-bold">7. Accumulate before reducing</div><div class="collapse-content"><p>Group all points per cell, then compute count, min/max height, robust location, variance, label histogram, timestamps, and source IDs. Never rely on write order.</p></div></div>
+        <div class="collapse collapse-arrow bg-base-100"><input type="checkbox"><div class="collapse-title font-bold">8. Detect multi-surface ambiguity</div><div class="collapse-content"><p>Split vertical modes when height gaps exceed uncertainty-aware thresholds. Mark unresolved cells as ambiguous rather than forcing a ground or obstacle height.</p></div></div>
+        <div class="collapse collapse-arrow bg-base-100"><input type="checkbox"><div class="collapse-title font-bold">9. Fuse through time with visibility and dynamics</div><div class="collapse-content"><p>Use uncertainty-weighted updates, ray visibility, dynamic gating, and decay. Store last-observed time and observation count. Never convert unobserved to free without ray evidence.</p></div></div>
+        <div class="collapse collapse-arrow bg-base-100"><input type="checkbox"><div class="collapse-title font-bold">10. Resolve level transitions once</div><div class="collapse-content"><p>Define authoritative ownership at boundaries, conservative parent aggregation, fine-cell halos, and one-way publish rules. Avoid repeated upsample/downsample cycles.</p></div></div>
+        <div class="collapse collapse-arrow bg-base-100"><input type="checkbox"><div class="collapse-title font-bold">11. Publish synchronized navigation GIS layers</div><div class="collapse-content"><p>Publish elevation, uncertainty, semantics, dynamics, traversability, routing cost, validity, resolution, and timestamp as one versioned snapshot. Every tile needs a coordinate reference system, world bounds, lineage, and metric cell extent so GIS queries and route planning cannot mix incompatible states.</p></div></div>
+        <div class="collapse collapse-arrow bg-base-100"><input type="checkbox"><div class="collapse-title font-bold">12. Evaluate perception and navigation GIS outcomes</div><div class="collapse-content"><p>Report near/far mIoU, height RMSE by range, boundary continuity, overhang recall, curb/pothole recall, dynamic ghost persistence, route-cost stability, topology correctness, GIS tile freshness, memory, p95/p99 latency, and deterministic replay.</p></div></div>
+      </div>
+    </section>
+
+    <section class="grid gap-5 lg:grid-cols-2 mb-10">
+      <div class="card card-border bg-base-100 failure"><div class="card-body"><div class="eyebrow text-error">Tests that should fail a design</div><h2 class="card-title text-xl">Minimum adversarial cases</h2><ul class="list-disc pl-5 space-y-2"><li>Bridge over drivable road in the same XY footprint</li><li>5 to 15 cm curb and pothole straddling a level boundary</li><li>Wall exactly on negative-coordinate and tile boundaries</li><li>Vehicle that moves, stops briefly, then moves again</li><li>Fast turn during a spinning-LiDAR sweep</li><li>Same bag replayed with different thread schedules</li><li>Far pedestrian partially occluded by a pole</li><li>Map origin relocation while semantic output is delayed</li></ul></div></div>
+      <div class="card card-border bg-base-100 decision"><div class="card-body"><div class="eyebrow text-success">Acceptance evidence</div><h2 class="card-title text-xl">Metrics beyond accuracy and FPS</h2><ul class="list-disc pl-5 space-y-2"><li>Cell coverage has no gaps or overlaps at every level</li><li>Round-trip key mapping is exact at boundaries</li><li>Height discontinuity at scale seams stays within tolerance</li><li>Unknown, free, and occupied remain distinct</li><li>Dynamic ghost lifetime is bounded in seconds and meters</li><li>Near-field hazards receive safety-weighted recall</li><li>Routing topology and costs stay stable across GIS tile boundaries</li><li>p95 and p99 sensor-to-GIS latency meet the navigation budget</li><li>Memory includes allocator, indexing, layer, and visualization overhead</li></ul></div></div>
+    </section>
+
+    <section id="sources" class="card card-border bg-base-100">
+      <div class="card-body">
+        <div class="eyebrow text-secondary">Evidence base</div>
+        <h2 class="card-title mt-1 text-2xl">Primary and implementation sources</h2>
+        <p class="opacity-70">The list combines established representation limits with recent work on projection loss, dynamic scenes, and multi-resolution processing. Engineering conclusions about seams, integer indexing, and synchronized layers are derived from these mechanisms.</p>
+        <ol class="source-list list-decimal pl-5 text-sm">
+          <li><a href="https://doi.org/10.1109/IROS.2006.282632" target="_blank" rel="noreferrer">Triebel, Pfaff, Burgard - Multi-Level Surface Maps</a>: standard elevation maps cannot represent vertical structures or multiple levels.</li>
+          <li><a href="https://www.research-collection.ethz.ch/items/563227f2-bb05-434b-8aef-1b001a9fdebc" target="_blank" rel="noreferrer">Fankhauser et al. - Probabilistic Terrain Mapping</a>: pose drift, sensor noise, and confidence bounds in grid elevation mapping.</li>
+          <li><a href="https://arxiv.org/abs/2111.06271" target="_blank" rel="noreferrer">Kaufmann et al. - Multi-Resolution Elevation Mapping</a>: fixed-topology pyramid levels, probabilistic fusion, and hazard detection degradation versus cell size and distance.</li>
+          <li><a href="https://arxiv.org/abs/2502.09274" target="_blank" rel="noreferrer">FLARES</a>: explicit many-to-one information loss when several 3D points map into a 2D grid.</li>
+          <li><a href="https://arxiv.org/abs/2003.14032" target="_blank" rel="noreferrer">PolarNet</a>: uneven LiDAR point distribution, polar partitioning, seam-aware convolution, and accuracy drop with distance.</li>
+          <li><a href="https://www.cvlibs.net/projects/autonomous_vision_survey/literature/Zhang2014RSS.pdf" target="_blank" rel="noreferrer">LOAM</a>: rolling acquisition, motion distortion, registration, and odometry drift.</li>
+          <li><a href="https://doi.org/10.1109/IROS45743.2020.9341176" target="_blank" rel="noreferrer">LIO-SAM</a>: IMU preintegration for point-cloud deskew and real-time map building.</li>
+          <li><a href="https://doi.org/10.32604/cmc.2026.081445" target="_blank" rel="noreferrer">DGMSE, 2026</a>: dynamic-object ghosting, state oscillation, incomplete removal, and real-time tradeoffs.</li>
+          <li><a href="https://arxiv.org/abs/2011.10348" target="_blank" rel="noreferrer">Accelerating Probabilistic Volumetric Mapping</a>: OctoMap's ray-shooting bottleneck.</li>
+          <li><a href="https://github.com/ANYbotics/grid_map" target="_blank" rel="noreferrer">ANYbotics Grid Map</a>: multi-layer 2.5D arrays and circular-buffer map repositioning.</li>
+          <li><a href="https://github.com/ANYbotics/elevation_mapping" target="_blank" rel="noreferrer">ANYbotics Elevation Mapping</a>: uncertainty-aware fusion parameters, visibility cleanup, and dynamic-environment tradeoffs.</li>
+          <li><a href="https://arxiv.org/abs/2103.08745" target="_blank" rel="noreferrer">S3Net</a>: projection methods lose 3D topology, while sparse 3D methods trade accuracy for compute.</li>
+        </ol>
+        <div class="mt-5 text-xs opacity-60">Prepared 21 September 2026 from the SIH26053 statement and sources linked above. This is a bottleneck analysis, not a claim that any one cited system implements the requested end-to-end framework.</div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

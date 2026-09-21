@@ -1,0 +1,39 @@
+********************************************************************************
+INTERFACE:
+Data:  /tmp/sih26053-api-fixture-ewy_nnxt/dataset
+Predictions:  /tmp/sih26053-api-fixture-ewy_nnxt/predictions
+Backend:  numpy
+Split:  valid
+Config:  config/semantic-kitti.yaml
+Limit:  None
+Codalab:  None
+********************************************************************************
+Opening data config file config/semantic-kitti.yaml
+Ignoring xentropy class  0  in IoU evaluation
+[IOU EVAL] IGNORE:  [0]
+[IOU EVAL] INCLUDE:  [ 1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19]
+Evaluating sequences: 10% Validation set:
+Acc avg 1.000
+IoU avg 1.000
+IoU class 1 [car] = 1.000
+IoU class 2 [bicycle] = 1.000
+IoU class 3 [motorcycle] = 1.000
+IoU class 4 [truck] = 1.000
+IoU class 5 [other-vehicle] = 1.000
+IoU class 6 [person] = 1.000
+IoU class 7 [bicyclist] = 1.000
+IoU class 8 [motorcyclist] = 1.000
+IoU class 9 [road] = 1.000
+IoU class 10 [parking] = 1.000
+IoU class 11 [sidewalk] = 1.000
+IoU class 12 [other-ground] = 1.000
+IoU class 13 [building] = 1.000
+IoU class 14 [fence] = 1.000
+IoU class 15 [vegetation] = 1.000
+IoU class 16 [trunk] = 1.000
+IoU class 17 [terrain] = 1.000
+IoU class 18 [pole] = 1.000
+IoU class 19 [traffic-sign] = 1.000
+********************************************************************************
+below can be copied straight for paper table
+1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000,1.000

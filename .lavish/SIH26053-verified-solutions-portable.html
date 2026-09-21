@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en" data-theme="luxury">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SIH26053 | Verified solutions and SemanticKITTI integration</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; background:#10100f; color:#eee9df; font:16px/1.6 system-ui,sans-serif; }
+    main { max-width:1180px; margin:auto; padding:2rem 1rem 4rem; }
+    h1 { font-size:clamp(2rem,5vw,3.5rem); line-height:1.12; max-width:900px; }
+    h2 { font-size:1.65rem; line-height:1.3; }
+    a { color:#e5c684; text-underline-offset:3px; }
+    p,td,th,code,summary { overflow-wrap:anywhere; }
+    .kicker { text-transform:uppercase; letter-spacing:.13em; color:#dfc388; font-size:.76rem; }
+    .intro { max-width:880px; color:#c7c2b8; font-size:1.14rem; }
+    .stats-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }
+    .panel { border:1px solid #3d3931; background:#191815; border-radius:12px; padding:1.25rem; min-width:0; }
+    .metric { font-size:2.4rem; font-weight:750; color:#e5c684; }
+    section { margin-top:2.5rem; }
+    .warning { border-left:4px solid #e6aa65; padding:1rem 1.25rem; background:#272018; }
+    .muted { color:#aaa69d; }
+    .table-wrap { overflow-x:auto; border:1px solid #3d3931; border-radius:12px; }
+    table { border-collapse:collapse; width:100%; table-layout:fixed; }
+    th,td { padding:.9rem; text-align:left; vertical-align:top; border-bottom:1px solid #38342e; }
+    th { background:#211f1a; color:#e5c684; }
+    td:first-child { font-weight:650; }
+    tr:last-child td { border-bottom:0; }
+    .status { display:inline-block; font-size:.75rem; border:1px solid #796646; border-radius:5px; padding:.1rem .4rem; margin-top:.4rem; }
+    .controls { display:flex; align-items:center; gap:.8rem; flex-wrap:wrap; margin:1rem 0; }
+    select { color:#eee9df; background:#211f1a; border:1px solid #796646; border-radius:6px; padding:.5rem; }
+    details { border-bottom:1px solid #3d3931; padding:1rem 0; }
+    summary { cursor:pointer; font-weight:650; }
+    .two { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+    .two>* { min-width:0; }
+    li { margin:.55rem 0; }
+    code { font-size:.86em; }
+    .small { font-size:.86rem; }
+    @media(max-width:650px) { .stats-grid,.two { grid-template-columns:1fr; } th,td { padding:.6rem; font-size:.85rem; } }
+    @media print { body { background:white; color:black; } .panel,th,.warning { background:white; color:black; } .muted,.intro,a,.metric,.kicker { color:#333; } .controls { display:none; } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="kicker">SIH26053 research | checked 21 September 2026</p>
+    <h1>Reuse the mapping mechanisms.<br>Verify the pipeline separately.</h1>
+    <p class="intro">vrgrid-26 provides useful lattice, fusion and visibility designs for a real-time 2.5D dashboard. Here, “GIS” means colored terrain/object visualization and a fair uniform-3D memory comparison, not geographic mapping or routing. This summary separates executed checks from remaining integration work.</p>
+    <div class="stats-grid">
+      <div class="panel"><div class="metric">674 / 62</div><div>Tests passed / skipped</div><div class="muted small">No failures. GPU, dataset and visualization gaps remain.</div></div>
+      <div class="panel"><div class="metric">34 / 34</div><div>Raw semantic IDs matched</div><div class="muted small">vrgrid perception ID = official learning ID - 1.</div></div>
+      <div class="panel"><div class="metric">≥133.86 MB</div><div>Selected default-engine array accounting</div><div class="muted small">Not RSS/VRAM. Excludes model and perception overhead.</div></div>
+    </div>
+  </header>
+  <section class="warning">
+    <strong>What “no data loss” can honestly mean</strong>
+    <p>A one-surface map cannot preserve arbitrary 3D geometry. Require no unexplained point drops, consistent indexing and conservative obstacle preservation. Keep raw scans or multi-surface side storage when reconstruction or faithful bridge/underpass display matters.</p>
+  </section>
+  <section>
+    <h2>Five findings that change the technical decision</h2>
+    <details open><summary>1. Tested components are not all in the runtime</summary><p>The evaluation harness calls dynamic separation, refinement and traversability. The main MapEngine principally shifts, bins, scatters, fuses and clears occupancy. Its binning uses speed 0.0. Evaluation results do not automatically establish the same behavior in the demo.</p><span class="status">Code inspection</span></details>
+    <details><summary>2. Ignored semantic points become cars</summary><p>A one-point engine fixture with semantic ID -1 stores candidate 0, the perception convention's car class. Preserve a dedicated unknown sentinel throughout an adapter. The reference was not patched.</p><span class="status">Locally reproduced</span></details>
+    <details><summary>3. Learned semantics do not mean learned motion</summary><p>Even with FRNet selected, motion flags are read from dataset labels. The main engine does not use that flag to exclude moving returns from persistent fusion. An autonomous motion path needs separate evaluation.</p><span class="status">Code inspection</span></details>
+    <details><summary>4. 8.94 MB is a payload number</summary><p>Default grid arrays including padding occupy 10.92 MB. The engine allocation handle with visibility occupies 87.30 MB; selected extra engine arrays add 46.56 MB. Full runtime and neural-model memory are larger and need peak measurements.</p><span class="status">Locally reproduced</span></details>
+    <details><summary>5. Legal schedules can exceed refinement capacity</summary><p>5/10/50 cm is legal. A 50-to-10 cm split needs 25 children, but the default block holds 16. The pool refuses that split. 5/10/20/50 is not a compatible nested hierarchy because its final ratio is 2.5.</p><span class="status">Code and component tests</span></details>
+  </section>
+  <section>
+    <h2>The 15 bottlenecks: reusable solution and remaining work</h2>
+    <p class="muted">“Component” means useful tests/code exist, not that an end-to-end safety claim is established. Every remaining action below is a proposal unless otherwise stated.</p>
+    <div class="controls"><label for="filter">Focus</label><select id="filter"><option value="all">All 15 bottlenecks</option><option value="component">Reusable component mechanisms</option><option value="integration">Integration and evidence gaps</option><option value="external">Additional representation / estimation</option></select><span id="count" class="muted" aria-live="polite">15 items</span></div>
+    <div class="table-wrap"><table><thead><tr><th style="width:23%">Bottleneck</th><th style="width:35%">Reference mechanism</th><th style="width:42%">Remaining decision / verification</th></tr></thead><tbody id="bottlenecks">
+      <tr data-group="external"><td>01. Multiple surfaces</td><td>Separate ground and minimum overhead height; ground-only aggregation.</td><td>Mark ambiguity; use a bounded multi-surface side layer if needed and verify retained surfaces/clearance.</td></tr>
+      <tr data-group="component"><td>02. Projection collisions</td><td>Raw-point grid aggregation is separate from range-image ownership.</td><td>Preserve original indices; deterministic depth/tie rules; audit lost attributes as well as geometry.</td></tr>
+      <tr data-group="component"><td>03. Resolution seams</td><td>Whole-block ownership on a common world lattice.</td><td>Cross-level feature neighborhoods and historical evidence transfer still require tests.</td></tr>
+      <tr data-group="component"><td>04. Coordinate indexing</td><td>Shared base quantizer, integer-derived coarse indices.</td><td>Unify window/display conventions; test negative coordinates, boundaries and cell-center offsets.</td></tr>
+      <tr data-group="external"><td>05. Sweep distortion</td><td>One rigid transform per scan; no live deskew stage found.</td><td>Use validated per-point time and pose interpolation; document upstream compensation.</td></tr>
+      <tr data-group="external"><td>06. Pose / calibration</td><td>Explicit transforms and selectable pose sources.</td><td>Pin provenance; validate live timing/extrinsics and real static-wall registration.</td></tr>
+      <tr data-group="component"><td>07. Unknown versus free</td><td>Counts, blind flags, occupancy states and confidence bits.</td><td>Wire terrain-state updates; show unknown cells distinctly instead of coloring missing evidence as drivable.</td></tr>
+      <tr data-group="integration"><td>08. Dynamic ghosts</td><td>Farther-return clearing with a current-return guard; transient components.</td><td>Unify dynamic separation across pipelines; evaluate predicted motion and false static-object removal.</td></tr>
+      <tr data-group="component"><td>09. Cross-scale reduction</td><td>Total variance and unchanged-derived-parent restoration.</td><td>Typed reducers; area versus sample weighting; review 1/16 versus geometric 1/12 split coefficient.</td></tr>
+      <tr data-group="external"><td>10. Correlated uncertainty</td><td>Range weights, process noise, bounded confidence bookkeeping.</td><td>Account for shared pose error and calibrate uncertainty coverage on held-out data.</td></tr>
+      <tr data-group="component"><td>11. Feature scale</td><td>Metric-baseline traversability and unknown-neighbor checks.</td><td>Preserve small hazards before coarsening; test curb, pole and pothole recall by range/seam.</td></tr>
+      <tr data-group="integration"><td>12. Layer aging</td><td>Frame structures, sequence reset and transient aging components.</td><td>Timestamped atomic snapshots; elapsed-time expiry; avoid unwarped stale image labels.</td></tr>
+      <tr data-group="component"><td>13. Irregular compute</td><td>Structure-of-arrays, bounded buffers and sorted integer accumulation.</td><td>Measure full memory and p99 latency, including model, transfers, rendering and temporary buffers.</td></tr>
+      <tr data-group="integration"><td>14. Moving fovea</td><td>Toroidal shifts; hysteresis and derived-child mechanisms.</td><td>Wire ownership transitions and speed dependence; size refinement blocks for every legal ratio.</td></tr>
+      <tr data-group="integration"><td>15. Misleading benchmarks</td><td>Negative controls, map hashes, attrition and per-ring metrics.</td><td>Separate oracle mapping from predicted perception; match metric denominators and account for skips.</td></tr>
+    </tbody></table></div>
+  </section>
+  <section>
+    <h2>SemanticKITTI API: use it as the contract, not the mapper</h2>
+    <div class="two">
+      <div class="panel"><h3>Useful and verified here</h3><ul><li>Packed uint32 semantics and instance decoding.</li><li>All 34 raw classes match the vrgrid perception mapping after an ID offset.</li><li>Official NumPy semantic, distance and MOS evaluation scripts execute.</li><li>Correct synthetic predictions: 100% semantic mIoU. Reversed point order: 0%.</li></ul><p class="muted small">Synthetic interface tests, not dataset/model accuracy.</p></div>
+      <div class="panel"><h3>Do not copy blindly</h3><ul><li>Projection mask excludes valid point index 0.</li><li>Distance bins omit exact 10/20/30/40/50 m boundaries.</li><li>Official mIoU includes all 19 classes, not only present classes.</li><li>Label remapping overwrites files; keep originals untouched.</li><li>Semantic inverse mapping cannot recover motion classes.</li></ul></div>
+    </div>
+    <div class="table-wrap" style="margin-top:1rem"><table><thead><tr><th>Meaning</th><th>Raw ID</th><th>Official learning ID</th><th>vrgrid perception ID</th></tr></thead><tbody><tr><td>Ignore</td><td>0</td><td>0</td><td>-1</td></tr><tr><td>Car</td><td>10</td><td>1</td><td>0</td></tr><tr><td>Moving car</td><td>252</td><td>1</td><td>0 + motion flag</td></tr><tr><td>Road</td><td>40</td><td>9</td><td>8</td></tr><tr><td>Pole</td><td>80</td><td>18</td><td>17</td></tr></tbody></table></div>
+    <p>MOS uses a separate inverse map: static becomes raw 9, moving becomes raw 251. Do not write boolean 0/1 labels into MOS prediction files.</p>
+  </section>
+  <section>
+    <h2>The deliverable: a real-time 2.5D dashboard</h2>
+    <p>Show actual variable-size map cells in top-down and tilted views, with terrain/object semantic colors, a legend, optional elevation and dynamic overlays, and a distinct unknown state. Keep geometry, colors and timestamps synchronized. No CRS, geographic map tiles or route planner is required.</p>
+    <div class="two"><div class="panel"><h3>Display gap in the reference</h3><p>Input points can be semantic-colored, but the main occupied-cell renderer uses a height color ramp. Verify that a semantic mode colors the actual 2.5D cells. Show whether classes and motion come from labels or model predictions.</p></div><div class="panel"><h3>Memory-comparison gap</h3><p>The live memory graph uses a uniform 2.5D baseline. A separate reduced-footprint 3D comparison exists. The requested dashboard should clearly include the uniform 3D baseline and label calculated versus measured bytes.</p></div></div>
+    <p>A 200 x 200 x 8 m dense volume at 5 cm contains 2.56 billion voxels: 2.56 GB at the reference's occupancy-only 1 byte/voxel assumption. Compared with 10.92 MB of adaptive grid arrays, that is about 234.4x storage-only reduction, not equal-information compression or a full-pipeline speedup.</p>
+    <p class="warning">No working CUDA/data/checkpoint validation was available here. Real accuracy, full-sequence ghost rates, live rendering FPS and peak viewer/model memory remain unverified.</p>
+  </section>
+  <section>
+    <h2>Evidence and primary references</h2>
+    <p class="small">Reference: <code>8acbfe91ca24de4edd1305a3d59ca5c15ae5d40d</code><br>API: <code>a9c749e8124b2243b6eef1b8bcf971a9f1173a2d</code></p>
+    <p>The companion Markdown reports and executable evidence are in <code>research/sih26053/</code> in the workspace. No reference implementation was modified.</p>
+    <ul><li><a href="https://github.com/PRBonn/semantic-kitti-api/tree/a9c749e8124b2243b6eef1b8bcf971a9f1173a2d">Pinned SemanticKITTI API</a>: reader, mapping and evaluation contract.</li><li><a href="https://cvai.cit.tum.de/_media/spezial/bib/triebel06multi.pdf">Multi-Level Surface Maps</a>: multiple surfaces and vertical intervals.</li><li><a href="https://github.com/TixiaoShan/LIO-SAM">LIO-SAM</a>: per-point timing and motion-compensation input requirements.</li><li><a href="https://arxiv.org/abs/2105.08971">LiDAR-MOS</a>: temporal residual motion segmentation.</li></ul>
+    <p class="muted small">Design source: the existing SIH bottleneck report's luxury theme and layout conventions. Essential styling and filtering work offline; optional framework styling uses CDN assets.</p>
+  </section>
+</main>
+<script>
+  const filter = document.getElementById('filter');
+  filter.addEventListener('change', () => {
+    let visible = 0;
+    document.querySelectorAll('#bottlenecks tr').forEach(row => {
+      row.hidden = filter.value !== 'all' && row.dataset.group !== filter.value;
+      if (!row.hidden) visible++;
+    });
+    document.getElementById('count').textContent = `${visible} items`;
+  });
+</script>
+</body>
+</html>

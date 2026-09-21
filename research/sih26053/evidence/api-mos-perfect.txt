@@ -1,0 +1,19 @@
+********************************************************************************
+INTERFACE:
+Data:  /tmp/sih26053-api-fixture-ewy_nnxt/dataset
+Predictions:  /tmp/sih26053-api-fixture-ewy_nnxt/predictions
+Backend:  numpy
+Split:  valid
+Config:  config/semantic-kitti-mos.yaml
+Limit:  None
+Codalab:  None
+********************************************************************************
+Opening data config file config/semantic-kitti-mos.yaml
+Ignoring xentropy class  0  in IoU evaluation
+[IOU EVAL] IGNORE:  [0]
+[IOU EVAL] INCLUDE:  [1 2]
+labels:  1
+predictions:  1
+Evaluating sequences: 10% ********************************************************************************
+below can be copied straight for paper table
+iou_moving: 1.000

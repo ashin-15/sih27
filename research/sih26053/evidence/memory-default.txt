@@ -1,0 +1,31 @@
+schedule 5_10_20_40, device cpu, storage toroidal
+
+  grid (745,000 logical cells x 12 B)     8.94 MB
+  toroidal padding (165,000 slots)       1.98 MB
+  scatter scratch (sorted)              14.40 MB
+  transient (910,000 x 4 B)              3.64 MB
+  refinement pool (512 x 16)             0.10 MB
+  tracked objects (cap 256)              0.01 MB
+  ---------------------------------- --------
+  TOTAL (preallocated, fixed)           29.06 MB
+    of which resident, per the OS       29.00 MB
+
+  + conservative pyramid (stretch)       3.11 MB
+  + visibility scratch (§10.4)          58.24 MB
+  ---------------------------------- --------
+  TOTAL with both                       90.41 MB
+
+Both are OFF by default and neither is in the 29.06 MB above. The pyramid is a
+stretch item.
+The visibility scratch is sized to the GRID -- 910,000 slots, the
+structural bound. The occupied set cannot exceed the grid, so the
+cleanup can never silently drop a candidate. Measured peaks over whole
+sequences: 314,442 on 07 and 455,714 on 08, against the retired
+placeholder of 150,000 which dropped 52.3% and 67.1% of them untested.
+
+745,000 logical cells, 910,000 allocated slots.
+Ratios in the report are cell-count ratios over the logical count, so
+toroidal padding changes the absolute MB figure and no ratio.
+
+Every line is preallocated at startup and fixed for the run.
+Nothing here scales with point count, dynamic-object count or frame index.
