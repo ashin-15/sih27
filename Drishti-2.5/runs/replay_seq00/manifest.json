@@ -1,0 +1,67 @@
+{
+  "available_frames": 4541,
+  "config": {
+    "ambiguous_ground_span_m": 0.5,
+    "cell_sizes_cm": [
+      5,
+      10,
+      50
+    ],
+    "footprint": "radial",
+    "fov_down_deg": -24.8,
+    "fov_up_deg": 2.0,
+    "frame_budget_ms": 100.0,
+    "ground_min_range_m": 2.7,
+    "max_abs_coordinate_m": 1000000.0,
+    "max_abs_height_m": 10000.0,
+    "max_points": 150000,
+    "min_range_m": 0.05,
+    "projection_columns": 1024,
+    "projection_rows": 64,
+    "radii_m": [
+      10.0,
+      25.0,
+      100.0
+    ],
+    "sensor_height_m": 1.73
+  },
+  "config_digest": "ce31fff9d82ef960a703d0558456514d3be6d86c13c411899ec52e361e3838db",
+  "coordinate_frame": "map-x-forward-y-left-z-up",
+  "cpu": "",
+  "dataset": "/home/ashin/Hackathon/SIH/data/dataset",
+  "dataset_metadata_hashes": {
+    "calibration": "1bb615b4535ac73053be176ac1650fcfe7678ae8225d8999e5a822aa71655682",
+    "poses": "dd005d8fbd9eef6fa02ae332602d7e51eb44c227fa6710e301c24706e4851c71",
+    "timestamps": "99a2899466cdc28dd292b4856d214a8b0aab035b91b02bb6afcb4ff363e7d421"
+  },
+  "dependencies": {
+    "drishti-25": "0.1.0",
+    "numpy": "2.5.3",
+    "pypatchworkpp": "1.4.1",
+    "rerun-sdk": "0.29.2"
+  },
+  "deskew_status": "unavailable",
+  "ground_method": "patchworkpp",
+  "limits": [
+    "no temporal fusion",
+    "no motion estimation",
+    "no refinement",
+    "no clearance or passability verdict",
+    "no real-time claim"
+  ],
+  "logical_cpus": 22,
+  "machine": "x86_64",
+  "max_frames": 50,
+  "mode": "geometric",
+  "percentile_method": "linear",
+  "platform": "Linux-7.2.6-1-cachyos-x86_64-with-glibc2.44",
+  "pose_source": "slam",
+  "python": "3.12.14",
+  "scope": "single-frame",
+  "sequence": "00",
+  "source_digest": "fa72a9a15edfde2e40b9cc7ed3a9fe4c6da0bc74814fed805607355822f34b64",
+  "start_frame": 0,
+  "synthetic": false,
+  "vertical_datum": "initial-sensor-origin",
+  "view": "spawn"
+}

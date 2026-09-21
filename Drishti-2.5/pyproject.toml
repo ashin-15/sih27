@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "drishti-25"
+version = "0.1.0"
+description = "CPU-first adaptive 2.5D LiDAR mapping with explicit evidence provenance"
+requires-python = ">=3.12,<3.13"
+license-files = ["THIRD_PARTY_NOTICES"]
+dependencies = [
+    "numpy>=2.0,<3",
+    "pypatchworkpp==1.4.1",
+]
+
+[tool.uv]
+exclude-newer = "2026-09-14T00:00:00Z"
+
+[project.scripts]
+drishti = "drishti.cli:main"
+
+[project.optional-dependencies]
+viz = [
+    "rerun-sdk>=0.24,<0.30",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+drishti = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-config --strict-markers"
+markers = ["native: exercises the installed Patchwork++ extension", "viewer: exercises the optional Rerun SDK"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src", "tests"]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.15,<2",
+    "pytest>=8,<10",
+    "ruff>=0.12,<0.17",
+]

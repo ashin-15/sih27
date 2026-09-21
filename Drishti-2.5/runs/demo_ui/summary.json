@@ -1,0 +1,31 @@
+{
+  "cold_processing_ms": 61.96895200264407,
+  "deadline_misses_with_audit": 0,
+  "end_to_end_with_audit_ms": {
+    "p50": 74.7947239979112,
+    "p95": 91.25429660234659,
+    "p99": 92.71736972274084
+  },
+  "final_viewer_flush_ms": 5.857692998688435,
+  "frame_budget_ms": 100.0,
+  "frames": 3,
+  "peak_snapshot_array_bytes": 4408008,
+  "processing_ms": {
+    "p50": 58.628214999771444,
+    "p95": 61.63487830235681,
+    "p99": 61.90213726258662
+  },
+  "realtime_release_gate_met": false,
+  "release_gate_note": "single-frame slice only; full pipeline and real data unverified",
+  "rendering_fps": null,
+  "scratch_bytes": null,
+  "status": "completed",
+  "steady_processing_ms": {
+    "p50": 57.45591199956834,
+    "p95": 58.510984699751134,
+    "p99": 58.60476893976738
+  },
+  "viewer_rss_bytes": null,
+  "wall_seconds": 1.269216423999751,
+  "worker_peak_rss_bytes": 150700032
+}

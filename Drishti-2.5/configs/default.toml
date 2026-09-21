@@ -1,0 +1,15 @@
+cell_sizes_cm = [5, 10, 50]
+radii_m = [10.0, 25.0, 100.0]
+footprint = "radial"
+max_points = 150000
+max_abs_coordinate_m = 1000000.0
+max_abs_height_m = 10000.0
+min_range_m = 0.05
+sensor_height_m = 1.73
+ground_min_range_m = 2.7
+projection_rows = 64
+projection_columns = 1024
+fov_down_deg = -24.8
+fov_up_deg = 2.0
+ambiguous_ground_span_m = 0.5
+frame_budget_ms = 100.0

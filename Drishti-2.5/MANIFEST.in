@@ -1,0 +1,3 @@
+include uv.lock
+recursive-include configs *.toml
+recursive-include tests *.py
