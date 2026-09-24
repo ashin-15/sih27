@@ -7,9 +7,7 @@ extraction step; this verifies that the extracted dataset is usable.
 
 import argparse
 import json
-import os
 import time
-from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -243,7 +241,7 @@ def verify_sequence(root, seq, full_content, errors):
         "label_bytes": label_bytes,
         "points_per_scan_min": smallest,
         "points_per_scan_max": largest,
-        "scans_above_vrgrid_default_150000_point_cap": scans_over_cap,
+        "scans_above_drishti_default_150000_point_cap": scans_over_cap,
         "timestamp_intervals": intervals,
         "slam_poses": slam_poses,
         "gt_poses": gt_poses,
@@ -255,51 +253,10 @@ def verify_sequence(root, seq, full_content, errors):
     }
 
 
-def smoke_vrgrid(root, errors):
-    """Exercise the real CPU pipeline using a few frames of the working sequences."""
-    os.environ["VRGRID_DATA_ROOT"] = str(root)
-    from vrgrid.grid.schedule import load
-    from vrgrid.perception.loader import pose_source
-    from vrgrid.run.__main__ import iter_pipeline
-    from vrgrid.run.engine import MapEngine
-
-    results = {}
-    for seq in ("00", "07", "08"):
-        engine = MapEngine(load("5/10/20/40"), device="cpu", attrition=True)
-        frames = []
-        for frame in iter_pipeline(seq, max_frames=3, semantic_source="gt"):
-            check(
-                len(frame.points_sensor) == len(frame.semantic) == len(frame.ground),
-                f"Sequence {seq}: pipeline array lengths disagree",
-                errors,
-            )
-            check(
-                np.isfinite(frame.points_world).all(),
-                f"Sequence {seq}: nonfinite transformed points",
-                errors,
-            )
-            counters = engine.step(frame)
-            check(
-                counters.binned > 0,
-                f"Sequence {seq}: no points reached the map",
-                errors,
-            )
-            frames.append({"ground_method": frame.ground_method, **asdict(counters)})
-        check(len(frames) == 3, f"Sequence {seq}: incomplete smoke replay", errors)
-        results[seq] = {"pose_source": pose_source(seq), "frames": frames}
-        print(f"Sequence {seq}: CPU pipeline replayed {len(frames)} frames", flush=True)
-    return {"device": "cpu", "semantic_source": "gt", "sequences": results}
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--report", type=Path, required=True)
-    parser.add_argument(
-        "--smoke-vrgrid",
-        action="store_true",
-        help="Also replay three frames of 00/07/08 through installed vrgrid",
-    )
     parser.add_argument(
         "--structure-only",
         action="store_true",
@@ -324,7 +281,6 @@ def main():
             f"cumulative errors={len(errors)}",
             flush=True,
         )
-    smoke = smoke_vrgrid(root, errors) if args.smoke_vrgrid and not errors else None
     report = {
         "checked_at_utc": datetime.now(timezone.utc).isoformat(),
         "dataset_root": str(root),
@@ -338,7 +294,6 @@ def main():
             s["scan_bytes"] + s["label_bytes"] for s in sequences
         ),
         "sequences": sequences,
-        "pipeline_smoke": smoke,
         "limits": [
             "Does not establish annotation or pose accuracy",
             "ZIP CRC integrity must be checked separately during extraction",

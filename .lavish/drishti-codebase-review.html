@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en" data-theme="night">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drishti-2.5 | current state and next work</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { background: #101b25; color: #e8f0f2; }
+  body { background: #101b25; color: #e8f0f2; min-height: 100vh; }
+  :where(.grid, .flex) > * { min-width: 0; }
+  :where(p, h1, h2, h3, li, td, th, .badge) { overflow-wrap: anywhere; }
+  svg { width: 100%; height: auto; max-width: 100%; }
+  .accent { color: #47b9a0; }
+  .report-card { border: 1px solid #314650; background: #172630; }
+  .bar { border-left: 3px solid #47b9a0; }
+  .evidence { color: #aabdc5; font-size: .82rem; }
+  code { color: #bce8df; }
+</style>
+</head>
+<body>
+<main class="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-12">
+  <header class="mb-10">
+    <p class="uppercase tracking-[.24em] text-sm accent font-semibold">Drishti-2.5 / Repository review / 24 Sep 2026</p>
+    <h1 class="mt-3 text-4xl md:text-6xl font-semibold leading-tight max-w-4xl">What exists today, and what the full perception pipeline still needs</h1>
+    <p class="mt-5 text-lg text-slate-300 max-w-3xl">The active package is a tested single-frame LiDAR mapper. The seven requested perception and real-time capabilities are planned work, with no implementation claim yet.</p>
+  </header>
+  <section aria-label="Current status" class="grid grid-cols-1 gap-4 md:grid-cols-3 mb-10">
+    <div class="report-card rounded-2xl p-5"><p class="text-sm text-slate-400">Current execution</p><p class="mt-2 text-2xl font-semibold">Single frame</p><p class="mt-2 text-sm text-slate-300">Ground, range projection, adaptive cell aggregation, report, optional Rerun view.</p></div>
+    <div class="report-card rounded-2xl p-5"><p class="text-sm text-slate-400">Verification</p><p class="mt-2 text-2xl font-semibold accent">42 tests passed</p><p class="mt-2 text-sm text-slate-300">Three synthetic frames completed. No real-data or full-path benchmark was run here.</p></div>
+    <div class="report-card rounded-2xl p-5"><p class="text-sm text-slate-400">Release gate</p><p class="mt-2 text-2xl font-semibold text-amber-300">False</p><p class="mt-2 text-sm text-slate-300">The code records a 100 ms budget, but does not claim a real-time guarantee.</p></div>
+  </section>
+  <section class="report-card rounded-3xl p-5 md:p-8 mb-10">
+    <div class="mb-5"><p class="uppercase tracking-widest text-xs text-slate-400">The active path</p><h2 class="mt-2 text-2xl font-semibold">Where the current pipeline stops</h2></div>
+    <svg viewBox="0 0 1060 190" role="img" aria-labelledby="flow-title flow-desc">
+      <title id="flow-title">Current Drishti pipeline</title><desc id="flow-desc">Frames move through filtering, ground segmentation, projection and aggregation to a single-frame snapshot. Temporal perception stages are absent.</desc>
+      <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#8ba3ad"/></marker></defs>
+      <g id="frame"><title>Dataset replay or synthetic frame</title><rect x="5" y="55" width="170" height="72" rx="14" fill="#21404a" stroke="#47b9a0"/><text x="90" y="85" text-anchor="middle" fill="#e8f0f2" font-size="16">ScanFrame</text><text x="90" y="108" text-anchor="middle" fill="#aabdc5" font-size="12">scan + pose</text></g>
+      <path d="M180 91 H218" stroke="#8ba3ad" stroke-width="2" marker-end="url(#arrow)"/>
+      <g id="engine"><title>Current mapping engine</title><rect x="225" y="34" width="400" height="114" rx="16" fill="#1d333e" stroke="#567985"/><text x="425" y="66" text-anchor="middle" fill="#e8f0f2" font-size="16">MappingEngine.process</text><text x="425" y="95" text-anchor="middle" fill="#aabdc5" font-size="13">filter → ground → projection → cells</text><text x="425" y="123" text-anchor="middle" fill="#eb9744" font-size="12">no learned or temporal state</text></g>
+      <path d="M631 91 H668" stroke="#8ba3ad" stroke-width="2" marker-end="url(#arrow)"/>
+      <g id="snapshot"><title>Single frame output</title><rect x="675" y="55" width="170" height="72" rx="14" fill="#21404a" stroke="#47b9a0"/><text x="760" y="84" text-anchor="middle" fill="#e8f0f2" font-size="16">MapSnapshot</text><text x="760" y="108" text-anchor="middle" fill="#aabdc5" font-size="12">single frame</text></g>
+      <path d="M851 91 H888" stroke="#8ba3ad" stroke-width="2" marker-end="url(#arrow)"/>
+      <g id="sinks"><title>Run reports and optional viewer</title><rect x="895" y="55" width="160" height="72" rx="14" fill="#21404a" stroke="#47b9a0"/><text x="975" y="84" text-anchor="middle" fill="#e8f0f2" font-size="16">Reports / View</text><text x="975" y="108" text-anchor="middle" fill="#aabdc5" font-size="12">JSON + Rerun</text></g>
+    </svg>
+    <p class="evidence mt-3">Evidence: <code>src/drishti/cli.py</code>, <code>pipeline.py</code>, <code>mapping.py</code>, <code>visualization.py</code>.</p>
+  </section>
+  <section class="mb-10">
+    <p class="uppercase tracking-widest text-xs text-slate-400">Capability ledger</p>
+    <h2 class="mt-2 mb-5 text-2xl font-semibold">Seven missing pieces and their first proof</h2>
+    <div class="overflow-x-auto report-card rounded-2xl">
+      <table class="table table-zebra w-full">
+        <thead><tr><th class="w-40">Capability</th><th>Current evidence</th><th>First required proof</th></tr></thead>
+        <tbody>
+          <tr><th>Learned semantics</th><td>Geometric mode assigns unknown; oracle copies labels.</td><td>Checkpoint-backed per-point inference, aligned to original IDs, held-out mIoU.</td></tr>
+          <tr><th>Obstacle detector</th><td>Nonground cell height envelope only.</td><td>Object instances, bounds and class/unknown; thin-object and overhang fixtures.</td></tr>
+          <tr><th>Temporal fusion</th><td>No previous snapshot is read.</td><td>Pose-aligned bounded state with age, conflict, reset and replay tests.</td></tr>
+          <tr><th>Object tracking</th><td>Oracle instance IDs do not enter mapping.</td><td>Track lifecycle across crossing, occlusion and reappearance.</td></tr>
+          <tr><th>Motion estimation</th><td>Unknown or oracle moving flag, no velocity.</td><td>Ego-motion compensated velocity and unknown-on-insufficient-evidence behavior.</td></tr>
+          <tr><th>Free-space proof</th><td>Projection records winners, not ray freespace.</td><td>Occupied/free/unknown contract; no-return and occlusion cannot become free.</td></tr>
+          <tr><th>Real-time gate</th><td>Budget field exists; release gate stays false.</td><td>Complete-path target-hardware p99/max, misses, drops and memory.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <section class="grid grid-cols-1 gap-5 lg:grid-cols-2 mb-10">
+    <div class="report-card rounded-2xl p-6 bar">
+      <h2 class="text-2xl font-semibold">Build sequence</h2>
+      <ol class="mt-4 space-y-3 text-slate-200 list-decimal pl-5">
+        <li>Freeze point, class, pose, time and acceptance contracts.</li>
+        <li>Integrate and evaluate a versioned semantic model.</li>
+        <li>Add obstacle observations, then track and measure motion.</li>
+        <li>Add conservative rays and a bounded temporal map.</li>
+        <li>Extend reports/viewer; profile the complete target path.</li>
+      </ol>
+      <p class="evidence mt-5">Task IDs T-001 to T-009 in <code>docs/execution-plan.md</code>.</p>
+    </div>
+    <div class="report-card rounded-2xl p-6">
+      <h2 class="text-2xl font-semibold">Decisions still needed</h2>
+      <ul class="mt-4 space-y-3 text-slate-200">
+        <li><span class="text-amber-300 font-semibold">D-001</span> Target hardware, deadline and allowed miss rate.</li>
+        <li><span class="text-amber-300 font-semibold">D-002</span> First model milestone and checkpoint strategy.</li>
+        <li><span class="text-amber-300 font-semibold">D-003</span> Evidence-only free space or navigation output.</li>
+        <li><span class="text-amber-300 font-semibold">D-004/005</span> Live input scope and numeric quality gates.</li>
+      </ul>
+      <p class="evidence mt-5">No product implementation starts before the draft PRD, design and acceptance are frozen and approved.</p>
+    </div>
+  </section>
+  <footer class="text-sm text-slate-400 border-t border-slate-700 pt-6">
+    Source documents: <code>AGENTS.md</code>, <code>docs/project-assessment.md</code>, <code>docs/execution-plan.md</code>, and <code>Drishti-2.5/docs/spec-driven/drishti-perception/</code>. The visual uses the recommended DaisyUI/Tailwind fallback because the package has no web design system; its teal and orange accents echo the Rerun palette.
+  </footer>
+</main>
+</body>
+</html>

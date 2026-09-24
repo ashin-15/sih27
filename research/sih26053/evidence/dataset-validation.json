@@ -19,7 +19,7 @@
       "label_bytes": 2206818800,
       "points_per_scan_min": 101387,
       "points_per_scan_max": 128146,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10193999999999903,
         "median_s": 0.1036099999999891,
@@ -80,7 +80,7 @@
       "label_bytes": 465422936,
       "points_per_scan_min": 82602,
       "points_per_scan_max": 125269,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10112000000000165,
         "median_s": 0.10363000000000255,
@@ -128,7 +128,7 @@
       "label_bytes": 2342192796,
       "points_per_scan_min": 106946,
       "points_per_scan_max": 129261,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10190000000000055,
         "median_s": 0.10370000000000346,
@@ -185,7 +185,7 @@
       "label_bytes": 397202960,
       "points_per_scan_min": 116566,
       "points_per_scan_max": 127239,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.09929200000000016,
         "median_s": 0.10338999999999743,
@@ -237,7 +237,7 @@
       "label_bytes": 136278228,
       "points_per_scan_min": 121965,
       "points_per_scan_max": 127321,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10107999999999961,
         "median_s": 0.10412299999999974,
@@ -287,7 +287,7 @@
       "label_bytes": 1380915912,
       "points_per_scan_min": 107038,
       "points_per_scan_max": 128267,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.0981700000000032,
         "median_s": 0.10419999999999163,
@@ -344,7 +344,7 @@
       "label_bytes": 538610752,
       "points_per_scan_min": 111982,
       "points_per_scan_max": 125148,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10324,
         "median_s": 0.1038800000000002,
@@ -400,7 +400,7 @@
       "label_bytes": 534340852,
       "points_per_scan_min": 109417,
       "points_per_scan_max": 128169,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.099189999999993,
         "median_s": 0.10390999999999906,
@@ -455,7 +455,7 @@
       "label_bytes": 1996318248,
       "points_per_scan_min": 92476,
       "points_per_scan_max": 128443,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10045000000000215,
         "median_s": 0.1039000000000101,
@@ -514,7 +514,7 @@
       "label_bytes": 791581900,
       "points_per_scan_min": 102813,
       "points_per_scan_max": 127526,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.09814000000000078,
         "median_s": 0.10375000000000156,
@@ -568,7 +568,7 @@
       "label_bytes": 604872992,
       "points_per_scan_min": 109813,
       "points_per_scan_max": 129392,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10334999999999184,
         "median_s": 0.10374999999999801,
@@ -622,7 +622,7 @@
       "label_bytes": 0,
       "points_per_scan_min": 113918,
       "points_per_scan_max": 128706,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.09994999999999976,
         "median_s": 0.10374000000000194,
@@ -648,7 +648,7 @@
       "label_bytes": 0,
       "points_per_scan_min": 100507,
       "points_per_scan_max": 127289,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10020000000000095,
         "median_s": 0.10370000000000346,
@@ -674,7 +674,7 @@
       "label_bytes": 0,
       "points_per_scan_min": 96271,
       "points_per_scan_max": 125787,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.09573199999999993,
         "median_s": 0.1039999999999992,
@@ -700,7 +700,7 @@
       "label_bytes": 0,
       "points_per_scan_min": 120066,
       "points_per_scan_max": 128726,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.09890000000000043,
         "median_s": 0.10376000000000118,
@@ -726,7 +726,7 @@
       "label_bytes": 0,
       "points_per_scan_min": 92478,
       "points_per_scan_max": 128491,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.09916000000000125,
         "median_s": 0.10370999999999952,
@@ -752,7 +752,7 @@
       "label_bytes": 0,
       "points_per_scan_min": 107913,
       "points_per_scan_max": 127543,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10159000000000162,
         "median_s": 0.1036999999999928,
@@ -778,7 +778,7 @@
       "label_bytes": 0,
       "points_per_scan_min": 105921,
       "points_per_scan_max": 124015,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10061999999999927,
         "median_s": 0.1036099999999962,
@@ -804,7 +804,7 @@
       "label_bytes": 0,
       "points_per_scan_min": 101549,
       "points_per_scan_max": 127099,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10219999999998208,
         "median_s": 0.10375550000000011,
@@ -830,7 +830,7 @@
       "label_bytes": 0,
       "points_per_scan_min": 99373,
       "points_per_scan_max": 127097,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10000000000002274,
         "median_s": 0.10370000000000346,
@@ -856,7 +856,7 @@
       "label_bytes": 0,
       "points_per_scan_min": 89106,
       "points_per_scan_max": 127147,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10147000000000617,
         "median_s": 0.10361999999999938,
@@ -882,7 +882,7 @@
       "label_bytes": 0,
       "points_per_scan_min": 107672,
       "points_per_scan_max": 127594,
-      "scans_above_vrgrid_default_150000_point_cap": 0,
+      "scans_above_historical_reference_default_150000_point_cap": 0,
       "timestamp_intervals": {
         "min_s": 0.10199999999997544,
         "median_s": 0.10349999999999682,

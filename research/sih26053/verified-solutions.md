@@ -1,10 +1,10 @@
 # SIH26053: verified solutions and remaining gaps
 
-Research checked on 21 September 2026. Scope: the [problem statement](/home/ashin/Hackathon/SIH/SIH26053.md), `vrgrid-26`, and a real-time 2.5D visualization dashboard. The user clarified that “GIS” means this dashboard, not georeferencing, route planning or a full geographic information system.
+Historical research checked on 21 September 2026. The retired reference-project identifier in this archive was replaced with `legacy-reference` for standalone naming. The original file paths are recoverable from Git history. These findings are not measurements of the current Drishti-2.5 package; use the current assessment and acceptance documents under `docs/` for new work. Scope: the [problem statement](/home/ashin/Hackathon/SIH/SIH26053.md), `legacy-reference`, and a real-time 2.5D visualization dashboard. The user clarified that “GIS” means this dashboard, not georeferencing, route planning or a full geographic information system.
 
 ## Conclusion
 
-Use vrgrid's common integer lattice, block ownership, typed reductions, conservative visibility checks and bounded arrays as reference designs. Do **not** treat the repository as a finished, lossless perception-and-visualization pipeline. Several mathematically sound components are not wired into its main runtime, and the evaluation pipeline is materially different from the demonstration pipeline.
+Use the historical prototype's common integer lattice, block ownership, typed reductions, conservative visibility checks and bounded arrays as reference designs. Do **not** treat the repository as a finished, lossless perception-and-visualization pipeline. Several mathematically sound components are not wired into its main runtime, and the evaluation pipeline is materially different from the demonstration pipeline.
 
 A compact 2.5D map cannot preserve arbitrary 3D geometry. The defensible objective is **no unexplained point loss, consistent coordinates, conservative obstacle preservation, and explicitly bounded representation error**. Keep original scans and provenance outside the rolling map when reversibility or later reconstruction matters.
 
@@ -17,7 +17,7 @@ A compact 2.5D map cannot preserve arbitrary 3D geometry. The defensible objecti
 - Environment: Python 3.12.14, NumPy 2.5.3, PyYAML 6.0.3, pytest 9.1.1, Patchwork++ 1.4.1.
 - **Not reproduced:** real SemanticKITTI accuracy, FRNet inference, GPU parity/speed, full-sequence ghost rates, real wall registration or live dashboard performance. Dataset, checkpoint and working CUDA dependencies were unavailable here. Visualization tests also skipped without Rerun.
 
-Evidence: [machine-readable verification](/home/ashin/Hackathon/SIH/research/sih26053/evidence/verification.json), [pytest results](/home/ashin/Hackathon/SIH/research/sih26053/evidence/vrgrid-pytest.xml), [reproduction script](/home/ashin/Hackathon/SIH/research/sih26053/verify_reference.py).
+Evidence: [machine-readable verification](/home/ashin/Hackathon/SIH/research/sih26053/evidence/verification.json) and [pytest results](/home/ashin/Hackathon/SIH/research/sih26053/evidence/historical-reference-pytest.xml). The retired reproduction script is available only in Git history; it is not a standalone Drishti command.
 
 Evidence labels below: **Local** means executed here; **Code** means inspected implementation; **Research** means primary-source support; **Proposal** means not yet validated in this project. Passing a test that documents a limitation does not mean the limitation is solved.
 
@@ -29,7 +29,7 @@ Evidence labels below: **Local** means executed here; **Code** means inspected i
 4. **Allocation headlines omit significant runtime memory.** The default 8.94 MB number describes logical cell payload, not the engine or neural model. See the measured accounting below. **Local.**
 5. **The 5/10/50 schedule is legal, but the default refinement block is too small at its 5x boundary.** A 50 cm cell needs 25 children at 10 cm; a 16-cell block cannot hold them. The pool refuses that refinement. A bigger block or explicit unsupported-refinement status is necessary. **Code + passing pool tests.**
 
-Sources: [main engine](/home/ashin/Hackathon/SIH/vrgrid-26/src/run/engine.py), [perception pipeline](/home/ashin/Hackathon/SIH/vrgrid-26/src/run/__main__.py), [evaluation harness](/home/ashin/Hackathon/SIH/vrgrid-26/src/eval/harness.py), [refinement pool](/home/ashin/Hackathon/SIH/vrgrid-26/src/grid/pool.py).
+Sources: [main engine](/home/ashin/Hackathon/SIH/legacy-reference/src/run/engine.py), [perception pipeline](/home/ashin/Hackathon/SIH/legacy-reference/src/run/__main__.py), [evaluation harness](/home/ashin/Hackathon/SIH/legacy-reference/src/eval/harness.py), [refinement pool](/home/ashin/Hackathon/SIH/legacy-reference/src/grid/pool.py).
 
 ## The 15 bottlenecks and their solutions
 
@@ -41,7 +41,7 @@ Sources: [main engine](/home/ashin/Hackathon/SIH/vrgrid-26/src/run/engine.py), [
 
 **Decision:** retain the compact ground/clearance map as the primary display and expose vertical ambiguity explicitly. If preserving multiple surfaces is required, use a bounded multi-surface column or sparse 3D side layer only in ambiguous regions. If that layer overflows, mark it ambiguous rather than overwrite a surface. Global routing is out of scope. **Local + Proposal.**
 
-Verify with bridge/underpass, canopy, wall, steep grade and clearance fixtures; check retained surface count and displayed clearance, not just height RMSE. [Fusion tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_fusion.py). Multi-level surface maps explicitly address multiple surfaces and vertical intervals. [MLS paper](https://cvai.cit.tum.de/_media/spezial/bib/triebel06multi.pdf).
+Verify with bridge/underpass, canopy, wall, steep grade and clearance fixtures; check retained surface count and displayed clearance, not just height RMSE. [Fusion tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_fusion.py). Multi-level surface maps explicitly address multiple surfaces and vertical intervals. [MLS paper](https://cvai.cit.tum.de/_media/spezial/bib/triebel06multi.pdf).
 
 ### 02. Many-to-one projection collisions
 
@@ -51,7 +51,7 @@ Verify with bridge/underpass, canopy, wall, steep grade and clearance fixtures; 
 
 **Decision:** keep original point indices and all raw points; define pixel ownership as minimum range with a stable point-index tie-break; unproject model outputs to every original point using the model's documented method. Count geometry, attribute and projection losses separately. Do not promise all-point semantic recovery merely because an inverse index exists. **Code + Proposal.**
 
-Verify duplicate rays, equal-depth ties, reversed input order, invalid ranges, point index 0 and all-original-point output length. The official API's index-0 mask issue was reproduced locally; details are in the [API guide](/home/ashin/Hackathon/SIH/research/sih26053/semantic-kitti-api-guide.md). [Range-image tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_range_image.py).
+Verify duplicate rays, equal-depth ties, reversed input order, invalid ranges, point index 0 and all-original-point output length. The official API's index-0 mask issue was reproduced locally; details are in the [API guide](/home/ashin/Hackathon/SIH/research/sih26053/semantic-kitti-api-guide.md). [Range-image tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_range_image.py).
 
 ### 03. Resolution-boundary seams
 
@@ -61,7 +61,7 @@ Verify duplicate rays, equal-depth ties, reversed input order, invalid ranges, p
 
 **Decision:** preserve block-level ownership and integer-ratio levels. Use footprint-overlap queries and explicit cross-level neighborhood support for downstream features. Test ownership across frames and migration of existing evidence, not only insertion of fresh returns. **Local + Proposal.**
 
-[Lattice tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_lattice.py), [binning tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_bin_points.py). Passing tested headings/speeds is not a proof of all continuous trajectories.
+[Lattice tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_lattice.py), [binning tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_bin_points.py). Passing tested headings/speeds is not a proof of all continuous trajectories.
 
 ### 04. Unstable coordinate indexing
 
@@ -71,7 +71,7 @@ Verify duplicate rays, equal-depth ties, reversed input order, invalid ranges, p
 
 **Decision:** specify one local metric origin, half-open cell convention, numeric quantizer and overflow bounds; use integer local coordinates for cell identities and derive all levels from them. Convert cells to displayed centers consistently, including the half-cell offset. No geographic CRS is required for this dashboard. **Local + Proposal.**
 
-Independent check: 100,004 coordinates, five level ratios. Add ULP-adjacent boundaries, negative positions, large global coordinates and slot-to-world round trips to acceptance tests. [Lattice implementation](/home/ashin/Hackathon/SIH/vrgrid-26/src/grid/lattice.py).
+Independent check: 100,004 coordinates, five level ratios. Add ULP-adjacent boundaries, negative positions, large global coordinates and slot-to-world round trips to acceptance tests. [Lattice implementation](/home/ashin/Hackathon/SIH/legacy-reference/src/grid/lattice.py).
 
 ### 05. Intra-scan motion distortion
 
@@ -83,13 +83,13 @@ LIO-SAM documents its point-time, ring and IMU requirements. It is a reference f
 
 ### 06. Pose, clock and extrinsic errors
 
-**Reference solution:** explicit camera/LiDAR/world transforms and calibration loading; sequence-dependent pose source. Actual code selects SemanticKITTI SLAM poses for sequences 00 and 08, official KITTI GT poses otherwise, with `VRGRID_POSE_SOURCE` override. Some comments still describe older behavior.
+**Reference solution:** explicit camera/LiDAR/world transforms and calibration loading; sequence-dependent pose source. Actual code selects SemanticKITTI SLAM poses for sequences 00 and 08, official KITTI GT poses otherwise, with a retired pose-source override. Some comments still describe older behavior.
 
 **Remaining gap:** the recorded pose-quality comparisons were not reproduced here. Ground-truth replay is not live localization, and a frame transform does not remove clock error or uncertainty. Choosing poses after evaluating on validation sequence 08 must not be presented as untouched validation.
 
 **Decision:** pin pose provenance, extrinsics and timing in every run manifest. Use the same frame/pose source for candidate and reference maps when isolating compression error; separately measure localization error against independent evidence. Validate transforms on real static walls and loop revisits before comparing 5 cm maps. **Code + Proposal.**
 
-For intuition, 0.1 degree orientation error produces approximately 17.5 cm transverse displacement at 100 m; finer cells cannot remove that error. [Loader](/home/ashin/Hackathon/SIH/vrgrid-26/src/perception/loader.py), [frame convention tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_frame_convention.py).
+For intuition, 0.1 degree orientation error produces approximately 17.5 cm transverse displacement at 100 m; finer cells cannot remove that error. [Loader](/home/ashin/Hackathon/SIH/legacy-reference/src/perception/loader.py), [frame convention tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_frame_convention.py).
 
 ### 07. Unknown space confused with free space
 
@@ -99,7 +99,7 @@ For intuition, 0.1 degree orientation error produces approximately 17.5 cm trans
 
 **Decision:** display occupancy, traversability and validity separately, with a distinct unknown style. Do not fill holes or smooth unknown cells into apparently drivable terrain. Driving policy is outside this dashboard's scope, but the display must not imply safety where there is no evidence. **Local + Proposal.**
 
-[Fusion tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_fusion.py), [traversability tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_traversability.py). Nav2 exposes unknown-space handling, but configuring it remains an integration obligation. [Nav2 costmap](https://docs.nav2.org/rolling/configuration_and_development/configuration_guide/core_servers/costmap_2d/).
+[Fusion tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_fusion.py), [traversability tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_traversability.py). Nav2 exposes unknown-space handling, but configuring it remains an integration obligation. [Nav2 costmap](https://docs.nav2.org/rolling/configuration_and_development/configuration_guide/core_servers/costmap_2d/).
 
 ### 08. Dynamic-object ghosts and state oscillation
 
@@ -109,7 +109,7 @@ For intuition, 0.1 degree orientation error produces approximately 17.5 cm trans
 
 **Decision:** combine independently evaluated temporal motion estimation with static/transient state separation and visibility-based background clearing. A stationary car remains a collision obstacle even if it is not moving. Keep stale/occluded state distinct from confirmed absence. **Local + Research + Proposal.**
 
-LiDAR-MOS uses ego-motion-aligned temporal residuals for motion discrimination. Evaluate moving IoU, static-object false removal, ghost lifetime and detection delay independently; model benchmark results are not this project's results. [LiDAR-MOS paper](https://arxiv.org/abs/2105.08971), [engine tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_engine.py), [visibility tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_visibility.py).
+LiDAR-MOS uses ego-motion-aligned temporal residuals for motion discrimination. Evaluate moving IoU, static-object false removal, ghost lifetime and detection delay independently; model benchmark results are not this project's results. [LiDAR-MOS paper](https://arxiv.org/abs/2105.08971), [engine tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_engine.py), [visibility tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_visibility.py).
 
 ### 09. Cross-resolution reduction and irreversible resampling
 
@@ -119,7 +119,7 @@ LiDAR-MOS uses ego-motion-aligned temporal residuals for motion discrimination. 
 
 **Decision:** define each field's reducer separately: footprint statistics for terrain, conservative occupied/unknown coverage for safety, minimum valid clearance, explicit semantic evidence. Use `1/12` only under its stated geometric assumptions and calibrate residual uncertainty. Preserve raw/submap detail when restoration after real information loss is needed. **Local + Proposal.**
 
-[Split/merge tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_splitmerge.py), [fusion tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_fusion.py). These tests deliberately expose several limitations rather than eliminate them.
+[Split/merge tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_splitmerge.py), [fusion tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_fusion.py). These tests deliberately expose several limitations rather than eliminate them.
 
 ### 10. Correlated, range-dependent uncertainty
 
@@ -139,7 +139,7 @@ Robot-centric elevation mapping provides a primary reference for using pose cova
 
 **Decision:** compute slope/roughness over metric footprints; preserve safety-relevant extrema or request local refinement before discarding small features. Test identical curb, pole and pothole geometry at every range and immediately across every seam. Report detection recall alongside terrain RMSE. **Local + Proposal.**
 
-[Traversability](/home/ashin/Hackathon/SIH/vrgrid-26/src/grid/traversability.py), [feature tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_features.py).
+[Traversability](/home/ashin/Hackathon/SIH/legacy-reference/src/grid/traversability.py), [feature tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_features.py).
 
 ### 12. Layer aging and synchronization
 
@@ -149,7 +149,7 @@ Robot-centric elevation mapping provides a primary reference for using pose cova
 
 **Decision:** publish atomic map snapshots with frame ID, timestamp, pose version, datum, resolution and per-layer freshness. Use elapsed time, not assumed frame count, for expiration under dropped frames. Own stateful perception instances per stream; reject or warp stale semantic observations. **Code + Proposal.**
 
-Verify frame drops, reordering, two concurrent sequences, a changed pose estimate and skipped inference while turning. [Perception runtime](/home/ashin/Hackathon/SIH/vrgrid-26/src/run/__main__.py), [ground tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_ground.py).
+Verify frame drops, reordering, two concurrent sequences, a changed pose estimate and skipped inference while turning. [Perception runtime](/home/ashin/Hackathon/SIH/legacy-reference/src/run/__main__.py), [ground tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_ground.py).
 
 ### 13. Adaptive structures and irregular computation
 
@@ -159,7 +159,7 @@ Verify frame drops, reordering, two concurrent sequences, a changed pose estimat
 
 **Decision:** use a bounded ring-array design for the local 2.5D map; reserve a sparse 3D side layer for vertical ambiguity if needed. Avoid a pointer-heavy octree as the default hot path unless its measured benefit justifies it. A sparse structure is not automatically faster. Benchmark end-to-end p50/p95/p99 including transfers, perception, cleanup and rendering submission. **Local + Proposal.**
 
-For a 3D comparison, nvblox is an open GPU mapping/ESDF reference, but its published speedups cannot be transplanted to this hardware or workload. [nvblox paper](https://arxiv.org/abs/2311.00626), [allocator tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_allocators.py).
+For a 3D comparison, nvblox is an open GPU mapping/ESDF reference, but its published speedups cannot be transplanted to this hardware or workload. [nvblox paper](https://arxiv.org/abs/2311.00626), [allocator tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_allocators.py).
 
 ### 14. Moving-fovea allocation churn and historical evidence
 
@@ -169,7 +169,7 @@ For a 3D comparison, nvblox is an open GPU mapping/ESDF reference, but its publi
 
 **Decision:** use integer window movement plus an explicit ownership transition transaction: preserve, reduce, inherit-with-provenance, or invalidate each affected field. Distinguish newly measured fine cells from inherited ones. Verify bidirectional driving, stops, heading changes, repeated boundary crossings and shifts larger than the window. **Local + Proposal.**
 
-[Shift tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_shift.py), [pool tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_pool.py), [gate tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_gate.py).
+[Shift tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_shift.py), [pool tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_pool.py), [gate tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_gate.py).
 
 ### 15. Benchmarks that hide failures
 
@@ -179,7 +179,7 @@ For a 3D comparison, nvblox is an open GPU mapping/ESDF reference, but its publi
 
 **Decision:** maintain separate map-only/oracle and end-to-end/predicted experiments. Freeze splits, preprocessing, pose source and evaluation definitions before tuning. Require point conservation and report every cap/drop/unknown category. Keep overlapping attributes, such as moving or projected, separate from terminal attrition categories. **Local + Proposal.**
 
-For each run record: original point count; capped, outside-window, nonground, ground-out-of-band and fused-ground counts; semantic and motion provenance; per-range semantic IoU; coverage; height error; curb/pole/pothole recall; false-free cells; ghost lifetime; actual allocated/RSS/VRAM peak; latency percentiles and deadline misses. [Attrition tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_attrition.py), [determinism tests](/home/ashin/Hackathon/SIH/vrgrid-26/tests/test_determinism.py).
+For each run record: original point count; capped, outside-window, nonground, ground-out-of-band and fused-ground counts; semantic and motion provenance; per-range semantic IoU; coverage; height error; curb/pole/pothole recall; false-free cells; ghost lifetime; actual allocated/RSS/VRAM peak; latency percentiles and deadline misses. [Attrition tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_attrition.py), [determinism tests](/home/ashin/Hackathon/SIH/legacy-reference/tests/test_determinism.py).
 
 ## Measured memory: payload is not runtime footprint
 
@@ -205,11 +205,11 @@ A uniform 5 cm 2.5D grid over the same square is 192 MB at 12 bytes/cell. The de
 
 The deliverable is a live 2.5D map with distinct terrain/object colors and a transparent comparison against uniform high-resolution 3D storage. **No geographic CRS, map tiles, route planner or global routing graph is required.**
 
-### What vrgrid already provides, by code inspection
+### What the historical prototype already provides, by code inspection
 
 `dashboard/pipeline_view.py` provides a Rerun-based view with class/motion/ground coloring for input points, a real occupied-map surface, layer legends, timing and memory panels. `_log_occupied()` currently uses a height color ramp for map cells, while `_frame_colors()` provides semantic colors for the point cloud. Thus, semantic-colored input points are not evidence of semantic-colored **2.5D cells**. Add/test a map-cell semantic color mode for the exact problem requirement. Unpack the cell class byte and validate unknown handling first.
 
-Its live memory time series compares against a **uniform 2.5D** grid and initializes its “allocation” value from logical cell payload. A separate `dashboard/dense3d_comparison.py` renders a reduced-footprint dense 3D comparison; it is explicitly not part of the main live dashboard. Integrate or clearly present a 3D comparison, and distinguish payload from allocated memory. These findings are code inspection, not a completed rendering/performance test. [Main dashboard](/home/ashin/Hackathon/SIH/vrgrid-26/dashboard/pipeline_view.py), [3D comparison](/home/ashin/Hackathon/SIH/vrgrid-26/dashboard/dense3d_comparison.py).
+Its live memory time series compares against a **uniform 2.5D** grid and initializes its “allocation” value from logical cell payload. A separate `dashboard/dense3d_comparison.py` renders a reduced-footprint dense 3D comparison; it is explicitly not part of the main live dashboard. Integrate or clearly present a 3D comparison, and distinguish payload from allocated memory. These findings are code inspection, not a completed rendering/performance test. [Main dashboard](/home/ashin/Hackathon/SIH/legacy-reference/dashboard/pipeline_view.py), [3D comparison](/home/ashin/Hackathon/SIH/legacy-reference/dashboard/dense3d_comparison.py).
 
 ### Recommended dashboard contract
 
@@ -230,16 +230,10 @@ The above is a researched dashboard recommendation. Its real-time FPS, rendering
 4. Connect actual map-cell layers to the live dashboard, with semantic colors, unknown/dynamic overlays and an explicitly scoped uniform-3D memory comparison.
 5. Run held-out real-data and hardware acceptance tests before selecting a final schedule, model precision or inference rate.
 
-Correction to the first report: `5/10/20/50` is not a compatible nested hierarchy for this engine because 50/20 is 2.5. `5/10/50` is legal; powers of two are not mandatory. The earlier circular cell-count illustration also must not be presented as measured vrgrid memory.
+Correction to the first report: `5/10/20/50` is not a compatible nested hierarchy for this engine because 50/20 is 2.5. `5/10/50` is legal; powers of two are not mandatory. The earlier circular cell-count illustration also must not be presented as measured memory for the historical prototype.
 
-## Reproduce the bounded checks
+## Reproduction status
 
-```sh
-cd /home/ashin/Hackathon/SIH/vrgrid-26
-/tmp/sih26053-verification-venv/bin/python -m pytest -q -ra --junitxml=/home/ashin/Hackathon/SIH/research/sih26053/evidence/vrgrid-pytest.xml
-
-cd /home/ashin/Hackathon/SIH
-/tmp/sih26053-verification-venv/bin/python research/sih26053/verify_reference.py --reference vrgrid-26 --api /tmp/sih26053-semantic-kitti-api
-```
-
-The commands above record the completed verification run. The temporary environment and API clone were no longer present at the final audit; saved evidence remains in this workspace. To rerun, recreate an environment with `vrgrid-26[dev,perception]` and check out the API commit above, then substitute those paths. The probe intentionally detects the audited bugs; a later upstream fix should make those assertions fail and prompt an evidence update. Neither reference repository was patched.
+The saved reports document the bounded historical checks. The temporary environment, API clone,
+and retired script are not part of the standalone project, so reproduction is NOT VERIFIED in
+this working tree. The original script and unredacted artifact paths remain in Git history.

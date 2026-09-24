@@ -1,6 +1,6 @@
-Drishti-2.5 uses the common-lattice, block-ownership, and explicit mapping-evidence design ideas investigated in vrgrid-26, reference commit 8acbfe91ca24de4edd1305a3d59ca5c15ae5d40d. The reference repository is not a runtime dependency. The SemanticKITTI raw-to-learning mapping is adapted from the reference's perception/semantics.py, with the official 0=ignore, 1..19 class convention made explicit.
+Drishti-2.5 uses common-lattice, block-ownership, and explicit mapping-evidence design ideas from a prior MIT-licensed reference implementation, commit 8acbfe91ca24de4edd1305a3d59ca5c15ae5d40d. The reference implementation is not a runtime dependency. The SemanticKITTI raw-to-learning mapping was adapted from its perception/semantics.py, with the official 0=ignore, 1..19 class convention made explicit.
 
-vrgrid-26 license:
+Prior reference implementation license and required attribution:
 
 MIT License
 

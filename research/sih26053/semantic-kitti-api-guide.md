@@ -1,4 +1,6 @@
-# Using the SemanticKITTI API with SIH26053 / vrgrid-26
+# Historical SemanticKITTI API research for SIH26053
+
+Archive note: this guide documents an earlier reference adapter, not the current Drishti-2.5 class contract or runtime. The retired project identifier in historical paths was replaced with `legacy-reference`; original paths remain in Git history. For current interfaces, read `docs/interfaces.md` and `Drishti-2.5/src/drishti/semantics.py`.
 
 Checked 21 September 2026 against official API commit `a9c749e8124b2243b6eef1b8bcf971a9f1173a2d`. See the [verification results](/home/ashin/Hackathon/SIH/research/sih26053/evidence/verification.json).
 
@@ -6,7 +8,7 @@ Checked 21 September 2026 against official API commit `a9c749e8124b2243b6eef1b8b
 
 [PRBonn/semantic-kitti-api](https://github.com/PRBonn/semantic-kitti-api) is a local Python toolkit, not a hosted REST API. It supplies dataset readers, label definitions, spherical projection, visualizers and benchmark evaluators. It does not download the LiDAR dataset, infer semantics/motion for you, construct an adaptive elevation grid or deskew scans. Here, “GIS” means the user's real-time 2.5D visualization dashboard, not a geographic information system.
 
-Use it as the **format and evaluation reference**, with a small explicit adapter into vrgrid. Obtain KITTI odometry scans/calibration and SemanticKITTI annotations separately through the [official dataset page](https://www.semantic-kitti.org/dataset.html). For initial work, labeled validation sequence 08 is sufficient to exercise the file pipeline, but tuning and final evaluation must be separated. Training sequences are 00-07, 09 and 10; validation is 08; 11-21 are the benchmark test sequences with hidden semantic ground truth. [Official configuration](https://github.com/PRBonn/semantic-kitti-api/blob/a9c749e8124b2243b6eef1b8bcf971a9f1173a2d/config/semantic-kitti.yaml).
+Use it as the **format and evaluation reference**, with a small explicit adapter into the historical prototype. Obtain KITTI odometry scans/calibration and SemanticKITTI annotations separately through the [official dataset page](https://www.semantic-kitti.org/dataset.html). For initial work, labeled validation sequence 08 is sufficient to exercise the file pipeline, but tuning and final evaluation must be separated. Training sequences are 00-07, 09 and 10; validation is 08; 11-21 are the benchmark test sequences with hidden semantic ground truth. [Official configuration](https://github.com/PRBonn/semantic-kitti-api/blob/a9c749e8124b2243b6eef1b8bcf971a9f1173a2d/config/semantic-kitti.yaml).
 
 ## 1. Dataset contract
 
@@ -37,7 +39,7 @@ Semantic scene-completion voxel files use a different format, including voxel la
 
 ## 2. Resolve the class-ID mismatch explicitly
 
-| Meaning | Raw semantic ID | Official learning ID | vrgrid perception ID |
+| Meaning | Raw semantic ID | Official learning ID | historical perception ID |
 |---|---:|---:|---:|
 | Ignored / unlabeled | 0 | 0 | -1 |
 | Car | 10 | 1 | 0 |
@@ -46,11 +48,11 @@ Semantic scene-completion voxel files use a different format, including voxel la
 | Pole | 80 | 18 | 17 |
 | Traffic sign | 81 | 19 | 18 |
 
-All **34 raw IDs** in the pinned semantic configuration were checked: `vrgrid_id = official_learning_id - 1`, including official ignored ID 0 becoming -1. Upper instance bits were deliberately set high in the fixture; semantics and motion still decoded correctly.
+All **34 raw IDs** in the pinned semantic configuration were checked: `historical_id = official_learning_id - 1`, including official ignored ID 0 becoming -1. Upper instance bits were deliberately set high in the fixture; semantics and motion still decoded correctly.
 
-Keep named conventions at adapter boundaries. Do not pass raw 40 as a packed cell class, or official learning ID 9 to a component expecting vrgrid's road ID 8. The packed cell byte also contains a vote counter: unpack it before interpreting the candidate.
+Keep named conventions at adapter boundaries. Do not pass raw 40 as a packed cell class, or official learning ID 9 to a component expecting the historical prototype's road ID 8. The packed cell byte also contains a vote counter: unpack it before interpreting the candidate.
 
-**Reproduced vrgrid defect:** the CPU `MapEngine` changes negative semantic IDs to 0, incorrectly storing ignored points as car candidates. The existing cell-level unknown sentinel 31 is a candidate solution, but every consuming class lookup must agree. This research did not modify the reference engine. [Engine source](/home/ashin/Hackathon/SIH/vrgrid-26/src/run/engine.py).
+**Reproduced the historical prototype defect:** the CPU `MapEngine` changes negative semantic IDs to 0, incorrectly storing ignored points as car candidates. The existing cell-level unknown sentinel 31 is a candidate solution, but every consuming class lookup must agree. This research did not modify the reference engine. [Engine source](/home/ashin/Hackathon/SIH/legacy-reference/src/run/engine.py).
 
 ## 3. Read and project safely
 
@@ -60,14 +62,14 @@ Important tested caveats in the pinned API:
 
 1. **Point index 0 mask defect.** `proj_mask` uses `proj_idx > 0`, while valid point indices start at 0. Our file-level fixture has 34 raw points on one ray; the closest point at index 0 survives projection, yet its mask is zero. In an adapter use a validity mask derived from `proj_idx >= 0` and test it. `do_label_projection()` already uses the nonnegative check. No upstream files were patched.
 2. **Projection is many-to-one.** In that fixture, one pixel represents 34 retained original points. Do not discard the original scan merely because the projected image contains one point.
-3. **Projection parameters are model-specific.** Match image dimensions and FOV to the checkpoint's preprocessing, not merely the physical sensor spec. The API defaults to 64 x 1024; vrgrid's own projector/configuration is separate. Do not mix their inverse indices or masks.
+3. **Projection parameters are model-specific.** Match image dimensions and FOV to the checkpoint's preprocessing, not merely the physical sensor spec. The API defaults to 64 x 1024; the historical prototype's own projector/configuration is separate. Do not mix their inverse indices or masks.
 4. **Equal-depth ties and out-of-FOV returns need an explicit policy.** The API sorts by depth and clamps image coordinates. Treat nearest ownership as a reference behavior, not a cross-backend determinism guarantee for ties.
 
-[Reader/projection source](https://github.com/PRBonn/semantic-kitti-api/blob/a9c749e8124b2243b6eef1b8bcf971a9f1173a2d/auxiliary/laserscan.py), [local executable fixture](/home/ashin/Hackathon/SIH/research/sih26053/verify_reference.py).
+[Reader/projection source](https://github.com/PRBonn/semantic-kitti-api/blob/a9c749e8124b2243b6eef1b8bcf971a9f1173a2d/auxiliary/laserscan.py). The historical executable fixture remains in Git history and is not a standalone Drishti command.
 
 ## 4. Export predictions in the evaluator's format
 
-Semantic predictions must return to original point order. Convert vrgrid perception IDs to official learning IDs, then apply `learning_map_inv` to obtain canonical raw IDs before writing uint32 words. Unknown maps to raw 0. Leave instance bits zero for semantic-only evaluation.
+Semantic predictions must return to original point order. Convert historical perception IDs to official learning IDs, then apply `learning_map_inv` to obtain canonical raw IDs before writing uint32 words. Unknown maps to raw 0. Leave instance bits zero for semantic-only evaluation.
 
 ```python
 # pred_vr: one int per ORIGINAL input point; values -1 or 0..18.
@@ -99,7 +101,7 @@ Positive control: correct predictions covering all 19 semantic classes yielded a
 
 Two metric traps:
 
-- **mIoU denominator:** the official implementation averages all included classes, including classes absent from a small evaluated subset. A perfect one-class fixture gives `1/19 = 5.263%`, not 100%. vrgrid's documented 65.2% over 200 frames uses present classes and cannot be directly compared with the official benchmark figure. Report full official mIoU and optional present-class mIoU under distinct names. [Evaluator source](https://github.com/PRBonn/semantic-kitti-api/blob/a9c749e8124b2243b6eef1b8bcf971a9f1173a2d/auxiliary/np_ioueval.py).
+- **mIoU denominator:** the official implementation averages all included classes, including classes absent from a small evaluated subset. A perfect one-class fixture gives `1/19 = 5.263%`, not 100%. The historical prototype's documented 65.2% over 200 frames uses present classes and cannot be directly compared with the official benchmark figure. Report full official mIoU and optional present-class mIoU under distinct names. [Evaluator source](https://github.com/PRBonn/semantic-kitti-api/blob/a9c749e8124b2243b6eef1b8bcf971a9f1173a2d/auxiliary/np_ioueval.py).
 - **Distance bins:** the official distance script uses 3D Euclidean range and open intervals ending at 50 m. Exact distances 10, 20, 30, 40 and 50 m belong to no bin in the pinned code; this was reproduced. Keep its output for comparison, but add a separately named evaluator with exhaustive half-open bins and a 50-100 m bin for this problem. Also report actual adaptive ring membership, which is not the same as Euclidean range. [Distance source](https://github.com/PRBonn/semantic-kitti-api/blob/a9c749e8124b2243b6eef1b8bcf971a9f1173a2d/evaluate_semantics_by_distance.py).
 
 Never omit failed/unprojected points to inflate the per-point score. If the mapper cannot assign a prediction, retain the point with an explicit unknown prediction and report coverage. A point-semantic score does not measure height error, negative obstacles, clearance or displayed map alignment.

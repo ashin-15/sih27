@@ -26,4 +26,5 @@ data/
 *.env
 *.pem
 *.key
-vrgrid-26
+*.sqlite
+*grid-26/

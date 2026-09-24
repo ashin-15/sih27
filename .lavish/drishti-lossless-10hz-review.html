@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en" data-theme="business">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drishti 10 Hz: preserve scans, expose latency</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/daisyui.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5.5.19/themes.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.2.4/dist/index.global.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { background: #0c1420; color: #edf4f7; }
+    main { max-width: 1100px; margin: auto; padding: clamp(20px, 4vw, 56px); }
+    .eyebrow { letter-spacing: .18em; text-transform: uppercase; color: #7dd3d8; font-size: .72rem; font-weight: 800; }
+    .panel { background: #142231; border: 1px solid #2c4150; border-radius: 18px; padding: clamp(18px, 3vw, 28px); }
+    .muted { color: #a8beca; }
+    .accent { color: #7ee3d2; }
+    .warn { color: #ffce86; }
+    .metric { font-variant-numeric: tabular-nums; }
+    .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .grid2 > *, .row > * { min-width: 0; }
+    .row { display: flex; flex-wrap: wrap; gap: 16px; }
+    p, h1, h2, h3, td, th, li, figcaption { overflow-wrap: anywhere; }
+    svg { display: block; width: 100%; height: auto; }
+    table { width: 100%; }
+    td, th { text-align: left; padding: 11px 12px; border-bottom: 1px solid #304554; }
+    th { color: #9cb7c5; font-size: .78rem; text-transform: uppercase; letter-spacing: .07em; }
+    @media (max-width: 700px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+  </style>
+</head>
+<body>
+<main>
+  <header class="mb-10">
+    <p class="eyebrow">Drishti-2.5 / engineering review / 24 Sep 2026</p>
+    <h1 class="text-4xl md:text-5xl font-bold leading-tight mt-3">Every scan can be retained.<br><span class="accent">Fresh output still needs faster compute.</span></h1>
+    <p class="muted text-lg mt-5 max-w-3xl">At 10 Hz, a scan arrives every 100 ms. The current CPU path takes longer. A durable recorder protects acquired input during spikes and restart, while a bounded compute pipeline must earn sustained throughput and a separate latency target.</p>
+  </header>
+
+  <section class="grid2 mb-8" aria-label="Measured results">
+    <div class="panel" id="measured-baseline"><p class="eyebrow">Measured current path</p><div class="metric text-4xl font-bold mt-2">3.14 <span class="text-lg">frames/s</span></div><p class="muted mt-2">50-frame sequence 08 CLI run, including load and audit. 50/50 misses against its configured 100 ms budget.</p></div>
+    <div class="panel" id="measured-candidate"><p class="eyebrow">Measured isolated candidate</p><div class="metric text-4xl font-bold mt-2">151 <span class="text-lg">ms p50</span></div><p class="muted mt-2">Sequence 08 geometric <code>process</code> with exact packed-key grouping. Load, audit, concurrency and future features excluded.</p></div>
+  </section>
+
+  <section class="panel mb-8" id="grouping-evidence">
+    <div class="row justify-between items-end"><div><p class="eyebrow">Verified optimization candidate</p><h2 class="text-2xl font-semibold mt-2">Grouping is faster, with identical sampled outputs</h2></div><span class="badge badge-success badge-outline">60 / 60 snapshot matches</span></div>
+    <div class="overflow-x-auto mt-5"><table><thead><tr><th>Sequence</th><th>Current grouping p50</th><th>Packed grouping p50</th><th>Current process p50</th><th>Candidate process p50</th></tr></thead><tbody><tr id="seq00"><td>00</td><td>132.54 ms</td><td class="accent">9.34 ms</td><td>266.00 ms</td><td class="warn">143.19 ms</td></tr><tr id="seq08"><td>08</td><td>133.77 ms</td><td class="accent">10.11 ms</td><td>276.19 ms</td><td class="warn">150.54 ms</td></tr></tbody></table></div>
+    <p class="muted text-sm mt-4">30 frames per sequence. Exact unique keys, inverse indices, counts, point-to-cell indices and snapshot digests matched. The benchmark changes no runtime source.</p>
+  </section>
+
+  <section class="panel mb-8" id="capacity">
+    <p class="eyebrow">The capacity limit</p><h2 class="text-2xl font-semibold mt-2">A queue buys time, not capacity</h2>
+    <svg viewBox="0 0 960 230" role="img" aria-label="Ten scans per second enter, about 3.14 scans per second complete in the current path, and backlog grows by about 6.86 scans per second">
+      <title>Current measured arrival and service rates</title>
+      <rect id="arrival" x="20" y="48" width="245" height="115" rx="18" fill="#17616a" stroke="#7ee3d2" stroke-width="2"><title>Arrivals: 10 scans per second</title></rect>
+      <text x="142" y="91" fill="#fff" text-anchor="middle" font-size="28" font-weight="700">10 scans/s</text><text x="142" y="126" fill="#d1f6ef" text-anchor="middle" font-size="17">sensor arrival</text>
+      <path id="arrival-to-backlog" d="M270 106 H352" stroke="#7ee3d2" stroke-width="5" marker-end="url(#arrow)"><title>Scans enter the retained backlog</title></path>
+      <rect id="backlog" x="365" y="35" width="230" height="140" rx="18" fill="#4c341d" stroke="#ffce86" stroke-width="2"><title>Backlog grows under sustained overload</title></rect>
+      <text x="480" y="83" fill="#fff" text-anchor="middle" font-size="25" font-weight="700">+6.86 scans/s</text><text x="480" y="118" fill="#ffe1b0" text-anchor="middle" font-size="17">retained backlog</text><text x="480" y="145" fill="#ffe1b0" text-anchor="middle" font-size="14">about 14.3 MB/s raw</text>
+      <path id="backlog-to-process" d="M600 106 H682" stroke="#ffce86" stroke-width="5" marker-end="url(#arrow)"><title>Current processing drains the backlog</title></path>
+      <rect id="service" x="695" y="48" width="245" height="115" rx="18" fill="#223d5a" stroke="#91baf4" stroke-width="2"><title>Current completed rate: 3.14 scans per second</title></rect>
+      <text x="817" y="91" fill="#fff" text-anchor="middle" font-size="28" font-weight="700">3.14 scans/s</text><text x="817" y="126" fill="#dce8ff" text-anchor="middle" font-size="17">current completion</text>
+      <defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto"><path d="M1 1 L10 6 L1 11" fill="none" stroke="#c7e5e5" stroke-width="2"></path></marker></defs>
+    </svg>
+    <p class="muted mt-3">At a steady deficit, any finite disk or RAM store fills. Reaching 10 Hz throughput and meeting 100 ms capture-to-output latency are separate tests. A delayed map must be marked stale for live consumers.</p>
+  </section>
+
+  <section class="panel mb-8" id="architecture">
+    <p class="eyebrow">Proposed architecture / recorder tested in isolation</p><h2 class="text-2xl font-semibold mt-2">Commit, compute, publish in order</h2>
+    <svg viewBox="0 0 960 245" role="img" aria-label="Sensor to SQLite WAL durable commit, ordered ground state, bounded shared memory stateless projection and mapping, ordered publication with freshness status">
+      <title>Proposed lossless scan processing pipeline</title>
+      <rect id="sensor" x="12" y="64" width="150" height="105" rx="16" fill="#26384b" stroke="#99afc3"><title>Sensor with sequence IDs and capture timestamps</title></rect><text x="87" y="108" fill="#fff" text-anchor="middle" font-size="20">Sensor</text><text x="87" y="137" fill="#b8cfdb" text-anchor="middle" font-size="14">ID + timestamp</text>
+      <rect id="wal" x="202" y="44" width="168" height="145" rx="16" fill="#17616a" stroke="#7ee3d2" stroke-width="2"><title>SQLite WAL raw scan commit; acknowledge only after commit</title></rect><text x="286" y="91" fill="#fff" text-anchor="middle" font-size="20">SQLite WAL</text><text x="286" y="121" fill="#d1f6ef" text-anchor="middle" font-size="14">raw scan commit</text><text x="286" y="149" fill="#d1f6ef" text-anchor="middle" font-size="14">then acknowledge</text>
+      <rect id="ordered-state" x="410" y="64" width="168" height="105" rx="16" fill="#3b3b5f" stroke="#b5b3f4"><title>One ordered owner for stateful ground and future temporal state</title></rect><text x="494" y="106" fill="#fff" text-anchor="middle" font-size="19">Ordered state</text><text x="494" y="135" fill="#d8d6ff" text-anchor="middle" font-size="14">ground / temporal</text>
+      <rect id="workers" x="618" y="44" width="168" height="145" rx="16" fill="#223d5a" stroke="#91baf4"><title>Bounded processes for stateless work using shared memory slots</title></rect><text x="702" y="91" fill="#fff" text-anchor="middle" font-size="20">CPU workers</text><text x="702" y="121" fill="#dce8ff" text-anchor="middle" font-size="14">stateless stages</text><text x="702" y="149" fill="#dce8ff" text-anchor="middle" font-size="14">bounded slots</text>
+      <rect id="publish" x="826" y="64" width="122" height="105" rx="16" fill="#4c341d" stroke="#ffce86"><title>Ordered publication with age and overload status</title></rect><text x="887" y="106" fill="#fff" text-anchor="middle" font-size="17">Publish</text><text x="887" y="135" fill="#ffe1b0" text-anchor="middle" font-size="13">age + status</text>
+      <path d="M163 116 H198 M371 116 H406 M579 116 H614 M787 116 H822" stroke="#c7e5e5" stroke-width="3" marker-end="url(#flow-arrow)"></path>
+      <defs><marker id="flow-arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#c7e5e5" stroke-width="2"></path></marker></defs>
+    </svg>
+    <p class="muted mt-3">The isolated SQLite WAL/FULL test committed and reverified 100 paced scans on ext4/NVMe; read-through-commit p99 was 22.05 ms. Runtime integration and failure recovery remain open. Shared memory saves copies but is volatile. The committed scan is the recovery source. Stateful stages keep frame order; only proven stateless work enters the worker pool.</p>
+  </section>
+
+  <section class="grid2 mb-8" aria-label="Next validation and boundaries">
+    <div class="panel" id="next-tests"><p class="eyebrow">Next measured gate</p><h2 class="text-xl font-semibold mt-2">Paced 10 Hz run</h2><ol class="list-decimal ml-5 mt-4 space-y-2 muted"><li>Integrate packed grouping after contract approval and verify long replay digests.</li><li>Measure durable commit and disk checkpoints with 2 MB scans.</li><li>Measure bounded worker throughput and capture-to-output p99, not just p50.</li><li>Kill/restart mid-scan and inject full or slow disk.</li></ol></div>
+    <div class="panel" id="open-contract"><p class="eyebrow">Open product contract</p><h2 class="text-xl font-semibold mt-2">Specify overload behavior</h2><p class="muted mt-4">Sensor retry or flow control, disk reserve, maximum acceptable map age and live stop behavior are unresolved. No software can recover a scan that the sensor delivered but the recorder never committed.</p><p class="warn mt-4 font-semibold">No no-loss or 100 ms guarantee is claimed today.</p></div>
+  </section>
+  <footer class="muted text-sm border-t border-slate-700 pt-5">Evidence: docs/research/experiments/0002-replay-profile.md, 0003-lossless-10hz-design.md and 0004-sqlite-ingress.md. Technology references: <a class="link" href="https://www.sqlite.org/wal.html">SQLite WAL</a>, <a class="link" href="https://docs.python.org/3.12/library/multiprocessing.shared_memory.html">Python shared memory</a>.</footer>
+</main>
+</body>
+</html>

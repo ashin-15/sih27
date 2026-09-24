@@ -1,0 +1,633 @@
+{
+  "checked_at_utc": "2026-09-24T13:24:45.131006+00:00",
+  "dataset_root": "/home/ashin/Hackathon/SIH/data/dataset",
+  "full_content_checked": false,
+  "status": "pass",
+  "errors": [],
+  "total_scans": 43552,
+  "total_labels": 23201,
+  "total_points": 5298561024,
+  "scan_and_label_bytes": 96171532760,
+  "sequences": [
+    {
+      "sequence": "00",
+      "split": "train",
+      "scans": 4541,
+      "labels": 4541,
+      "point_count": 551704700,
+      "scan_bytes": 8827275200,
+      "label_bytes": 2206818800,
+      "points_per_scan_min": 101387,
+      "points_per_scan_max": 128146,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10193999999999903,
+        "median_s": 0.1036099999999891,
+        "max_s": 0.10559999999998126
+      },
+      "slam_poses": {
+        "rows": 4541,
+        "max_rotation_orthogonality_error": 1.6045746400461525e-06,
+        "max_rotation_determinant_error": 1.7188648937516149e-06
+      },
+      "gt_poses": {
+        "rows": 4541,
+        "max_rotation_orthogonality_error": 2.3167290952308406e-07,
+        "max_rotation_determinant_error": 2.0426385116678603e-07
+      },
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.1
+    },
+    {
+      "sequence": "01",
+      "split": "train",
+      "scans": 1101,
+      "labels": 1101,
+      "point_count": 116355734,
+      "scan_bytes": 1861691744,
+      "label_bytes": 465422936,
+      "points_per_scan_min": 82602,
+      "points_per_scan_max": 125269,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10112000000000165,
+        "median_s": 0.10363000000000255,
+        "max_s": 0.10627000000000209
+      },
+      "slam_poses": {
+        "rows": 1101,
+        "max_rotation_orthogonality_error": 1.662683809966481e-06,
+        "max_rotation_determinant_error": 1.6899206283227386e-06
+      },
+      "gt_poses": {
+        "rows": 1101,
+        "max_rotation_orthogonality_error": 2.2794593390607076e-07,
+        "max_rotation_determinant_error": 1.8042647720317717e-07
+      },
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.02
+    },
+    {
+      "sequence": "02",
+      "split": "train",
+      "scans": 4661,
+      "labels": 4661,
+      "point_count": 585548199,
+      "scan_bytes": 9368771184,
+      "label_bytes": 2342192796,
+      "points_per_scan_min": 106946,
+      "points_per_scan_max": 129261,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10190000000000055,
+        "median_s": 0.10370000000000346,
+        "max_s": 0.1057999999999879
+      },
+      "slam_poses": {
+        "rows": 4661,
+        "max_rotation_orthogonality_error": 2.202650975002829e-05,
+        "max_rotation_determinant_error": 1.3114117715651297e-05
+      },
+      "gt_poses": {
+        "rows": 4661,
+        "max_rotation_orthogonality_error": 2.3540974003477544e-07,
+        "max_rotation_determinant_error": 1.9085462954482324e-07
+      },
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.1
+    },
+    {
+      "sequence": "03",
+      "split": "train",
+      "scans": 801,
+      "labels": 801,
+      "point_count": 99300740,
+      "scan_bytes": 1588811840,
+      "label_bytes": 397202960,
+      "points_per_scan_min": 116566,
+      "points_per_scan_max": 127239,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.09929200000000016,
+        "median_s": 0.10338999999999743,
+        "max_s": 0.1079699999999999
+      },
+      "slam_poses": {
+        "rows": 801,
+        "max_rotation_orthogonality_error": 1.3658652098236246e-06,
+        "max_rotation_determinant_error": 1.4342633938291272e-06
+      },
+      "gt_poses": {
+        "rows": 801,
+        "max_rotation_orthogonality_error": 2.7039531591555033e-07,
+        "max_rotation_determinant_error": 2.6527350460714416e-07
+      },
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.02
+    },
+    {
+      "sequence": "04",
+      "split": "train",
+      "scans": 271,
+      "labels": 271,
+      "point_count": 34069557,
+      "scan_bytes": 545112912,
+      "label_bytes": 136278228,
+      "points_per_scan_min": 121965,
+      "points_per_scan_max": 127321,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10107999999999961,
+        "median_s": 0.10412299999999974,
+        "max_s": 0.10652000000000328
+      },
+      "slam_poses": {
+        "rows": 271,
+        "max_rotation_orthogonality_error": 1.2100086135280463e-06,
+        "max_rotation_determinant_error": 1.3986802305243629e-06
+      },
+      "gt_poses": {
+        "rows": 271,
+        "max_rotation_orthogonality_error": 1.4975091711111332e-07,
+        "max_rotation_determinant_error": 1.287413555761674e-07
+      },
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.01
+    },
+    {
+      "sequence": "05",
+      "split": "train",
+      "scans": 2761,
+      "labels": 2761,
+      "point_count": 345228978,
+      "scan_bytes": 5523663648,
+      "label_bytes": 1380915912,
+      "points_per_scan_min": 107038,
+      "points_per_scan_max": 128267,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.0981700000000032,
+        "median_s": 0.10419999999999163,
+        "max_s": 0.11027999999999594
+      },
+      "slam_poses": {
+        "rows": 2761,
+        "max_rotation_orthogonality_error": 1.4371636576360203e-06,
+        "max_rotation_determinant_error": 1.6051253708404545e-06
+      },
+      "gt_poses": {
+        "rows": 2761,
+        "max_rotation_orthogonality_error": 1.8904950649378804e-07,
+        "max_rotation_determinant_error": 1.434555565449358e-07
+      },
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.06
+    },
+    {
+      "sequence": "06",
+      "split": "train",
+      "scans": 1101,
+      "labels": 1101,
+      "point_count": 134652688,
+      "scan_bytes": 2154443008,
+      "label_bytes": 538610752,
+      "points_per_scan_min": 111982,
+      "points_per_scan_max": 125148,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10324,
+        "median_s": 0.1038800000000002,
+        "max_s": 0.104657
+      },
+      "slam_poses": {
+        "rows": 1101,
+        "max_rotation_orthogonality_error": 1.291233005407122e-06,
+        "max_rotation_determinant_error": 1.4112907178454037e-06
+      },
+      "gt_poses": {
+        "rows": 1101,
+        "max_rotation_orthogonality_error": 1.7408392971596243e-07,
+        "max_rotation_determinant_error": 1.4209284582289428e-07
+      },
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.02
+    },
+    {
+      "sequence": "07",
+      "split": "train",
+      "scans": 1101,
+      "labels": 1101,
+      "point_count": 133585213,
+      "scan_bytes": 2137363408,
+      "label_bytes": 534340852,
+      "points_per_scan_min": 109417,
+      "points_per_scan_max": 128169,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.099189999999993,
+        "median_s": 0.10390999999999906,
+        "max_s": 0.10869999999999891
+      },
+      "slam_poses": {
+        "rows": 1101,
+        "max_rotation_orthogonality_error": 1.423783359877362e-06,
+        "max_rotation_determinant_error": 1.3711850058717445e-06
+      },
+      "gt_poses": {
+        "rows": 1101,
+        "max_rotation_orthogonality_error": 1.678251326797664e-07,
+        "max_rotation_determinant_error": 1.432131208067844e-07
+      },
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.02
+    },
+    {
+      "sequence": "08",
+      "split": "valid",
+      "scans": 4071,
+      "labels": 4071,
+      "point_count": 499079562,
+      "scan_bytes": 7985272992,
+      "label_bytes": 1996318248,
+      "points_per_scan_min": 92476,
+      "points_per_scan_max": 128443,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10045000000000215,
+        "median_s": 0.1039000000000101,
+        "max_s": 0.10748000000000246
+      },
+      "slam_poses": {
+        "rows": 4071,
+        "max_rotation_orthogonality_error": 1.4944269999261905e-06,
+        "max_rotation_determinant_error": 1.6403670832776385e-06
+      },
+      "gt_poses": {
+        "rows": 4071,
+        "max_rotation_orthogonality_error": 1.8806426771433848e-07,
+        "max_rotation_determinant_error": 1.5571178424433896e-07
+      },
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.07
+    },
+    {
+      "sequence": "09",
+      "split": "train",
+      "scans": 1591,
+      "labels": 1591,
+      "point_count": 197895475,
+      "scan_bytes": 3166327600,
+      "label_bytes": 791581900,
+      "points_per_scan_min": 102813,
+      "points_per_scan_max": 127526,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.09814000000000078,
+        "median_s": 0.10375000000000156,
+        "max_s": 0.10934999999999206
+      },
+      "slam_poses": {
+        "rows": 1591,
+        "max_rotation_orthogonality_error": 1.4782980399807855e-06,
+        "max_rotation_determinant_error": 1.5500181387295697e-06
+      },
+      "gt_poses": {
+        "rows": 1591,
+        "max_rotation_orthogonality_error": 1.8390508227383862e-07,
+        "max_rotation_determinant_error": 1.5537972453127935e-07
+      },
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.03
+    },
+    {
+      "sequence": "10",
+      "split": "train",
+      "scans": 1201,
+      "labels": 1201,
+      "point_count": 151218248,
+      "scan_bytes": 2419491968,
+      "label_bytes": 604872992,
+      "points_per_scan_min": 109813,
+      "points_per_scan_max": 129392,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10334999999999184,
+        "median_s": 0.10374999999999801,
+        "max_s": 0.10425999999999647
+      },
+      "slam_poses": {
+        "rows": 1201,
+        "max_rotation_orthogonality_error": 1.5066738101587873e-06,
+        "max_rotation_determinant_error": 1.6028966867143168e-06
+      },
+      "gt_poses": {
+        "rows": 1201,
+        "max_rotation_orthogonality_error": 1.8189515449407168e-07,
+        "max_rotation_determinant_error": 1.6054820017874505e-07
+      },
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.02
+    },
+    {
+      "sequence": "11",
+      "split": "test",
+      "scans": 921,
+      "labels": 0,
+      "point_count": 115199293,
+      "scan_bytes": 1843188688,
+      "label_bytes": 0,
+      "points_per_scan_min": 113918,
+      "points_per_scan_max": 128706,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.09994999999999976,
+        "median_s": 0.10374000000000194,
+        "max_s": 0.10786999999999836
+      },
+      "slam_poses": {
+        "rows": 921,
+        "max_rotation_orthogonality_error": 1.537638250059814e-06,
+        "max_rotation_determinant_error": 1.597044663848024e-06
+      },
+      "gt_poses": null,
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.0
+    },
+    {
+      "sequence": "12",
+      "split": "test",
+      "scans": 1061,
+      "labels": 0,
+      "point_count": 126534934,
+      "scan_bytes": 2024558944,
+      "label_bytes": 0,
+      "points_per_scan_min": 100507,
+      "points_per_scan_max": 127289,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10020000000000095,
+        "median_s": 0.10370000000000346,
+        "max_s": 0.10670999999999964
+      },
+      "slam_poses": {
+        "rows": 1061,
+        "max_rotation_orthogonality_error": 1.4568186401664462e-06,
+        "max_rotation_determinant_error": 1.4870112614584485e-06
+      },
+      "gt_poses": null,
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.01
+    },
+    {
+      "sequence": "13",
+      "split": "test",
+      "scans": 3281,
+      "labels": 0,
+      "point_count": 380389016,
+      "scan_bytes": 6086224256,
+      "label_bytes": 0,
+      "points_per_scan_min": 96271,
+      "points_per_scan_max": 125787,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.09573199999999993,
+        "median_s": 0.1039999999999992,
+        "max_s": 0.11027100000000001
+      },
+      "slam_poses": {
+        "rows": 3281,
+        "max_rotation_orthogonality_error": 1.6494552221857361e-06,
+        "max_rotation_determinant_error": 1.6350677276566472e-06
+      },
+      "gt_poses": null,
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.02
+    },
+    {
+      "sequence": "14",
+      "split": "test",
+      "scans": 631,
+      "labels": 0,
+      "point_count": 79920953,
+      "scan_bytes": 1278735248,
+      "label_bytes": 0,
+      "points_per_scan_min": 120066,
+      "points_per_scan_max": 128726,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.09890000000000043,
+        "median_s": 0.10376000000000118,
+        "max_s": 0.10838999999999999
+      },
+      "slam_poses": {
+        "rows": 631,
+        "max_rotation_orthogonality_error": 1.4596988799908672e-06,
+        "max_rotation_determinant_error": 1.6841592775929115e-06
+      },
+      "gt_poses": null,
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.0
+    },
+    {
+      "sequence": "15",
+      "split": "test",
+      "scans": 1901,
+      "labels": 0,
+      "point_count": 234017779,
+      "scan_bytes": 3744284464,
+      "label_bytes": 0,
+      "points_per_scan_min": 92478,
+      "points_per_scan_max": 128491,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.09916000000000125,
+        "median_s": 0.10370999999999952,
+        "max_s": 0.10807000000000144
+      },
+      "slam_poses": {
+        "rows": 1901,
+        "max_rotation_orthogonality_error": 1.3977759700800618e-06,
+        "max_rotation_determinant_error": 1.7673881507196398e-06
+      },
+      "gt_poses": null,
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.01
+    },
+    {
+      "sequence": "16",
+      "split": "test",
+      "scans": 1731,
+      "labels": 0,
+      "point_count": 213386358,
+      "scan_bytes": 3414181728,
+      "label_bytes": 0,
+      "points_per_scan_min": 107913,
+      "points_per_scan_max": 127543,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10159000000000162,
+        "median_s": 0.1036999999999928,
+        "max_s": 0.10578999999999894
+      },
+      "slam_poses": {
+        "rows": 1731,
+        "max_rotation_orthogonality_error": 1.5453772501672347e-06,
+        "max_rotation_determinant_error": 1.7754250820622985e-06
+      },
+      "gt_poses": null,
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.01
+    },
+    {
+      "sequence": "17",
+      "split": "test",
+      "scans": 491,
+      "labels": 0,
+      "point_count": 56156016,
+      "scan_bytes": 898496256,
+      "label_bytes": 0,
+      "points_per_scan_min": 105921,
+      "points_per_scan_max": 124015,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10061999999999927,
+        "median_s": 0.1036099999999962,
+        "max_s": 0.10646999999999984
+      },
+      "slam_poses": {
+        "rows": 491,
+        "max_rotation_orthogonality_error": 1.3564275174182683e-06,
+        "max_rotation_determinant_error": 1.5941490127957536e-06
+      },
+      "gt_poses": null,
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.0
+    },
+    {
+      "sequence": "18",
+      "split": "test",
+      "scans": 1801,
+      "labels": 0,
+      "point_count": 213767751,
+      "scan_bytes": 3420284016,
+      "label_bytes": 0,
+      "points_per_scan_min": 101549,
+      "points_per_scan_max": 127099,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10219999999998208,
+        "median_s": 0.10375550000000011,
+        "max_s": 0.10510000000002151
+      },
+      "slam_poses": {
+        "rows": 1801,
+        "max_rotation_orthogonality_error": 1.6294456899323961e-06,
+        "max_rotation_determinant_error": 1.766848342299454e-06
+      },
+      "gt_poses": null,
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.01
+    },
+    {
+      "sequence": "19",
+      "split": "test",
+      "scans": 4981,
+      "labels": 0,
+      "point_count": 604056805,
+      "scan_bytes": 9664908880,
+      "label_bytes": 0,
+      "points_per_scan_min": 99373,
+      "points_per_scan_max": 127097,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10000000000002274,
+        "median_s": 0.10370000000000346,
+        "max_s": 0.10749999999995907
+      },
+      "slam_poses": {
+        "rows": 4981,
+        "max_rotation_orthogonality_error": 1.7001867105292945e-06,
+        "max_rotation_determinant_error": 1.6726489251439602e-06
+      },
+      "gt_poses": null,
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.03
+    },
+    {
+      "sequence": "20",
+      "split": "test",
+      "scans": 831,
+      "labels": 0,
+      "point_count": 98966554,
+      "scan_bytes": 1583464864,
+      "label_bytes": 0,
+      "points_per_scan_min": 89106,
+      "points_per_scan_max": 127147,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10147000000000617,
+        "median_s": 0.10361999999999938,
+        "max_s": 0.10566000000000031
+      },
+      "slam_poses": {
+        "rows": 831,
+        "max_rotation_orthogonality_error": 1.4697324099977038e-06,
+        "max_rotation_determinant_error": 1.5578037768637643e-06
+      },
+      "gt_poses": null,
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.0
+    },
+    {
+      "sequence": "21",
+      "split": "test",
+      "scans": 2721,
+      "labels": 0,
+      "point_count": 327526471,
+      "scan_bytes": 5240423536,
+      "label_bytes": 0,
+      "points_per_scan_min": 107672,
+      "points_per_scan_max": 127594,
+      "scans_above_drishti_default_150000_point_cap": 0,
+      "timestamp_intervals": {
+        "min_s": 0.10199999999997544,
+        "median_s": 0.10349999999999682,
+        "max_s": 0.10510000000002151
+      },
+      "slam_poses": {
+        "rows": 2721,
+        "max_rotation_orthogonality_error": 1.6929009998278843e-06,
+        "max_rotation_determinant_error": 1.6369133131188818e-06
+      },
+      "gt_poses": null,
+      "semantic_histogram": {},
+      "moving_points": null,
+      "content_seconds": 0.01
+    }
+  ],
+  "limits": [
+    "Does not establish annotation or pose accuracy",
+    "ZIP CRC integrity must be checked separately during extraction"
+  ]
+}

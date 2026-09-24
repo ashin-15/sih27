@@ -48,10 +48,10 @@
   <header>
     <p class="kicker">SIH26053 research | checked 21 September 2026</p>
     <h1>Reuse the mapping mechanisms.<br>Verify the pipeline separately.</h1>
-    <p class="intro">vrgrid-26 provides useful lattice, fusion and visibility designs for a real-time 2.5D dashboard. Here, “GIS” means colored terrain/object visualization and a fair uniform-3D memory comparison, not geographic mapping or routing. This summary separates executed checks from remaining integration work.</p>
+    <p class="intro">legacy-reference provides useful lattice, fusion and visibility designs for a real-time 2.5D dashboard. Here, “GIS” means colored terrain/object visualization and a fair uniform-3D memory comparison, not geographic mapping or routing. This summary separates executed checks from remaining integration work.</p>
     <div class="stats-grid">
       <div class="panel"><div class="metric">674 / 62</div><div>Tests passed / skipped</div><div class="muted small">No failures. GPU, dataset and visualization gaps remain.</div></div>
-      <div class="panel"><div class="metric">34 / 34</div><div>Raw semantic IDs matched</div><div class="muted small">vrgrid perception ID = official learning ID - 1.</div></div>
+      <div class="panel"><div class="metric">34 / 34</div><div>Raw semantic IDs matched</div><div class="muted small">historical perception ID = official learning ID - 1.</div></div>
       <div class="panel"><div class="metric">≥133.86 MB</div><div>Selected default-engine array accounting</div><div class="muted small">Not RSS/VRAM. Excludes model and perception overhead.</div></div>
     </div>
   </header>
@@ -92,10 +92,10 @@
   <section>
     <h2>SemanticKITTI API: use it as the contract, not the mapper</h2>
     <div class="two">
-      <div class="panel"><h3>Useful and verified here</h3><ul><li>Packed uint32 semantics and instance decoding.</li><li>All 34 raw classes match the vrgrid perception mapping after an ID offset.</li><li>Official NumPy semantic, distance and MOS evaluation scripts execute.</li><li>Correct synthetic predictions: 100% semantic mIoU. Reversed point order: 0%.</li></ul><p class="muted small">Synthetic interface tests, not dataset/model accuracy.</p></div>
+      <div class="panel"><h3>Useful and verified here</h3><ul><li>Packed uint32 semantics and instance decoding.</li><li>All 34 raw classes match the the historical prototype perception mapping after an ID offset.</li><li>Official NumPy semantic, distance and MOS evaluation scripts execute.</li><li>Correct synthetic predictions: 100% semantic mIoU. Reversed point order: 0%.</li></ul><p class="muted small">Synthetic interface tests, not dataset/model accuracy.</p></div>
       <div class="panel"><h3>Do not copy blindly</h3><ul><li>Projection mask excludes valid point index 0.</li><li>Distance bins omit exact 10/20/30/40/50 m boundaries.</li><li>Official mIoU includes all 19 classes, not only present classes.</li><li>Label remapping overwrites files; keep originals untouched.</li><li>Semantic inverse mapping cannot recover motion classes.</li></ul></div>
     </div>
-    <div class="table-wrap" style="margin-top:1rem"><table><thead><tr><th>Meaning</th><th>Raw ID</th><th>Official learning ID</th><th>vrgrid perception ID</th></tr></thead><tbody><tr><td>Ignore</td><td>0</td><td>0</td><td>-1</td></tr><tr><td>Car</td><td>10</td><td>1</td><td>0</td></tr><tr><td>Moving car</td><td>252</td><td>1</td><td>0 + motion flag</td></tr><tr><td>Road</td><td>40</td><td>9</td><td>8</td></tr><tr><td>Pole</td><td>80</td><td>18</td><td>17</td></tr></tbody></table></div>
+    <div class="table-wrap" style="margin-top:1rem"><table><thead><tr><th>Meaning</th><th>Raw ID</th><th>Official learning ID</th><th>historical perception ID</th></tr></thead><tbody><tr><td>Ignore</td><td>0</td><td>0</td><td>-1</td></tr><tr><td>Car</td><td>10</td><td>1</td><td>0</td></tr><tr><td>Moving car</td><td>252</td><td>1</td><td>0 + motion flag</td></tr><tr><td>Road</td><td>40</td><td>9</td><td>8</td></tr><tr><td>Pole</td><td>80</td><td>18</td><td>17</td></tr></tbody></table></div>
     <p>MOS uses a separate inverse map: static becomes raw 9, moving becomes raw 251. Do not write boolean 0/1 labels into MOS prediction files.</p>
   </section>
   <section>

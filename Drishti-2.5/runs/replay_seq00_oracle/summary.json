@@ -1,19 +1,19 @@
 {
-  "cold_processing_ms": 386.2918289996742,
+  "cold_processing_ms": 375.8593800012022,
   "deadline_misses_with_audit": 50,
   "end_to_end_with_audit_ms": {
-    "p50": 344.01620700009516,
-    "p95": 362.5079535981058,
-    "p99": 424.079416000968
+    "p50": 333.8103245005186,
+    "p95": 358.397641850388,
+    "p99": 499.20457676969795
   },
-  "final_viewer_flush_ms": 8.90814699960174,
+  "final_viewer_flush_ms": 20.658109002397396,
   "frame_budget_ms": 100.0,
   "frames": 50,
   "peak_snapshot_array_bytes": 12961117,
   "processing_ms": {
-    "p50": 276.5581969979394,
-    "p95": 290.27458490236313,
-    "p99": 345.740545221124
+    "p50": 270.68687599967234,
+    "p95": 287.1015637010714,
+    "p99": 336.34150229780045
   },
   "realtime_release_gate_met": false,
   "release_gate_note": "single-frame slice only; full pipeline and real data unverified",
@@ -21,11 +21,11 @@
   "scratch_bytes": null,
   "status": "completed",
   "steady_processing_ms": {
-    "p50": 276.39510899825837,
-    "p95": 287.84388760177535,
-    "p99": 297.8055263629357
+    "p50": 270.5650460047764,
+    "p95": 283.9246242001536,
+    "p99": 291.54962327826064
   },
   "viewer_rss_bytes": null,
-  "wall_seconds": 17.547533570999803,
-  "worker_peak_rss_bytes": 289554432
+  "wall_seconds": 17.37881913099409,
+  "worker_peak_rss_bytes": 312016896
 }
