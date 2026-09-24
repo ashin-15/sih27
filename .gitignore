@@ -29,6 +29,7 @@ data/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
+*.mdb
 *.mcap
 *.partial
 .lavish/

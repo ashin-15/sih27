@@ -3,6 +3,27 @@
 Append dated entries for meaningful work. State what changed, what was verified, and what remains.
 Detailed test evidence belongs in `testing.md`; active blockers belong in `open-items.md`.
 
+## 2026-09-25 - Durable storage alternatives
+
+- DONE: Built a strict-warning C++20 harness for SQLite WAL/FULL, LMDB default synchronous
+  commits and a custom `fdatasync` append log. Three paced 100-scan local ext4 rounds each
+  reverified exact payloads, digest and IDs after reopen. Matched 1,000-scan LMDB and
+  SQLite runs also passed, with zero measured acquisition intervals above 100 ms.
+- DONE: Injected `SIGKILL` during an uncommitted LMDB transaction and an 8 MiB map limit;
+  the committed prefixes survived, duplicate ID was rejected and restart resumed in order.
+- MEASURED RESULT: LMDB commit p95 was 4.863-6.916 ms in the short rounds versus SQLite's
+  15.474-16.990 ms; custom log p95 varied from 3.538 to 17.855 ms. This revises the
+  earlier SQLite-first research preference to an LMDB-next prototype recommendation.
+- DONE: A 500-scan LMDB writer ran with an independent reader and 100-frame current replay;
+  all scans reverified, no acquisition interval exceeded 100 ms, and replay digests/cells
+  matched baseline. The replay still missed all 100 processing deadlines. A separate-sandbox
+  PID collision caused one writer final-reopen failure; a targeted same-namespace held-reader
+  reproduction with unique PIDs passed. See experiment 0009 for the failed and passing runs.
+- OPEN: longer concurrent duration, reader lifetime and map growth, source ack/retry,
+  physical disk/power faults, retention and
+  capture-to-output age. No product runtime path was changed.
+
+
 ## 2026-09-24 - Durable-ingress technology comparison
 
 - DONE: Compared Python and C++20 SQLite WAL/FULL recorders, one-scan and ten-scan MCAP

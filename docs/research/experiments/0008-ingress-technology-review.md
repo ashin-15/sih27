@@ -1,5 +1,10 @@
 # Experiment 0008: durable 10 Hz ingress technology review
 
+Research update, 2026-09-25: the technology preference below was provisional. A direct
+SQLite/LMDB/custom-log comparison and LMDB injected-fault results are now in
+[`0009-storage-backend-comparison.md`](0009-storage-backend-comparison.md). Experiment 0008's
+measurements remain evidence for their tested conditions.
+
 Status: MEASURED RESULT for the isolated recorders and current geometric replay;
 DESIGN PROPOSAL for the future pipeline. Date: 2026-09-24. Question: RQ-005.
 No live LiDAR, learned model, temporal map, production recorder or complete-path deadline

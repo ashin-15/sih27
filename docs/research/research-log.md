@@ -1,5 +1,35 @@
 # Research log
 
+## 2026-09-25 - SQLite alternative: LMDB and custom append log
+
+- Research question: RQ-005. Sources E-020 to E-023 and experiment 0009; official LMDB C
+  header, SQLite WAL and Linux `fsync` documentation were checked on 2026-09-25.
+- MEASURED RESULT: nine paced 100-scan local ext4 runs reverified every original payload.
+  LMDB's observed commit p95 was 4.863-6.916 ms versus SQLite's 15.474-16.990 ms.
+  The custom log's p95 ranged 3.538-17.855 ms. Its speed rank changed with run order.
+  Matched 1,000-scan LMDB/SQLite runs completed and reverified all 1,000 IDs and payloads
+  each. LMDB commit p95 was 16.271 ms versus SQLite's 18.230 ms; LMDB acquisition p95
+  was slower (30.029 versus 22.080 ms) because its source-file reads took longer.
+- MEASURED RESULT: LMDB reopened after an injected writer kill with only the committed
+  scan, rejected a duplicate, resumed contiguously, and returned MDB_MAP_FULL at an
+  artificial 8 MiB limit without losing four earlier commits.
+- Contradiction: the previous provisional preference for SQLite has weaker latency evidence
+  on this local workload. The custom log's favorable rounds do not compensate for its
+  missing recovery, rotation and work-state implementation.
+- Confidence and limits: exact results are verified; storage state and external load were
+  not controlled. No physical disk/full-power fault, live sensor, continuous reader or
+  complete-path freshness result exists. A 500-scan concurrent reader/current-worker run
+  passed; the current worker still missed 100/100 configured processing deadlines.
+- One separate-sandbox concurrent run failed its writer's final reopen with `EAGAIN`.
+  Reproduction showed each separately launched command had PID 2, and LMDB source uses PID
+  lock-file offsets. INFERENCE: namespace PID collision caused the failure. A held-reader
+  test under one namespace (PIDs 2, 3 and 4) passed the same reopen boundary. Keep this
+  as a test-harness constraint and recheck process restart on deployment hardware.
+- DESIGN PROPOSAL: use LMDB for the next isolated single-writer/read-replay prototype, keep
+  SQLite WAL/FULL as fallback, and select neither for production until source ack/retry,
+  retention, map growth, sustained contention and fault gates pass.
+
+
 ## 2026-09-24 - SQLite, C++, MCAP and scheduler comparison
 
 - Research question: RQ-005. Sources: E-017 to E-019; experiment 0008 and its measured

@@ -1,6 +1,6 @@
 # Open items
 
-Updated 2026-09-24. This register records blockers and next evidence, not promises of delivery.
+Updated 2026-09-25. This register records blockers and next evidence, not promises of delivery.
 Close an item only with a linked decision, implementation, and validation record.
 
 | ID | Status | Owner or decision | Open item | Next evidence |
@@ -15,7 +15,7 @@ Close an item only with a linked decision, implementation, and validation record
 | O-008 | DONE | Evidence owner | Earlier report files remain absent, but the proposed model document now cites two new provenance-complete 100-frame real-data reports in unique run directories. | Preserve reports and do not reinterpret them as full-path or safety evidence. |
 | O-009 | TODO | Project owner | CI, deployment, release, security review, and ownership policy are not established in this repository. | Define policy once target environment and acceptance contract are known. |
 | O-010 | IN PROGRESS | Engineering research, RQ-004 | Packed int64 keys matched exact grouping, cell indices and snapshot digests on 60 real frames and cut geometric `process` p50 to 143-151 ms. Production integration and long-run validation are pending approval. | After contract approval, integrate with overflow fallback and compare fresh CLI replay outputs, latency and memory across long sequences. |
-| O-011 | IN PROGRESS | Product owner and engineering, T-014 | Continuous 10 Hz arrival exceeds the current-path service rate. Short Python/C++ SQLite and MCAP recorders reverified 100 paced scans; concurrent SQLite recording and current replay completed, while replay missed 100 ms on every frame. Injected process kill and SQLite page cap passed, but no runtime ingress, live-sensor retry contract, disk budget, stale-output policy or measured parallel scheduler exists. See experiment 0008. | Freeze source ack/retry and overload/freshness behavior; test long-running concurrent workers, checkpoints, physical disk/power faults and complete-path output age. |
+| O-011 | IN PROGRESS | Product owner and engineering, T-014 | Continuous 10 Hz arrival exceeds the current-path service rate. Experiment 0009 compared SQLite, LMDB and a custom log; LMDB showed lower commit tails than SQLite in short runs and a matched 1,000-scan pair, and passed injected process-kill/map-limit checks. Both long runs reverified all payloads, but source-read variation made LMDB's long-run acquisition p95 slower. A 500-scan LMDB writer with reader/current replay also passed, while replay missed 100/100 processing deadlines. No runtime ingress, live-sensor retry contract, disk budget, stale-output policy or measured parallel scheduler exists. | Freeze source ack/retry and overload/freshness behavior; test longer concurrent workers/readers, map growth and retention, physical disk/power faults and complete-path output age. |
 
 See `execution-plan.md` for task sequence and `research/modules.md` for research paired to tasks.
 The first reproducible current-path measurements and remaining limits are in
