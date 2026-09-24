@@ -75,3 +75,19 @@ Last updated: 2026-09-24
 - Evidence: `docs/research/experiments/0004-sqlite-ingress.md` and two JSON reports.
 - Judgment: this validates a short recording technology candidate, not the active runtime,
   crash durability, concurrent 10 Hz processing or a complete-path 100 ms guarantee.
+
+## Ingress technology comparison - 2026-09-24
+
+- Related FRs/ACs: FR-008 and AC-008/012, all still draft.
+- MEASURED RESULT: experiment 0008 reverified 100 paced scans for each of four Python/C++
+  SQLite runs and three MCAP runs. Two SQLite recorders ran concurrently with separate
+  100-frame CLI replays; both CLI runs missed their configured 100 ms budget on every frame.
+  The C++ recorder was not materially faster than Python in these short runs. An injected
+  SQLite process kill and artificial page limit preserved previously committed scans.
+- DESIGN PROPOSAL: use SQLite WAL/FULL as the first durable-ingress prototype, retaining C++
+  for a sensor SDK or measured compute hotspot. MCAP remains an archival/interchange candidate.
+- Evidence: `docs/research/experiments/0008-ingress-technology-review.md`, saved reports and
+  `docs/research/experiments/0007-sqlite-faults-seq08.json`.
+- Judgment: T-014 research is in progress. Live source retry, actual disk/power fault behavior,
+  sustained backlog, ordered worker throughput and capture-to-output age remain unknown.
+  No product implementation or release guarantee is approved.

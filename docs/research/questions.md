@@ -41,3 +41,13 @@ Status vocabulary: TODO, IN PROGRESS, BLOCKED, VALIDATION, DONE. A DONE question
 - Evidence required: hardware inventory, warmup, long sequences, point-density distribution, p50/p95/p99/max, misses/drops and process/model/viewer memory.
 - Falsifier: Any frozen gate fails under the declared workload.
 - Status: IN PROGRESS for current-machine measurement; complete-path feasibility BLOCKED by D-001 release branch/D-005 and T-003 to T-007. Conclusion: current path fails the 10 Hz development goal; future path UNKNOWN. Engineering impact: T-008. See `experiments/0001-replay-baseline-protocol.md`.
+
+## RQ-005 - Lossless acquisition under slower processing
+
+- Question: Which durable ingress and bounded scheduler can retain every acknowledged 10 Hz scan while the current CPU worker takes more than 100 ms, and what failure contract is needed when storage or source capacity runs out?
+- Why: A volatile queue does not make a scan recoverable, and continued arrival above service rate grows backlog indefinitely.
+- Current understanding: MEASURED RESULT, isolated Python/C++ SQLite and MCAP recorders stored and reverified 100 paced sequence 08 scans; concurrent SQLite recorders met their 10 Hz arrival schedule while geometric replay remained below 10 Hz. See experiment 0008.
+- Hypothesis: HYPOTHESIS, one local WAL/FULL writer plus indexed replay and bounded workers can separate acquisition from compute, provided the source retries or reports an acquisition fault and service eventually exceeds arrival.
+- Evidence required: live source ack/retry contract, long-run contention, WAL/checkpoint and disk budgets, physical failure and power-fault recovery, contiguous acknowledged IDs, ordered outputs and age tails with all future stages.
+- Falsifier: Acknowledged scans disappear, the source silently drops before commit, storage fills without a declared fault, or sustained service and output-age gates fail.
+- Status: IN PROGRESS for technology research; production contract and integration BLOCKED by D-001/D-004 and T-001. Conclusion: SQLite WAL/FULL is the first prototype candidate, not a proven no-loss product. Engineering impact: T-014/T-008.

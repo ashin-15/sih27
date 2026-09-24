@@ -1,5 +1,31 @@
 # Research log
 
+## 2026-09-24 - SQLite, C++, MCAP and scheduler comparison
+
+- Research question: RQ-005. Sources: E-017 to E-019; experiment 0008 and its measured
+  C++/Python SQLite, MCAP and injected-fault reports; official SQLite, MCAP, oneTBB,
+  pybind11, Rust/redb, Tokio, RocksDB and ROS 2 documentation linked in the review.
+- MEASURED RESULT: all seven short recorder runs independently reverified 100/100 scan
+  payloads. Python and C++ SQLite acquisition medians were about 9 ms; their concurrent
+  maxima were 22.71 and 23.31 ms. Both concurrent 100-frame CLI replays still missed their
+  configured 100 ms budget on every frame. MCAP one-scan files acknowledged within 13.52 ms
+  observed maximum; ten-scan segments delayed acknowledgement by up to 1.02 s.
+- MEASURED RESULT: after a killed writer left scan 1 uncommitted, SQLite reopened with only
+  scan 0; restart completed scan 1 and rejected a duplicate. An artificial page cap raised a
+  capacity error while preserving the earlier committed row.
+- Contradiction: C++ recorder rewrite did not show a material latency benefit under these
+  local conditions, and adding durable ingress did not make current perception meet 10 Hz.
+  The MCAP buffered-segment append did not provide an immediate per-scan durable ack.
+- Confidence and limits: high for exact saved-run outcomes; low for long-run, real-sensor,
+  power-loss or language-wide conclusions. Storage cache, thermal state and independent
+  timing were not controlled; Python recorder schedule lag was not recorded.
+- DESIGN PROPOSAL and impact: start T-014 with a local SQLite WAL/FULL writer and explicit
+  source ack/retry boundary, then a bounded ordered worker. Use C++ for a measured compute
+  stage or required SDK and preserve exact output digests. MCAP remains an archive candidate.
+  No runtime architecture is accepted while the product contract remains draft.
+- Open questions: physical disk and power faults, checkpoint tails, retention, stalled
+  readers, sensor loss before commit, worker service headroom and capture-to-output age.
+
 ## 2026-09-24 - Paced SQLite recorder prototype
 
 - Research question: RQ-004. Source: E-016, experiment 0004 and SQLite WAL documentation.

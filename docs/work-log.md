@@ -3,6 +3,28 @@
 Append dated entries for meaningful work. State what changed, what was verified, and what remains.
 Detailed test evidence belongs in `testing.md`; active blockers belong in `open-items.md`.
 
+## 2026-09-24 - Durable-ingress technology comparison
+
+- DONE: Compared Python and C++20 SQLite WAL/FULL recorders, one-scan and ten-scan MCAP
+  segments, and primary documentation for Rust/redb, RocksDB, ROS 2 QoS, oneTBB and pybind11.
+  Seven paced 100-scan recorder reports are linked in experiment 0008; all stored payloads
+  were reverified after reopen. Two recorder runs overlapped complete geometric CLI replays.
+- MEASURED RESULT: Python and C++ SQLite acquisition p50 was about 9 ms standalone and under
+  concurrent replay; observed maxima were 20.84-23.98 ms. Both concurrent CLI replays still
+  missed 100 ms on every frame. One-scan MCAP files acknowledged within 13.52 ms observed
+  maximum; ten-scan files delayed acknowledgement up to about 1.02 s.
+- DONE: Injected a process kill before SQLite commit and an artificial database page limit.
+  Previously committed scans survived and duplicate frame IDs were rejected. Built the C++
+  harness with strict warnings, passed a final two-scan native smoke run and checked Python
+  harness lint/format. Repeated the fault harness after formatting. The package suite passed
+  42 tests. Both concurrent CLI outputs matched all 100 baseline input/map digests, frame IDs,
+  cells and accounting. No production path or package dependency changed.
+- RECOMMENDATION: SQLite WAL/FULL is the first durable-ingress prototype. Selective C++ is
+  reserved for a sensor SDK or measured compute hotspot; MCAP is a recording/export option.
+- OPEN: Source retry and capture contract, sustained concurrency, checkpoint/disk budget,
+  physical/power faults, ordered worker throughput and complete-path output age. T-014 remains
+  research only; the current product contract is still a draft.
+
 ## 2026-09-24 - Standalone project assessment and bootstrap
 
 - DONE: Inspected the current mapping, CLI, dataset, viewer, and tests. Created project context,

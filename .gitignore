@@ -27,4 +27,9 @@ data/
 *.pem
 *.key
 *.sqlite
+*.sqlite-wal
+*.sqlite-shm
+*.mcap
+*.partial
+.lavish/
 *grid-26/

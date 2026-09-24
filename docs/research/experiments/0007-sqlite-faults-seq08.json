@@ -1,0 +1,20 @@
+{
+  "sequence": "08",
+  "worker_exit_code": -9,
+  "integrity_after_kill": "ok",
+  "ids_after_kill": [
+    0
+  ],
+  "ids_after_resume": [
+    0,
+    1
+  ],
+  "duplicate_rejected": true,
+  "page_count_before_limit": 484,
+  "max_page_count": 584,
+  "limit_error": "database or disk is full",
+  "limit_integrity_after_reopen": "ok",
+  "ids_after_limit": [
+    0
+  ]
+}
