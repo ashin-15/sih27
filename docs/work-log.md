@@ -24,6 +24,9 @@ Detailed test evidence belongs in `testing.md`; active blockers belong in `open-
 - OPEN: Source retry and capture contract, sustained concurrency, checkpoint/disk budget,
   physical/power faults, ordered worker throughput and complete-path output age. T-014 remains
   research only; the current product contract is still a draft.
+- REVIEW: Clarified why a local SQLite file is a viable first capture prototype and why
+  it cannot solve sustained backlog or sensor loss before commit. Updated the research review
+  and its local visual explanation after feedback.
 
 ## 2026-09-24 - Standalone project assessment and bootstrap
 

@@ -25,6 +25,10 @@
   No runtime architecture is accepted while the product contract remains draft.
 - Open questions: physical disk and power faults, checkpoint tails, retention, stalled
   readers, sensor loss before commit, worker service headroom and capture-to-output age.
+- Review clarification: the SQLite option is a local numbered inbox with an explicit
+  commit-before-ack boundary. Its measured short-run capture feasibility does not establish
+  live-source no-loss behavior or sustained 10 Hz perception. The plain-language explanation
+  was added to experiment 0008 after the review question.
 
 ## 2026-09-24 - Paced SQLite recorder prototype
 

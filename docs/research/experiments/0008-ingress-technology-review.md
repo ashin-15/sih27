@@ -23,6 +23,18 @@ contract. A one-scan-per-file MCAP prototype met this short 10 Hz recorder test,
 produce 36,000 files per hour. Ten-scan segments delayed the first scan's durable acknowledgement
 by nearly a second. Neither strategy is a ready work queue.
 
+In plain terms, SQLite would be a **numbered inbox stored in one local file**, with no
+database server. The recorder writes scan 42, waits for that write to commit, then reports
+"scan 42 saved." A slower worker can fetch it later; after a process restart it can find
+the next unprocessed ID. The short tests make this viable as a *capture prototype* on this
+laptop: all 100 scans in each run were reverified, and the observed write time stayed below
+the 100 ms arrival interval. They do not make the current mapping path viable at 10 Hz.
+If the sensor cannot retry a scan before it is saved, or the disk fills while processing
+remains slower than arrival, the system still loses the ability to retain every capture.
+SQLite's value over plain numbered files or MCAP segments is the atomic per-scan commit
+and keyed recovery/work-state query. The team can change the recorder language without
+changing that storage contract; the C++ measurement gives no reason to rewrite it now.
+
 ## What "without losing data" means
 
 There are four distinct events: sensor exposure, process receipt, durable commit, and processed
