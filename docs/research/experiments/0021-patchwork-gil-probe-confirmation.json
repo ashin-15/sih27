@@ -1,0 +1,406 @@
+{
+  "scope": "GIL probe only; synthetic input, not replay latency or release acceptance",
+  "python": "3.12.14 (main, Sep  1 2026, 14:16:52) [Clang 22.1.3 ]",
+  "platform": "Linux-7.2.6-1-cachyos-x86_64-with-glibc2.44",
+  "numpy": "2.5.3",
+  "pypatchworkpp": "1.4.1",
+  "binary": "/home/ashin/Hackathon/SIH/Drishti-2.5/.venv/lib/python3.12/site-packages/pypatchworkpp.cpython-312-x86_64-linux-gnu.so",
+  "binary_sha256": "9d9305bcd2e4ab8973213cca756389b9cb0b0d9dcba96ac3a061de90a6da2734",
+  "harness_sha256": "ae94cacc60a971de01a71a09fd4381b9190853256786c932257de621ae87e004",
+  "input_sha256": "8de229e26072d1103bf852bf58de72146e6695f7f7180369b46e54781873debf",
+  "input_shape": [
+    130000,
+    4
+  ],
+  "input_dtype": "float32",
+  "seed": 26053,
+  "warmup_calls_per_estimator": 1,
+  "python_switch_interval_s": 0.5,
+  "heartbeat_sleep_s": 0.001,
+  "excluded_boundary_ms": 1.0,
+  "controls_valid": true,
+  "ground_counts": [
+    116819,
+    116819
+  ],
+  "nonground_counts": [
+    13181,
+    13181
+  ],
+  "summary": {
+    "control_holds_gil": {
+      "trials": 12,
+      "duration_ms_min": 40.038776,
+      "duration_ms_p50": 40.1051895,
+      "duration_ms_max": 40.301563,
+      "trials_with_interior_python_progress": 0,
+      "interior_python_heartbeats": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "estimateGround_c_order": {
+      "trials": 12,
+      "duration_ms_min": 27.118701,
+      "duration_ms_p50": 29.874855500000002,
+      "duration_ms_max": 31.012965,
+      "trials_with_interior_python_progress": 0,
+      "interior_python_heartbeats": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "control_releases_gil": {
+      "trials": 12,
+      "duration_ms_min": 40.037282,
+      "duration_ms_p50": 40.0684295,
+      "duration_ms_max": 40.178959,
+      "trials_with_interior_python_progress": 12,
+      "interior_python_heartbeats": [
+        35,
+        38,
+        38,
+        37,
+        37,
+        37,
+        38,
+        37,
+        36,
+        36,
+        34,
+        34
+      ]
+    },
+    "estimateGround_f_order": {
+      "trials": 12,
+      "duration_ms_min": 27.086397,
+      "duration_ms_p50": 29.918308500000002,
+      "duration_ms_max": 34.294943,
+      "trials_with_interior_python_progress": 0,
+      "interior_python_heartbeats": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "trials": [
+    {
+      "case": "control_holds_gil",
+      "repetition": 0,
+      "duration_ms": 40.161313,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_c_order",
+      "repetition": 0,
+      "duration_ms": 29.476725,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_releases_gil",
+      "repetition": 0,
+      "duration_ms": 40.119192,
+      "interior_python_heartbeats": 35
+    },
+    {
+      "case": "estimateGround_f_order",
+      "repetition": 0,
+      "duration_ms": 34.294943,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_c_order",
+      "repetition": 1,
+      "duration_ms": 30.053875,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_releases_gil",
+      "repetition": 1,
+      "duration_ms": 40.178959,
+      "interior_python_heartbeats": 38
+    },
+    {
+      "case": "estimateGround_f_order",
+      "repetition": 1,
+      "duration_ms": 34.204321,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_holds_gil",
+      "repetition": 1,
+      "duration_ms": 40.110266,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_releases_gil",
+      "repetition": 2,
+      "duration_ms": 40.037282,
+      "interior_python_heartbeats": 38
+    },
+    {
+      "case": "estimateGround_f_order",
+      "repetition": 2,
+      "duration_ms": 30.15945,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_holds_gil",
+      "repetition": 2,
+      "duration_ms": 40.06579,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_c_order",
+      "repetition": 2,
+      "duration_ms": 29.855819,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_f_order",
+      "repetition": 3,
+      "duration_ms": 27.086397,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_holds_gil",
+      "repetition": 3,
+      "duration_ms": 40.055813,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_c_order",
+      "repetition": 3,
+      "duration_ms": 29.893892,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_releases_gil",
+      "repetition": 3,
+      "duration_ms": 40.061058,
+      "interior_python_heartbeats": 37
+    },
+    {
+      "case": "control_holds_gil",
+      "repetition": 4,
+      "duration_ms": 40.301563,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_c_order",
+      "repetition": 4,
+      "duration_ms": 29.96904,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_releases_gil",
+      "repetition": 4,
+      "duration_ms": 40.125331,
+      "interior_python_heartbeats": 37
+    },
+    {
+      "case": "estimateGround_f_order",
+      "repetition": 4,
+      "duration_ms": 29.803683,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_c_order",
+      "repetition": 5,
+      "duration_ms": 30.846816,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_releases_gil",
+      "repetition": 5,
+      "duration_ms": 40.125379,
+      "interior_python_heartbeats": 37
+    },
+    {
+      "case": "estimateGround_f_order",
+      "repetition": 5,
+      "duration_ms": 29.822706,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_holds_gil",
+      "repetition": 5,
+      "duration_ms": 40.100113,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_releases_gil",
+      "repetition": 6,
+      "duration_ms": 40.051178,
+      "interior_python_heartbeats": 38
+    },
+    {
+      "case": "estimateGround_f_order",
+      "repetition": 6,
+      "duration_ms": 30.215112,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_holds_gil",
+      "repetition": 6,
+      "duration_ms": 40.055546,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_c_order",
+      "repetition": 6,
+      "duration_ms": 29.516736,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_f_order",
+      "repetition": 7,
+      "duration_ms": 27.43677,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_holds_gil",
+      "repetition": 7,
+      "duration_ms": 40.150953,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_c_order",
+      "repetition": 7,
+      "duration_ms": 29.516512,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_releases_gil",
+      "repetition": 7,
+      "duration_ms": 40.039958,
+      "interior_python_heartbeats": 37
+    },
+    {
+      "case": "control_holds_gil",
+      "repetition": 8,
+      "duration_ms": 40.259806,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_c_order",
+      "repetition": 8,
+      "duration_ms": 30.287892,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_releases_gil",
+      "repetition": 8,
+      "duration_ms": 40.090996,
+      "interior_python_heartbeats": 36
+    },
+    {
+      "case": "estimateGround_f_order",
+      "repetition": 8,
+      "duration_ms": 29.881649,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_c_order",
+      "repetition": 9,
+      "duration_ms": 27.118701,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_releases_gil",
+      "repetition": 9,
+      "duration_ms": 40.045669,
+      "interior_python_heartbeats": 36
+    },
+    {
+      "case": "estimateGround_f_order",
+      "repetition": 9,
+      "duration_ms": 29.603857,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_holds_gil",
+      "repetition": 9,
+      "duration_ms": 40.081873,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_releases_gil",
+      "repetition": 10,
+      "duration_ms": 40.039902,
+      "interior_python_heartbeats": 34
+    },
+    {
+      "case": "estimateGround_f_order",
+      "repetition": 10,
+      "duration_ms": 30.70412,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_holds_gil",
+      "repetition": 10,
+      "duration_ms": 40.283418,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_c_order",
+      "repetition": 10,
+      "duration_ms": 31.012965,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_f_order",
+      "repetition": 11,
+      "duration_ms": 29.954968,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_holds_gil",
+      "repetition": 11,
+      "duration_ms": 40.038776,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "estimateGround_c_order",
+      "repetition": 11,
+      "duration_ms": 29.425239,
+      "interior_python_heartbeats": 0
+    },
+    {
+      "case": "control_releases_gil",
+      "repetition": 11,
+      "duration_ms": 40.075801,
+      "interior_python_heartbeats": 34
+    }
+  ]
+}

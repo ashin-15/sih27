@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 from time import perf_counter
+from typing import Literal
 
 import numpy as np
 
 from drishti.arrays import ByteArray, FloatArray, IntArray, PointArray, immutable
 from drishti.config import MappingConfig
 from drishti.contracts import Accounting, Mode, ScanFrame
+from drishti.cuda_backend import CudaFramePath
 from drishti.geometry import transform_points
 from drishti.ground import GroundClass, GroundSegmenter, PatchworkGround
 from drishti.mapping import MapSnapshot, aggregate_cells
@@ -48,11 +50,16 @@ class MappingEngine:
         *,
         mode: Mode = Mode.GEOMETRIC,
         ground: GroundSegmenter | None = None,
+        device: Literal["cpu", "cuda"] = "cpu",
     ) -> None:
         if mode not in (Mode.GEOMETRIC, Mode.ORACLE):
             raise ValueError("mapping mode must be geometric or oracle")
+        if device not in ("cpu", "cuda"):
+            raise ValueError("mapping device must be cpu or cuda")
         self.config = config
         self.mode = mode
+        self.device = device
+        self._cuda = CudaFramePath() if device == "cuda" else None
         self.ground = PatchworkGround(config) if ground is None else ground
         self._stream: str | None = None
         self._last_frame = -1
@@ -72,24 +79,33 @@ class MappingEngine:
         if np.any(np.abs(frame.map_from_sensor[:2, 3]) > config.max_abs_coordinate_m):
             raise ValueError("sensor pose exceeds the configured coordinate bound")
         xyz = frame.points_sensor[:, :3].astype(np.float64)
-        valid = np.isfinite(xyz).all(axis=1)
-        valid &= np.max(np.abs(xyz), axis=1) <= config.max_abs_coordinate_m
-        valid &= np.linalg.norm(xyz, axis=1) >= config.min_range_m
+        valid = np.isfinite(xyz[:, 0]) & np.isfinite(xyz[:, 1]) & np.isfinite(xyz[:, 2])
+        valid &= (
+            np.maximum(np.maximum(np.abs(xyz[:, 0]), np.abs(xyz[:, 1])), np.abs(xyz[:, 2]))
+            <= config.max_abs_coordinate_m
+        )
+        range_m = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2 + xyz[:, 2] ** 2)
+        valid &= range_m >= config.min_range_m
         indices = np.flatnonzero(valid)
         xyz_map_m = transform_points(xyz[indices], frame.map_from_sensor)
         delta_m = xyz_map_m[:, :2] - frame.map_from_sensor[:2, 3]
         distance_m = (
-            np.linalg.norm(delta_m, axis=1)
+            np.sqrt(delta_m[:, 0] ** 2 + delta_m[:, 1] ** 2)
             if config.footprint == "radial"
-            else np.max(np.abs(delta_m), axis=1)
+            else np.maximum(np.abs(delta_m[:, 0]), np.abs(delta_m[:, 1]))
         )
         in_roi = (distance_m < config.radii_m[-1]) & (
-            np.max(np.abs(xyz_map_m[:, :2]), axis=1) <= config.max_abs_coordinate_m
+            np.maximum(np.abs(xyz_map_m[:, 0]), np.abs(xyz_map_m[:, 1]))
+            <= config.max_abs_coordinate_m
         )
         in_height = np.abs(xyz_map_m[:, 2]) <= config.max_abs_height_m
         accepted = indices[in_roi & in_height]
-        points = immutable(frame.points_sensor[accepted])
-        ids = immutable(frame.point_ids[accepted])
+        if len(accepted) == len(frame.points_sensor):
+            points = frame.points_sensor
+            ids = frame.point_ids
+        else:
+            points = immutable(frame.points_sensor[accepted])
+            ids = immutable(frame.point_ids[accepted])
         mapped = immutable(xyz_map_m[in_roi & in_height])
         semantic = np.zeros(len(points), dtype=np.uint8)
         motion = np.zeros(len(points), dtype=np.uint8)
@@ -104,9 +120,14 @@ class MappingEngine:
         if ground.shape != (len(points),) or not np.isin(ground, list(GroundClass)).all():
             raise ValueError("ground provider returned invalid point-aligned classifications")
         segmented = perf_counter()
-        image = project(points, ids, config)
+        image = (
+            self._cuda.project(points, ids, config)
+            if self._cuda is not None
+            else project(points, ids, config)
+        )
         projected = perf_counter()
-        snapshot, cell_indices = aggregate_cells(
+        aggregate = self._cuda.aggregate_cells if self._cuda is not None else aggregate_cells
+        snapshot, cell_indices = aggregate(
             mapped,
             frame.map_from_sensor[:2, 3],
             ground,

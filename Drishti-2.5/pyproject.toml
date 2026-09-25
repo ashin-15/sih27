@@ -33,7 +33,7 @@ drishti = ["py.typed"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--strict-config --strict-markers"
-markers = ["native: exercises the installed Patchwork++ extension", "viewer: exercises the optional Rerun SDK"]
+markers = ["native: exercises the installed Patchwork++ extension", "viewer: exercises the optional Rerun SDK", "cuda: requires a working NVIDIA CUDA device and CuPy"]
 
 [tool.ruff]
 line-length = 100

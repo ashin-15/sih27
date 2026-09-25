@@ -5,7 +5,7 @@ from typing import Protocol, cast
 
 import numpy as np
 
-from drishti.arrays import ByteArray, FloatArray, IntArray, PointArray, immutable
+from drishti.arrays import ByteArray, IntArray, PointArray, immutable
 from drishti.config import MappingConfig
 
 
@@ -30,7 +30,7 @@ class _Parameters(Protocol):
 
 
 class _Estimator(Protocol):
-    def estimateGround(self, points: FloatArray) -> None: ...
+    def estimateGround(self, points: PointArray) -> None: ...
     def getGroundIndices(self) -> IntArray: ...
     def getNongroundIndices(self) -> IntArray: ...
 
@@ -64,7 +64,7 @@ class PatchworkGround:
         eligible = np.flatnonzero(np.isfinite(points[:, 3]))
         if not len(eligible):
             return immutable(result)
-        self._estimator.estimateGround(points[eligible].astype(np.float64))
+        self._estimator.estimateGround(points[eligible])
         for category, indices in (
             (GroundClass.GROUND, self._estimator.getGroundIndices()),
             (GroundClass.NONGROUND, self._estimator.getNongroundIndices()),

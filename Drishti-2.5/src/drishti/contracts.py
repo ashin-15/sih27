@@ -40,7 +40,10 @@ class ScanFrame:
             raise ValueError("scan points must have shape (N, 4)")
         if self.point_ids.shape != (len(self.points_sensor),) or self.point_ids.dtype != np.int64:
             raise ValueError("point IDs must be aligned int64 original indices")
-        if np.any(self.point_ids < 0) or len(np.unique(self.point_ids)) != len(self.point_ids):
+        ordered = not np.any(self.point_ids[1:] <= self.point_ids[:-1])
+        if np.any(self.point_ids < 0) or (
+            not ordered and len(np.unique(self.point_ids)) != len(self.point_ids)
+        ):
             raise ValueError("original point IDs must be unique and nonnegative")
         validate_transform(self.map_from_sensor)
         if self.annotations is not None:

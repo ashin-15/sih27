@@ -1,6 +1,6 @@
 # Project context
 
-Updated 2026-09-24. Status labels distinguish current code from plans.
+Updated 2026-09-25. Status labels distinguish current code from plans.
 
 ## Identity and users
 
@@ -23,7 +23,17 @@ FACT: Geometric mode returns semantic/motion unknown; oracle mode uses dataset l
 FACT: Semantic IDs are 0 unknown/ignored and 1..19 classes; frames and timestamps increase within one engine sequence; original point IDs are retained; source data is read-only. See `docs/interfaces.md`.
 
 DESIGN DECISION for development: use the current Core Ultra 9 185H machine, 10 Hz replay and up
-to 130,000 points per scan. A 100 ms capture-to-published-output goal is proposed but unmet by
-the current path. UNKNOWN: release hardware/deadline policy, model milestone, free-space use,
-live sensor scope, quantitative quality gates and release policy. See `docs/project-assessment.md`
-and `docs/execution-plan.md`.
+to 130,000 points per scan as the CPU baseline. DESIGN DECISION for the first CUDA-backed release:
+dataset replay on an identified NVIDIA host, with a 100 ms publication deadline per scheduled
+scan and zero misses in the accepted window; live sensor input is deferred. This laptop has no
+CUDA device and remains the CPU parity reference. Its current path fails the deadline.
+DESIGN DECISION: publication is a same-process evaluator receipt for the complete versioned
+immutable result; persist receipts/audit, with full-payload disk persistence outside that endpoint.
+DESIGN DECISION, later clarification: the current laptop CPU is the active implementation and
+execution target, with optional CUDA support for later use. NVIDIA access must not block
+approved CPU-only development; only GPU-specific validation is deferred.
+Output is evidence-only; planner-facing use is deferred. Workload/window/cap approval is explicitly
+deferred. UNKNOWN: physical NVIDIA host, complete payload schema, resource limits, model milestone,
+quantitative evidence-quality gates and release policy. See
+`docs/decisions/0002-cuda-replay-release-platform.md`, `docs/o-001-release-profile.md` and
+`docs/execution-plan.md`.

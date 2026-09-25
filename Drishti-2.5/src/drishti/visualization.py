@@ -205,6 +205,9 @@ class RerunView:
         for name, value in asdict(result.timings).items():
             stream.log(f"timing/{name}", rr.Scalars(value))
 
-    def close(self) -> None:
+    def flush(self) -> None:
         self.recording.flush()
+
+    def close(self) -> None:
+        self.flush()
         self.recording.disconnect()

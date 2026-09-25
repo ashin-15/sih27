@@ -2,7 +2,26 @@ import numpy as np
 import pytest
 
 from drishti.config import MappingConfig
-from drishti.mapping import resolve_owners
+from drishti.mapping import _group_cells, resolve_owners
+
+
+@pytest.mark.parametrize(
+    "keys",
+    [
+        np.empty((0, 3), dtype=np.int64),
+        np.array([[0, -2, 3], [2, -2, 3], [0, -2, 3], [1, 0, -4]], dtype=np.int64),
+        np.array([[0, -20_000_000, 20_000_000], [2, 20_000_000, -20_000_000]]),
+        np.array([[0, -(2**63), 0], [0, 2**63 - 1, 0]], dtype=np.int64),
+    ],
+)
+def test_packed_grouping_preserves_sorted_keys_inverse_and_counts(
+    keys: np.ndarray,
+) -> None:
+    expected = np.unique(keys, axis=0, return_inverse=True, return_counts=True)
+    actual = _group_cells(keys)
+    assert all(
+        np.array_equal(value, reference) for value, reference in zip(actual, expected, strict=True)
+    )
 
 
 @pytest.mark.parametrize(

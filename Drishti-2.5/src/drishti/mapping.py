@@ -32,18 +32,48 @@ def resolve_owners(
     for current in range(len(config.ratios) - 1, 0, -1):
         width_m = config.cell_sizes_cm[current] / 100
         lower_m = (base // config.ratios[current]) * width_m
-        distance_m = np.maximum(
-            np.maximum(lower_m - sensor_xy_m, sensor_xy_m - (lower_m + width_m)), 0
+        dx_m = np.maximum(
+            np.maximum(lower_m[:, 0] - sensor_xy_m[0], sensor_xy_m[0] - (lower_m[:, 0] + width_m)),
+            0,
+        )
+        dy_m = np.maximum(
+            np.maximum(lower_m[:, 1] - sensor_xy_m[1], sensor_xy_m[1] - (lower_m[:, 1] + width_m)),
+            0,
         )
         closest_m = (
-            np.linalg.norm(distance_m, axis=1)
+            np.sqrt(dx_m * dx_m + dy_m * dy_m)
             if config.footprint == "radial"
-            else np.max(distance_m, axis=1)
+            else np.maximum(dx_m, dy_m)
         )
         promote = (level == current) & (closest_m < config.radii_m[current - 1])
         level[promote] -= 1
     ratios = np.asarray(config.ratios, dtype=np.int64)[level]
     return CellOwners(immutable(level), immutable(base // ratios[:, None]))
+
+
+def _group_cells(keys: IntArray) -> tuple[IntArray, IntArray, IntArray]:
+    if not len(keys):
+        return keys.copy(), np.empty(0, dtype=np.int64), np.empty(0, dtype=np.int64)
+    lower = [int(keys[:, column].min()) for column in range(3)]
+    upper = [int(keys[:, column].max()) for column in range(3)]
+    width_x = upper[1] - lower[1] + 1
+    width_y = upper[2] - lower[2] + 1
+    space = (upper[0] - lower[0] + 1) * width_x * width_y
+    if space > np.iinfo(np.int64).max:
+        return np.unique(keys, axis=0, return_inverse=True, return_counts=True)
+    values = ((keys[:, 0] - lower[0]) * width_x + (keys[:, 1] - lower[1])) * width_y + (
+        keys[:, 2] - lower[2]
+    )
+    unique_values, inverse, count = np.unique(values, return_inverse=True, return_counts=True)
+    plane = width_x * width_y
+    unique = np.column_stack(
+        (
+            unique_values // plane + lower[0],
+            unique_values // width_y % width_x + lower[1],
+            unique_values % width_y + lower[2],
+        )
+    )
+    return unique, inverse, count
 
 
 @dataclass(frozen=True)
@@ -129,7 +159,7 @@ def aggregate_cells(
 ) -> tuple[MapSnapshot, IntArray]:
     owners = resolve_owners(xyz_map_m[:, :2], sensor_xy_m, config)
     keys = np.column_stack((owners.level, owners.indices))
-    unique, inverse, count = np.unique(keys, axis=0, return_inverse=True, return_counts=True)
+    unique, inverse, count = _group_cells(keys)
     inverse = inverse.astype(np.int64)
     n = len(unique)
     height_cm = np.rint(xyz_map_m[:, 2] * 100).astype(np.int64)
@@ -162,15 +192,24 @@ def aggregate_cells(
     spread_m2 = np.maximum(squares / denominator - mean_cm**2, 0) / 10000
     observed_low, observed_high = bounds(np.ones(len(inverse), dtype=np.bool_))
     obstacle_low, obstacle_high = bounds(is_obstacle)
-    evidence = np.zeros((n, len(CLASS_NAMES)), dtype=np.int64)
-    np.add.at(evidence, (inverse, semantic), 1)
-    dominant = np.argmax(evidence, axis=1).astype(np.uint8)
-    conflict = np.count_nonzero(evidence[:, 1:], axis=1) > 1
-    tied = np.count_nonzero(evidence == np.max(evidence, axis=1, keepdims=True), axis=1) > 1
-    dominant[tied] = 0
-    cell_motion = np.full(n, Motion.UNKNOWN, dtype=np.uint8)
-    cell_motion[counts(motion == Motion.STATIONARY) == count] = Motion.STATIONARY
-    cell_motion[counts(motion == Motion.MOVING) > 0] = Motion.MOVING
+    class_count = len(CLASS_NAMES)
+    if not np.any(semantic) and not np.any(motion):
+        evidence = np.zeros((n, class_count), dtype=np.int64)
+        evidence[:, 0] = count
+        dominant = np.zeros(n, dtype=np.uint8)
+        conflict = np.zeros(n, dtype=np.bool_)
+        cell_motion = np.full(n, Motion.UNKNOWN, dtype=np.uint8)
+    else:
+        evidence = np.bincount(inverse * class_count + semantic, minlength=n * class_count).reshape(
+            n, class_count
+        )
+        dominant = np.argmax(evidence, axis=1).astype(np.uint8)
+        conflict = np.count_nonzero(evidence[:, 1:], axis=1) > 1
+        tied = np.count_nonzero(evidence == np.max(evidence, axis=1, keepdims=True), axis=1) > 1
+        dominant[tied] = 0
+        cell_motion = np.full(n, Motion.UNKNOWN, dtype=np.uint8)
+        cell_motion[counts(motion == Motion.STATIONARY) == count] = Motion.STATIONARY
+        cell_motion[counts(motion == Motion.MOVING) > 0] = Motion.MOVING
     finite_intensity = np.isfinite(intensity)
     intensity_count = counts(finite_intensity)
     intensity_sum = np.bincount(

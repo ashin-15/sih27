@@ -30,7 +30,7 @@ def project(points: PointArray, point_ids: IntArray, config: MappingConfig) -> R
     if not np.isfinite(points[:, :3]).all():
         raise ValueError("projection requires finite geometry")
     xyz = points[:, :3].astype(np.float64)
-    ranges = np.linalg.norm(xyz, axis=1)
+    ranges = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2 + xyz[:, 2] ** 2)
     elevation = np.arctan2(xyz[:, 2], np.hypot(xyz[:, 0], xyz[:, 1]))
     lower, upper = np.deg2rad([config.fov_down_deg, config.fov_up_deg])
     eligible = (ranges > 0) & (elevation >= lower) & (elevation <= upper)
@@ -41,19 +41,18 @@ def project(points: PointArray, point_ids: IntArray, config: MappingConfig) -> R
     columns = np.floor((azimuth + np.pi) / (2 * np.pi) * config.projection_columns)
     columns = columns.astype(np.int64) % config.projection_columns
     pixels = rows * config.projection_columns + columns
-    order = np.lexsort((point_ids[indices], ranges[indices], pixels))
-    sorted_pixels = pixels[order]
-    first = np.r_[True, np.diff(sorted_pixels) != 0] if len(order) else np.zeros(0, dtype=bool)
-    winners = indices[order[first]]
-    owned_pixels = sorted_pixels[first]
     shape = (config.projection_rows, config.projection_columns)
-    image = np.full(shape, np.nan, dtype=np.float64)
-    inverse = np.full(shape, -1, dtype=np.int64)
-    image.ravel()[owned_pixels] = ranges[winners]
-    inverse.ravel()[owned_pixels] = point_ids[winners]
+    image = np.full(shape, np.inf, dtype=np.float64)
+    np.minimum.at(image.ravel(), pixels, ranges[indices])
+    nearest = ranges[indices] == image.ravel()[pixels]
+    inverse = np.full(shape, np.iinfo(np.int64).max, dtype=np.int64)
+    np.minimum.at(inverse.ravel(), pixels[nearest], point_ids[indices][nearest])
+    valid = np.isfinite(image)
+    image[~valid] = np.nan
+    inverse[~valid] = -1
     return RangeImage(
         immutable(image),
         immutable(inverse),
-        len(indices) - len(winners),
+        len(indices) - int(np.count_nonzero(valid)),
         len(points) - len(indices),
     )

@@ -1,0 +1,60 @@
+PatchWorkpp::PatchWorkpp() - INITIALIZATION COMPLETE
+PatchWorkpp::PatchWorkpp() - INITIALIZATION COMPLETE
+aggregate_ms: p50=56.72 p95=65.34 max=68.89 ms
+ground_ms: p50=25.65 p95=26.85 max=27.76 ms
+input_hash_ms: p50=2.09 p95=2.27 max=2.93 ms
+json_write_flush_ms: p50=0.16 p95=0.17 max=0.19 ms
+load_ms: p50=26.53 p95=29.27 max=31.74 ms
+mapping_ms: p50=57.52 p95=65.97 max=69.67 ms
+preprocess_ms: p50=33.93 p95=35.61 max=44.96 ms
+process_ms: p50=133.14 p95=141.67 max=148.47 ms
+projection_ms: p50=15.60 p95=17.13 max=19.69 ms
+resolve_owners_ms: p50=17.84 p95=19.15 max=21.12 ms
+snapshot_digest_ms: p50=16.89 p95=18.73 max=19.48 ms
+frames=40 output=../docs/research/experiments/0011-profile-seq08-40.jsonl config_digest=ce31fff9d82ef960a703d0558456514d3be6d86c13c411899ec52e361e3838db
+mapping minus aggregate median=0.71 ms
+PROFILE TOP CUMTIME (12 frames)
+         12000 function calls (11748 primitive calls) in 1.200 seconds
+
+   Ordered by: cumulative time
+   List reduced from 152 to 35 due to restriction <35>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+       12    0.070    0.006    0.696    0.058 mapping.py:139(aggregate_cells)
+      492    0.414    0.001    0.414    0.001 {method 'reduce' of 'numpy.ufunc' objects}
+       12    0.144    0.012    0.222    0.019 mapping.py:21(resolve_owners)
+       12    0.126    0.010    0.190    0.016 projection.py:25(project)
+       60    0.028    0.000    0.186    0.003 _linalg.py:2598(norm)
+       48    0.000    0.000    0.169    0.004 fromnumeric.py:3049(max)
+       60    0.000    0.000    0.169    0.003 fromnumeric.py:66(_wrapreduction)
+       12    0.020    0.002    0.114    0.010 mapping.py:49(_group_cells)
+       12    0.000    0.000    0.085    0.007 _arraysetops_impl.py:145(unique)
+       12    0.018    0.001    0.085    0.007 _arraysetops_impl.py:350(_unique1d)
+      420    0.001    0.000    0.058    0.000 arrays.py:11(immutable)
+       96    0.000    0.000    0.058    0.001 numeric.py:483(count_nonzero)
+       12    0.057    0.005    0.057    0.005 {method 'argsort' of 'numpy.ndarray' objects}
+       36    0.027    0.001    0.056    0.002 mapping.py:167(bounds)
+      420    0.055    0.000    0.055    0.000 {method 'tobytes' of 'numpy.ndarray' objects}
+      132    0.053    0.000    0.053    0.000 {method 'at' of 'numpy.ufunc' objects}
+       24    0.000    0.000    0.049    0.002 {method 'sum' of 'numpy.ndarray' objects}
+       24    0.000    0.000    0.049    0.002 _methods.py:47(_sum)
+      312    0.048    0.000    0.048    0.000 {method 'astype' of 'numpy.ndarray' objects}
+       12    0.001    0.000    0.038    0.003 mapping.py:110(__post_init__)
+       84    0.000    0.000    0.032    0.000 {method 'all' of 'numpy.ndarray' objects}
+      156    0.000    0.000    0.032    0.000 _methods.py:64(_all)
+      108    0.024    0.000    0.028    0.000 mapping.py:164(counts)
+       84    0.000    0.000    0.028    0.000 fromnumeric.py:48(_wrapfunc)
+       12    0.020    0.002    0.025    0.002 geometry.py:23(transform_points)
+       24    0.016    0.001    0.016    0.001 _shape_base_impl.py:607(column_stack)
+       96    0.015    0.000    0.015    0.000 {built-in method numpy.zeros}
+       12    0.000    0.000    0.012    0.001 fromnumeric.py:1259(argmax)
+       12    0.012    0.001    0.012    0.001 {method 'argmax' of 'numpy.ndarray' objects}
+       48    0.000    0.000    0.007    0.000 fromnumeric.py:2031(nonzero)
+       48    0.007    0.000    0.007    0.000 {method 'nonzero' of 'numpy.ndarray' objects}
+       12    0.000    0.000    0.007    0.001 fromnumeric.py:2876(cumsum)
+       12    0.007    0.001    0.007    0.001 {method 'cumsum' of 'numpy.ndarray' objects}
+       12    0.000    0.000    0.007    0.001 _arraysetops_impl.py:958(isin)
+      132    0.006    0.000    0.006    0.000 numeric.py:323(full)
+
+
+

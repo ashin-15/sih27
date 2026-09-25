@@ -4,6 +4,12 @@ Status: MEASURED RESULT for isolated grouping and current geometric `process` ca
 DESIGN PROPOSAL for recording and scheduling. Question: RQ-004. No live sensor, queue,
 durable recorder, production optimization, learned model or complete-path guarantee was tested.
 
+Historical measurement note, 2026-09-25: packed grouping has since been integrated into
+the active mapping path and checked by experiment 0010. The benchmark script below was
+written against the earlier row-wise source digest, so rerunning it on the current source
+does not reproduce its baseline-versus-candidate comparison. Use its recorded JSON reports
+for the historical result and experiment 0010 for current CLI evidence.
+
 ## Reproduce the measurement
 
 - Hardware and software: the current Intel Core Ultra 9 185H Linux laptop, Python 3.12.14,

@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import numpy as np
 import pytest
 
@@ -15,6 +17,19 @@ class AnalyticGround:
         return np.where(points[:, 2] < -1, GroundClass.GROUND, GroundClass.NONGROUND).astype(
             np.uint8
         )
+
+
+def test_scan_ids_preserve_order_and_reject_duplicates() -> None:
+    points = np.zeros((3, 4), dtype=np.float32)
+    frame = make_frame(points)
+    increasing = replace(frame, point_ids=np.array([0, 2, 7], dtype=np.int64))
+    unordered = replace(frame, point_ids=np.array([7, 0, 2], dtype=np.int64))
+    assert increasing.point_ids.tolist() == [0, 2, 7]
+    assert unordered.point_ids.tolist() == [7, 0, 2]
+    with pytest.raises(ValueError, match="unique"):
+        replace(frame, point_ids=np.array([0, 2, 2], dtype=np.int64))
+    with pytest.raises(ValueError, match="nonnegative"):
+        replace(frame, point_ids=np.array([-1, 0, 2], dtype=np.int64))
 
 
 def test_scan_reaches_cells_without_losing_projection_collisions_or_intensity() -> None:
@@ -44,7 +59,14 @@ def test_scan_reaches_cells_without_losing_projection_collisions_or_intensity() 
 def test_rejections_balance_and_empty_snapshot_is_valid() -> None:
     config = MappingConfig(max_abs_height_m=10)
     points = np.array(
-        [[np.nan, 0, 0, 1], [101, 0, 0, 1], [5, 0, 11, 1], [0, 0, 0, 1]], dtype=np.float32
+        [
+            [np.nan, 0, 0, 1],
+            [1, np.inf, 0, 1],
+            [101, 0, 0, 1],
+            [5, 0, 11, 1],
+            [0, 0, 0, 1],
+        ],
+        dtype=np.float32,
     )
     result = MappingEngine(config, ground=AnalyticGround()).process(make_frame(points))
     counts = result.accounting
@@ -54,7 +76,7 @@ def test_rejections_balance_and_empty_snapshot_is_valid() -> None:
         counts.outside_roi,
         counts.outside_height,
         counts.accepted_points,
-    ) == (4, 2, 1, 1, 0)
+    ) == (5, 3, 1, 1, 0)
     assert result.snapshot.point_count.size == 0
     assert len(result.snapshot.digest) == 64
 
@@ -90,6 +112,22 @@ def test_geometric_outputs_do_not_depend_on_annotations() -> None:
     )
     assert oracle.snapshot.semantic.tolist() == [1]
     assert oracle.snapshot.motion.tolist() == [2]
+
+
+def test_oracle_cell_evidence_counts_unknown_and_distinct_classes() -> None:
+    from drishti.semantics import decode_semantickitti
+
+    points = np.array([[5.01, 0, 0, 1], [5.02, 0, 0, 1], [5.03, 0, 0, 1]], dtype=np.float32)
+    labels = decode_semantickitti(np.array([0, 10, 81], dtype=np.uint32))
+    result = MappingEngine(MappingConfig(), mode=Mode.ORACLE, ground=AnalyticGround()).process(
+        make_frame(points, annotations=labels)
+    )
+    evidence = result.snapshot.semantic_evidence
+    assert evidence.shape == (1, 20)
+    assert evidence[0, [0, 1, 19]].tolist() == [1, 1, 1]
+    assert int(evidence.sum()) == 3
+    assert result.snapshot.semantic.tolist() == [0]
+    assert result.snapshot.semantic_conflict.tolist() == [True]
 
 
 def test_snapshot_survives_next_frame_and_arrays_cannot_be_mutated() -> None:

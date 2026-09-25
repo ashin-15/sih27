@@ -26,15 +26,15 @@ measure the future complete path or prove a real-time guarantee.
 - FACT: `ScanFrame.deskew_status` defaults to unavailable. Pose source quality and scan distortion are not quantified.
 - FACT: A single 2.5D height per cell cannot itself prove overhang clearance or free space. Current observed min/max is a return envelope.
 - FACT: Existing run artifacts had user modifications before this bootstrap. Preserve them.
-- UNKNOWN: model licensing/weights, release hardware and vehicle dimensions. Dataset metadata and
+- UNKNOWN: model licensing/weights, physical NVIDIA release host and vehicle dimensions. Dataset metadata and
   two short replays were checked; full scan-content validation remains NOT VERIFIED.
 
 ## High-value questions
 
-1. Which release CPU/GPU, duration, deadline miss policy and vehicle fault response define real time? The current machine, 10 Hz, 130,000 points and 100 ms are development targets only.
+1. Which complete payload schema and resource limits define the CUDA replay gate? The 100 ms deadline, zero misses and same-process evaluator receipt are selected; physical host and workload approval are deferred.
 2. Is the first learned milestone semantic-only, joint semantic/motion, or checkpoint integration before local training?
-3. Is free-space output evidence for evaluation or a navigation-facing decision?
-4. Does first release require live sensor input, and what timing/calibration/pose quality is available?
+3. Which false-free, unknown/stale and recovery thresholds apply to the selected evidence-only output? Planner-facing use is deferred.
+4. What timing/calibration/pose quality contract would be required for a later live release? Live input is deferred beyond this first replay release.
 5. What held-out data and numeric quality thresholds are acceptable for each requested capability?
 
 ## Evidence discipline

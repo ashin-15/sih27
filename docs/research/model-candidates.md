@@ -1,13 +1,13 @@
 # Model candidate screen
 
-Updated 2026-09-24. This is a research screen, not a model selection. D-001, D-002, and D-005
+Updated 2026-09-25. This is a research screen, not a model selection. D-001, D-002, and D-005
 remain open. No candidate has been downloaded, run, or measured in Drishti.
 
 | Candidate | Evidence and plausible role | Contract gaps to test | Status |
 | --- | --- | --- | --- |
 | Current geometric path | Code inspection: produces ground and single-frame cells, with semantic ID 0 in production mode. It is the reproducible no-model baseline. | No learned class, instance, motion, track, or visibility output. | Existing baseline |
-| FRNet / Fast-FRNet | [Authors' repository](https://github.com/Xiangxu-0103/FRNet) publishes SemanticKITTI checkpoints, an Apache-2.0 code license, and segmentation results under its own test conditions. Candidate for point semantics only. | Verify checkpoint terms separately, preprocessing, class map, all-point alignment, unknown handling, memory, and full Drishti latency on chosen hardware. A published network FPS is not capture-to-map latency. | Research candidate; NOT VERIFIED locally |
-| Autoware FRNet integration | [Maintainer documentation](https://github.com/autowarefoundation/autoware_universe/blob/main/perception/autoware_lidar_frnet/README.md) describes a TensorRT implementation with preprocess, inference, postprocess, and pipeline timing fields. Useful instrumentation reference. | Requires compatible accelerator, model artifact and input format; is not a drop-in dependency for this Python package. | Integration reference; NOT VERIFIED locally |
+| FRNet / Fast-FRNet | [Authors' repository](https://github.com/Xiangxu-0103/FRNet) links SemanticKITTI checkpoints, an Apache-2.0 code license, and segmentation results under its own test conditions. Candidate for point semantics only. | This review could not inspect the shared folder's exact files, separate weight terms or hashes in [screen 0020](experiments/0020-frnet-artifact-screen.md). Verify preprocessing, class map, all-point alignment, unknown handling, memory and full Drishti latency. Published network FPS is not capture-to-map latency. | Research candidate; exact checkpoint NOT VERIFIED |
+| Autoware FRNet integration and artifacts | [Maintainer documentation](https://github.com/autowarefoundation/autoware_universe/blob/main/perception/autoware_lidar_frnet/README.md) describes TensorRT stage timings. Its [artifact card](https://huggingface.co/AutowareFoundation/lidar_frnet/commit/a53a1c11b0b28d31fd50a03abef5db0e830a5b3c) supplies sensor-specific ONNX models trained on T4Dataset with 27 classes. | Drishti uses SemanticKITTI IDs 0 through 19; these weights are not a direct class-contract match. They also require compatible sensor preprocessing and accelerator. See [screen 0020](experiments/0020-frnet-artifact-screen.md). | Instrumentation reference; reject as drop-in SemanticKITTI checkpoint |
 
 ## Candidate gate before adapter work
 
