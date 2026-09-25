@@ -18,5 +18,8 @@ Close an item only with a linked decision, implementation, and validation record
 | O-011 | IN PROGRESS | Product owner and engineering, T-014 | Continuous 10 Hz arrival exceeds the current-path service rate. Experiment 0009 compared SQLite, LMDB and a custom log; LMDB showed lower commit tails than SQLite in short runs and a matched 1,000-scan pair, and passed injected process-kill/map-limit checks. Both long runs reverified all payloads, but source-read variation made LMDB's long-run acquisition p95 slower. A 500-scan LMDB writer with reader/current replay also passed, while replay missed 100/100 processing deadlines. A separate scheduled producer with a two-frame volatile queue preserved 100 frames in one diagnostic run but blocked on 93 queue-full events and fell behind its 10 Hz schedule. No runtime ingress, live-sensor retry contract, disk budget, stale-output policy or measured parallel scheduler exists. | Freeze source ack/retry and overload/freshness behavior; test longer concurrent workers/readers, map growth and retention, physical disk/power faults and complete-path output age. |
 
 See `execution-plan.md` for task sequence and `research/modules.md` for research paired to tasks.
+The [O-001 contract proposal](o-001-contract-proposal.md) now gives D-001/D-005 a concrete
+payload, evaluator, replay, audit and threshold worksheet for review. It does not resolve
+the deferred workload/cap, model, numeric quality/resource limits or implementation approval.
 The first reproducible current-path measurements and remaining limits are in
 `research/experiments/0001-replay-baseline-protocol.md`.

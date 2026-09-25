@@ -26,3 +26,8 @@ The first CUDA-backed release uses evidence-only dataset replay on an identified
 ## Required threshold decisions
 
 Freeze numeric targets for semantic classes and ranges, obstacle classes and sizes, motion/track quality, false-free rate, map freshness and capacity. The product owner explicitly deferred approval of the proposed sample window, workload and density cap. Identify and inventory the NVIDIA release host; freeze the complete payload schema, bounded audit behavior and CPU/GPU memory and disk ceilings. Rerun is excluded from the 100 ms timing and needs a separate resource/quality check. The 100 ms per-scan deadline, zero-miss policy, same-process evaluator receipt endpoint and evidence-only output scope are selected. Until the remaining fields are frozen this remains a draft; passing the current tests or producing a current-slice diagnostic receipt cannot satisfy this contract.
+
+The [O-001 contract proposal](../../../../docs/o-001-contract-proposal.md) supplies exact proposed
+window accounting, invalid-scan handling, receipt and audit checks, and a metric/threshold
+worksheet. Its candidate workload and structural rules are not accepted criteria until reviewed.
+Quality and host resource limits remain TBD; no complete-path acceptance run exists.

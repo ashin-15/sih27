@@ -30,6 +30,11 @@ The immediate users are developers evaluating SemanticKITTI replay and operators
 
 Baseline: no measured learned accuracy, tracking, free-space quality, or full-pipeline latency. The first-release deadline is 100 ms for every scheduled scan with zero misses in the accepted window. Targets for semantic mIoU, obstacle recall by size/range, moving IoU, track ID switches, false-free rate, peak memory and disk are TBD. They must be frozen before implementation acceptance. Synthetic demo and oracle scores are not substitutes.
 
+The [O-001 contract proposal](../../../../docs/o-001-contract-proposal.md) defines a reviewable
+full-result field list, evaluator behavior, replay protocol and D-005 metric worksheet. Its
+sequence/window/cap and numeric quality/resource choices remain unapproved. CPU development
+measurements and the later CUDA release judgment are separate milestones.
+
 ## Data and use rules
 
 - Keep raw scans and labels read-only. Training uses training sequences only; validation and final evaluation must be held out. The official SemanticKITTI tasks and API define label formats and benchmark metrics: https://semantic-kitti.org/tasks.html and https://github.com/PRBonn/semantic-kitti-api.

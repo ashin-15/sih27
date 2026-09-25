@@ -6,6 +6,16 @@ Frozen specification: none
 Current objective: Resolve product decisions and freeze the contract; research and current-path measurement preparation are under way.
 Blocking issue: NVIDIA platform, same-process evaluator receipt endpoint and evidence-only output are selected. Live/planner use is deferred. Physical host inventory, complete payload schema, D-002/D-005 quality/resource gates and full-contract implementation approval remain open; D-001 workload/window/cap approval is explicitly deferred.
 
+## O-001 contract drafting - 2026-09-25
+
+- DONE: Wrote `docs/o-001-contract-proposal.md` with proposed complete result fields,
+  evaluator checks, paced replay denominator, audit/drain behavior, and D-005 metric worksheet.
+- VERIFIED: The proposal distinguishes the selected receipt deadline and evidence-only scope
+  from unapproved workload, checkpoint, quality/resource limits and physical CUDA host.
+- NOT VERIFIED: No product stages or complete evaluator were implemented, no learned quality
+  baseline was obtained, and no CPU/CUDA complete-path deadline pass was measured. The draft
+  PRD, design and acceptance contract remain unfrozen.
+
 ## Current-result receipt timing - 2026-09-25
 
 - DONE: Added a synchronous in-process diagnostic consumer for the existing `FrameResult`.

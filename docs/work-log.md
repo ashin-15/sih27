@@ -597,3 +597,20 @@ Detailed test evidence belongs in `testing.md`; active blockers belong in `open-
   Records distinguish CPU implementation from future CUDA-specific release validation.
 - Next action: confirm the bounded CPU implementation slice, starting with the measured
   native GIL blocker if selected. The broader product contract remains draft; O-001 is open.
+
+## 2026-09-25 - O-001 complete-path contract proposal
+
+- DONE: Drafted [the reviewable contract](o-001-contract-proposal.md), covering a versioned
+  immutable result, evaluator validation and receipt, complete replay window accounting,
+  bounded audit/drain and failure behavior, and D-005 quality/resource metric definitions.
+  Linked it from the draft PRD, technical design, acceptance, task board and loop record.
+- FACT: The selected deadline is 100 ms with zero misses to same-process complete-result
+  receipt; the present geometric receipt is diagnostic. CPU development and later CUDA release
+  evaluation are separate. The model, physical CUDA host, numeric quality/resource limits and
+  workload/window/cap remain unresolved; the product contract is not frozen or approved.
+- NOT VERIFIED: `hf models list --search SemanticKITTI --limit 10` could not reach the registry
+  because DNS resolution failed. No checkpoint was downloaded or inspected. No runtime source
+  changed and no new latency or quality result is claimed.
+- VERIFIED: `git diff --check` passed. A local-link check across the proposal, task records
+  and draft specification found no missing relative targets. Runtime tests were not rerun for
+  these documentation-only edits.

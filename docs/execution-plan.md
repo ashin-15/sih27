@@ -36,6 +36,10 @@ and next evidence live in `docs/open-items.md`; completed work is recorded in `d
 
 Continue T-001. [O-001's release-profile brief](o-001-release-profile.md) records the selected
 NVIDIA platform, strict 100 ms evaluator-receipt endpoint and evidence-only output scope.
+The [complete-path contract proposal](o-001-contract-proposal.md) now makes the result schema,
+evaluator checks, pacing, audit/failure behavior and D-005 metric worksheet reviewable, but
+the proposed values are not frozen. CPU development remains a separate milestone from the
+later CUDA release gate.
 Workload/window/cap approval is explicitly deferred. Complete payload schema, model milestone,
 quality/resource gates and audit/failure behavior remain open before full product implementation.
 The [handoff review](work-log.md#2026-09-25---handoff-reconciliation-and-partial-output-contract)

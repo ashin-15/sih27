@@ -57,6 +57,12 @@ synchronous diagnostic consumer. It checks and hashes the existing single-frame
 payload, then returns a receipt before the audit JSONL flush. This is not the
 approved future complete product output or consumer.
 
+The [O-001 contract proposal](../../../../docs/o-001-contract-proposal.md) details the proposed
+complete immutable result groups, validation/receipt sequence, bounded ordered scheduling,
+audit drain and fail-closed cases. Exact types, array layout, canonical digests and reason codes
+remain to be frozen. Implementation of that future evaluator is still blocked by contract
+approval; this proposal does not redefine the current diagnostic `FrameResult`.
+
 DESIGN DECISION: Rerun recording and display are excluded from the 100 ms deadline;
 measure them in separate runs. An optional CuPy backend now handles range projection
 and cell reductions. It has not been exercised on a CUDA device, and the other current
