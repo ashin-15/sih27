@@ -16,7 +16,7 @@ Build a standalone, evidence-backed LiDAR perception and adaptive 2.5D map pipel
 | T-014 | Test durable 10 Hz ingestion and ordered scheduling | The existing audit-inclusive worker is slower than 10 Hz. User-authorized technology research is active; an approved live-source and overload policy is required before production integration. | SQLite/MCAP, concurrent replay and SQLite faults are in experiment 0008. A C++ SQLite/LMDB/custom-log comparison, long paced runs and LMDB injected faults are in experiment 0009. A separate scheduled producer with a volatile two-frame queue is in experiment 0013; it filled 93 times over 100 scans. Next test bounded ordered work with sustained concurrent durable storage/readers outside the active product path. | Real sensor retry/ack, physical disk and power faults, contiguous acknowledged IDs, exact digests, sustained throughput, queue age and capture-to-output tails on target hardware. | IN PROGRESS (research only) |
 | T-001 | Freeze product and measurement contract | D-001 replay-first NVIDIA platform, strict 100 ms zero-miss deadline and same-process complete-product evaluator receipt are selected. D-003 selects evidence-only output; D-004 defers live/planner use. Physical host, complete payload schema, resources and D-002/D-005 remain open; workload/window/cap approval is explicitly deferred. The current Intel laptop is the CPU reference. The present JSONL is audit metadata only. | PRD, technical design, acceptance; specify dataset splits, classes, remaining thresholds, output boundary and navigation boundary. See the O-001 output-boundary audit and platform decision 0002. | Signed-off stable FR/AC set with no blocking TBD. Review documents and record approval. | IN PROGRESS |
 | T-002 | Freeze interfaces and evaluation harness | All features need consistent point IDs, pose/time, class IDs and shared engine path. Depends T-001. | `contracts.py`, `pipeline.py`, `semantics.py`, `docs/interfaces.md`; design versioned prediction/output contracts and same-path evaluator. | AC-001, AC-009; alignment/unknown/leakage fixtures and wheel replay. | BLOCKED |
-| T-003 | Learned semantic inference and reproducible model workflow | No model exists. Depends T-002 and model strategy. | Add model adapter, checkpoint provenance, offline training/evaluation commands and label-safe production mode. | AC-001, AC-007, AC-009; held-out official semantic metrics and point-order tests. | BLOCKED |
+| T-003 | Learned semantic inference and reproducible model workflow | No Drishti model adapter exists. An isolated authors' FRNet CPU run returned full-scan point-aligned labels (E-049). Depends on integrated T-002, frozen semantic model scope/quality gates and product runtime validation; see the [slice proposal](t-003-semantic-checkpoint-proposal.md). | Add model adapter, checkpoint provenance, offline training/evaluation commands and label-safe production mode. | AC-001, AC-007, AC-009; held-out official semantic metrics and point-order tests. | BLOCKED |
 | T-004 | Obstacle instance detection | Cell nonground envelopes are not objects. Depends T-002/T-003. | Object observations with class/unknown, bounds, source points and uncertainty. | AC-002; thin/near/far/overhang fixtures and held-out recall/false positives. | BLOCKED |
 | T-005 | Tracking and motion | Semantic class is not measured motion. Depends T-004 and timestamp/pose contract. | Sequence-owned association, track lifecycle and ego-motion compensated velocity. | AC-004/005; crossing, occlusion, static-wall, moving-object and reset sequences. | BLOCKED |
 | T-006 | Visibility and temporal map | Single-frame map cannot prove free space or maintain history. Depends T-002/T-004/T-005. | Bounded timestamped cell state, ray evidence, unknown/stale/occupied/free, safe conflict rules. | AC-003/006; no-return, occlusion, re-observation, ghost and capacity fixtures. | BLOCKED |
@@ -50,9 +50,13 @@ loop yet missed 28/1,000 and 3/1,000 deadlines on sequences 08/00 at a
 minimal in-process result check. T-001 and the authorized CUDA slice of T-008
 are IN PROGRESS; full-path acceptance remains blocked until the complete output
 contract and prerequisite stages are ready.
-Model screen E-045 also found that Autoware's available FRNet artifacts do not
-directly match the SemanticKITTI class contract; T-003 stays BLOCKED until an
-allowed exact checkpoint and D-002/D-005 are approved.
+Model screen E-045 found that Autoware's available FRNet artifacts do not
+directly match the SemanticKITTI class contract. A user-supplied 20-channel
+FRNet-shaped local checkpoint is now hash-pinned in E-047, with a source-defined
+class remap. E-049 establishes one-scan compatibility with the authors' model
+in an isolated CPU environment, but not Drishti runtime fit. Release-byte
+identity, separate weight terms and official held-out quality remain unverified;
+T-003 stays BLOCKED pending the T-002 handoff and D-002/D-005 approval.
 
 User-requested CPU concurrency verification E-046 found that installed Patchwork++ 1.4.1
 holds the GIL during `estimateGround`; controlled probe 0021 passed. A Python thread pool

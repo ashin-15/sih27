@@ -83,7 +83,7 @@ Last updated: 2026-09-25
   laptop remains the CPU development and parity reference. Dataset replay, 100 ms from
   scheduled arrival to complete output and zero misses remain selected.
 - Evidence: `docs/decisions/0002-cuda-replay-release-platform.md` and the local hardware
-  inventory. Historical vrgrid timing is rationale, not Drishti performance evidence.
+  inventory.
 - Judgment: the platform family is decided; a specific physical host, full product contract,
   implementation and target-hardware measurements are still missing.
 - Next action: inventory the NVIDIA host and freeze the remaining product and acceptance

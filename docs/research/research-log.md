@@ -1,5 +1,55 @@
 # Research log
 
+## 2026-09-27 - Isolated FRNet CPU inference on one real scan
+
+- RQ-001: [experiment 0023](experiments/0023-frnet-cpu-inference-screen.md)
+  used the authors' pinned source and an isolated Python 3.8 CPU environment.
+  A modern Torch process safely exported tensor-only weights; the old runtime
+  loaded them strictly into 421 matching model fields. No production code
+  changed.
+- MEASURED RESULT: sequence 08 frame 000000 returned 123,389 predictions for
+  123,389 original points after interpolation appended 3,579 temporary points.
+  A full-point permutation restored with zero label mismatches. One-scan
+  present-class mean IoU was 0.6423; labeled-point accuracy was 0.9163.
+  Prediction took 6.417 s on this CPU probe and process peak RSS was
+  2,238,196 KiB. Labels entered only after prediction for scoring.
+- Limit: the CPU path used an evaluation-only SyncBatchNorm adaptation. One
+  scan is not official held-out quality; no Drishti adapter, release host or
+  complete-path timing was tested. E-049 records this boundary.
+- Engineering impact: candidate feasibility improved, but O-002/O-007 and
+  T-003 remain open pending frozen acceptance, integrated T-002 and product
+  validation. The T-003 proposal now includes the measured starting point.
+
+## 2026-09-27 - FRNet source and safe checkpoint load follow-up
+
+- RQ-001: inspected the authors' public checkpoint folder, pinned upstream
+  source commit `d3749c8bcf6ef0fe2c95adea55375ac73a4b3825`, and safely loaded
+  the local checkpoint with cached CPU Torch. See [experiment 0022](experiments/0022-local-frnet-checkpoint-screen.md)
+  and E-048 for the bounded evidence.
+- FACT: the official folder lists the same filename and displayed size. The
+  local file has 421 finite tensors and 10,029,572 parameters. Google Drive's
+  virus-scan interstitial prevented an upstream-byte hash comparison.
+- UNKNOWN: exact source-byte identity, separate weight terms, complete model
+  construction/inference, point alignment, held-out quality and latency.
+  Upstream's documented dependency stack is absent from Drishti's runtime.
+- Engineering impact: [T-003 proposal](../t-003-semantic-checkpoint-proposal.md)
+  now states a reviewable semantic-only slice, acceptance evidence and open
+  D-002/D-005 decisions. T-003 stays BLOCKED.
+
+## 2026-09-27 - Local FRNet SemanticKITTI checkpoint screened
+
+- Research question: RQ-001. The user supplied a checkpoint under ignored `data/dataset/`.
+  [Experiment 0022](experiments/0022-local-frnet-checkpoint-screen.md) records its SHA-256,
+  ZIP integrity, 421 tensor keys and 20-channel segmentation head without executing it.
+- FACT: the authors' SemanticKITTI configuration has semantic channels 0..18 and ignore
+  channel 19. Drishti's learning IDs are 1..19 and unknown 0, so a future adapter needs an
+  explicit remap. The checkpoint contains no source, revision, class-map or license metadata.
+- UNKNOWN: whether the local bytes match the authors' published release, applicable weight
+  terms, successful model loading, point alignment, held-out quality and full-path latency.
+  No model run or performance measurement was made; E-047 records the bounded finding.
+- Engineering impact: update O-002/O-007 and T-003 candidate readiness, but keep T-003
+  BLOCKED pending T-002, D-002/D-005 and contract approval.
+
 ## 2026-09-25 - Strict 100 ms replay deadline and current-path check
 
 - Research question: RQ-004. The product owner selected a 100 ms deadline for every replay

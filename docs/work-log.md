@@ -3,6 +3,54 @@
 Append dated entries for meaningful work. State what changed, what was verified, and what remains.
 Detailed test evidence belongs in `testing.md`; active blockers belong in `open-items.md`.
 
+## 2026-09-27 - T-003 isolated model inference screen
+
+- MEASURED RESULT: [experiment 0023](research/experiments/0023-frnet-cpu-inference-screen.md)
+  strictly loaded all 421 checkpoint tensors into the authors' FRNet model in
+  a temporary CPU environment. The full sequence 08 frame 000000 returned
+  123,389 point labels; restoring a shuffled input produced zero mismatches.
+  One-scan observed-class mean IoU was 0.6423. CPU prediction took 6.417 s;
+  this is not a Drishti complete-path or CUDA release measurement.
+- MEASURED RESULT: a second full scan from training sequence 00 returned
+  124,668/124,668 aligned labels with zero reorder mismatches. Its 0.8975
+  observed-class mean IoU is a training-split diagnostic, not held-out quality.
+- VERIFIED: the research scripts passed Ruff lint/format, the saved JSON parses,
+  and the label-free prediction path ran before labels were accessed for
+  diagnostic scoring. Input scan, labels and checkpoint were read-only.
+- OPEN: no product adapter, official held-out score, checkpoint-byte match to
+  the public folder, separate weight terms, frozen D-002/D-005 quality gates
+  or integrated T-002 interface in this checkout. T-003 remains BLOCKED.
+
+## 2026-09-27 - T-003 verification and closure gate
+
+- FACT: read-only review of the authors' public folder and pinned source commit
+  found a same-name/same-displayed-size checkpoint and the original inference
+  dependencies. Cached Torch 2.14.0+cpu safely loaded all 421 local tensors;
+  floating values were finite. E-048 and [experiment 0022](research/experiments/0022-local-frnet-checkpoint-screen.md)
+  record the exact result and source limits.
+- NOT VERIFIED: exact upstream-byte identity because the public download stopped
+  at a Google Drive virus-scan warning; weight terms; complete FRNet inference;
+  point alignment, quality, latency and T-003 acceptance. No production source
+  or dataset bytes were changed.
+- OPEN: the main checkout still lacks the separately staged T-002 evaluator.
+  The [T-003 slice proposal](t-003-semantic-checkpoint-proposal.md) makes the
+  remaining product decisions and evidence gates reviewable. T-003 remains
+  BLOCKED; its draft acceptance cannot be marked complete.
+
+## 2026-09-27 - T-003 local checkpoint inspection
+
+- FACT: inspected the user-supplied ignored `data/dataset/frnet-semantickitti_seg.pth`
+  read-only. The 40,327,676-byte ZIP/PyTorch state dict passed archive integrity checks;
+  SHA-256 and tensor/head metadata are in [experiment 0022](research/experiments/0022-local-frnet-checkpoint-screen.md).
+- FACT: the 20-channel head matches the authors' SemanticKITTI output count, but the
+  authors' ignore channel is 19 and Drishti's unknown ID is 0. A future adapter requires
+  the documented explicit class remap.
+- NOT VERIFIED: exact checkpoint release identity and separate terms, model loading,
+  inference, point alignment, held-out accuracy and timing. The current environment has no
+  Torch or MMDetection3D runtime. No source dataset or product runtime file was changed.
+- OPEN: O-002/O-007 and T-003 remain blocked by source/terms, T-002 interfaces and
+  D-002/D-005 product approval. The existing draft specification was not frozen.
+
 ## 2026-09-25 - Ordered point-ID validation and second-sequence replay
 
 - DONE: Profiled `DatasetSource.frames` and found a full NumPy uniqueness operation on

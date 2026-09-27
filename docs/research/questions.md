@@ -6,11 +6,11 @@ Status vocabulary: TODO, IN PROGRESS, BLOCKED, VALIDATION, DONE. A DONE question
 
 - Question: Under the approved target hardware and data split, which model approach meets per-point semantic quality and complete-path latency without losing original point alignment?
 - Why: FR-001 and FR-008 are both required.
-- Current understanding: FACT, there is no model adapter or checkpoint. Official SemanticKITTI semantic segmentation evaluates a label per point and mIoU.
+- Current understanding: FACT, there is no Drishti model adapter. A user-supplied, hash-pinned 20-channel FRNet checkpoint is locally available. E-049 ran it through the authors' model on one scan in an isolated CPU environment, with original-point output alignment and a single-scan diagnostic score. Exact upstream-byte identity and Drishti runtime fit are unverified. Official SemanticKITTI semantic segmentation evaluates a label per point and mIoU.
 - Hypothesis: HYPOTHESIS, a replaceable checkpoint adapter can establish a measurable baseline before local training.
 - Evidence required: candidate licenses/weights, exact preprocessing and class map, held-out official metrics, full-path timing and memory on target hardware.
 - Falsifier: Any candidate fails class/order contract, license constraints or frozen accuracy/latency gates.
-- Status: IN PROGRESS for source and protocol review; screen E-045 rejects the available Autoware 27-class T4Dataset ONNX artifacts as direct SemanticKITTI weights, while the authors' exact SemanticKITTI checkpoint remains unverified. Candidate selection is BLOCKED by D-001/D-002/D-005. Conclusion: UNKNOWN. Engineering impact: T-002/T-003. See `model-candidates.md`.
+- Status: IN PROGRESS for source and protocol review; E-045 rejects Autoware's 27-class T4Dataset ONNX artifacts as direct SemanticKITTI weights. E-047 to E-049 record the local candidate, required class remap and a one-scan isolated CPU inference/quality screen. Exact release-byte identity, weight terms, official held-out quality and Drishti/CUDA runtime remain unverified. Candidate selection is BLOCKED by D-002/D-005 and the unfinished product contract. Conclusion: UNKNOWN. Engineering impact: T-002/T-003. See `model-candidates.md`.
 
 ## RQ-002 - Motion and track separation
 

@@ -1,0 +1,33 @@
+{
+  "augmented_points": 127837,
+  "label_counts": {
+    "0": 4264,
+    "10": 26817,
+    "12": 18496,
+    "13": 1629,
+    "14": 29384,
+    "15": 1032,
+    "16": 3479,
+    "17": 748,
+    "18": 134,
+    "3": 4,
+    "4": 10,
+    "7": 85,
+    "8": 35030,
+    "9": 3556
+  },
+  "load_s": 0.457,
+  "max_rss_kib": 2228208,
+  "original_points": 124668,
+  "predict_s": 6.344,
+  "predicted_points": 124668,
+  "preprocess_s": 0.117,
+  "shuffle_mismatches": 0,
+  "single_frame_quality": {
+    "ignored_points": 4886,
+    "labeled_points": 119782,
+    "mean_iou_observed": 0.8975,
+    "observed_classes": [0, 7, 8, 9, 10, 12, 13, 14, 15, 16, 17, 18],
+    "point_accuracy": 0.9785
+  }
+}
