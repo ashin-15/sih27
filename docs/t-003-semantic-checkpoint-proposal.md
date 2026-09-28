@@ -71,12 +71,17 @@ and full release acceptance remain open; T-003 is IN PROGRESS.
   per-class/by-range quality, maximum unknown coverage, and whether the
   target is to reproduce the authors' validation score or to meet a separate
   product threshold. A one-scan observed-class mean IoU of 0.6423 is available,
-  but it cannot establish a defensible held-out numeric target.
+  but it cannot establish a defensible held-out numeric target. E-051 now
+  provides the full sequence 08 baseline: 0.675469 official 19-class mIoU,
+  0.922835 labeled accuracy and a saved range report. Numeric gates still
+  require an explicit decision.
 - **T-002 handoff:** integrated in this checkout. Schema-1 diagnostic receipts
   remain separate from schema-2 semantic-only receipts; neither is an AC-008
   complete-path release receipt.
 
 The approved adapter and evaluation workflow are implemented and verified in
 [experiment 0024](research/experiments/0024-t003-frnet-drishti-integration.md).
-Full-sequence held-out quality and approved numeric gates are required before
-T-003 can move from IN PROGRESS to DONE.
+Full-sequence held-out quality is recorded in
+[experiment 0025](research/experiments/0025-t003-full-sequence08.md). Approved
+numeric gates and the remaining checkpoint terms/identity evidence are required
+before T-003 can move from IN PROGRESS to DONE.

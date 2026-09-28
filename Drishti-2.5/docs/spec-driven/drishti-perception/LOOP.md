@@ -4,10 +4,10 @@ Current state: implementing
 Current loop: LOOP-003
 Frozen specification: staged T-002 version-1 result/evaluator and the approved T-003
 semantic-only CPU slice under PRD, TECH_DESIGN, AC-013/014, AGENT_PLAN and decisions 0003/0004.
-Current objective: complete T-003 held-out quality and numeric acceptance review.
-Blocking issue: complete sequence 08 quality, separate weight terms, D-005 numeric gates,
+Current objective: review the completed T-003 held-out baseline and decide numeric acceptance.
+Blocking issue: separate weight terms, exact public checkpoint bytes, D-005 numeric gates,
 physical CUDA host and full release validation remain open. AC-008 is NOT VERIFIED.
-Last updated: 2026-09-27
+Last updated: 2026-09-28
 
 ## Current loop - LOOP-003: T-003 semantic CPU slice
 
@@ -19,15 +19,17 @@ Last updated: 2026-09-27
 - Outputs: pinned FRNet worker and safe tensor export, label-free `Mode.LEARNED`
   shared-path inference, explicit class/unknown remap, schema-2 semantic result and
   receipt, raw-ID prediction files, supplemental range evaluator and workflow guide.
-- Verification: E-050 and experiment 0024 record source and installed-wheel replay
-  of sequence 08 scan 000000, byte-identical prediction files, an accepted
-  semantic receipt and a one-scan official evaluator check. Final test/lint/type
-  and wheel results are recorded in that experiment.
-- Acceptance matrix: bounded CPU implementation verified on one scan. Full
-  sequence 08 quality, numeric D-005 gates, separate weight terms and later
-  CUDA/complete-path timing are NOT VERIFIED. T-003 remains IN PROGRESS.
-- Next action: evaluate the complete held-out sequence and approve numeric
-  gates before deciding T-003 closure.
+- Verification: E-050 and experiment 0024 record source and installed-wheel
+  one-scan compatibility, accepted receipt, test/lint/type and wheel results.
+  E-051 and experiment 0025 record all 4,071 ordered sequence 08 predictions,
+  accepted receipts, official 0.675469 19-class mIoU and range results.
+- Acceptance matrix: bounded CPU implementation and full held-out semantic
+  baseline verified. The continuation reset engine state after frame 792;
+  continuous map state is NOT VERIFIED. Numeric D-005 gates, separate weight
+  terms, exact public checkpoint bytes and CUDA/complete-path timing are NOT
+  VERIFIED. T-003 remains IN PROGRESS.
+- Next action: review class/range results, decide D-005 numeric gates and
+  resolve weight provenance before deciding T-003 closure.
 
 ## Current loop - LOOP-002: T-002 CPU vertical slice
 

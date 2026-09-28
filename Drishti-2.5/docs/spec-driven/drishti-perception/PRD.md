@@ -9,7 +9,12 @@ neither approval is an AC-008 or full-release pass.
 
 ## Problem and goal
 
-The current standalone application maps one LiDAR scan at a time. It cannot infer semantic classes, objects, motion, persistent state, or observed free space without ground-truth labels. It records a budget but cannot claim a deadline guarantee. The goal is a versioned, testable perception-to-map pipeline for repeated LiDAR frames, with unknown and unsupported evidence explicit.
+The standalone application maps one LiDAR scan at a time and now infers point
+semantics in the approved FRNet CPU slice without reading ground-truth labels.
+It still lacks object instances, measured motion, persistent map state and
+observed free space. It records a budget but cannot claim a deadline guarantee.
+The goal is a versioned, testable perception-to-map pipeline for repeated
+LiDAR frames, with unknown and unsupported evidence explicit.
 
 ## Users and flow
 
@@ -146,3 +151,10 @@ pinned FRNet checkpoint, label-free replay, versioned semantic-only result and
 offline evaluation workflow. The model is not a motion, object or free-space
 producer. Numeric D-005 thresholds, full held-out quality, applicable weight
 terms and CUDA release evidence remain open.
+
+2026-09-28 validation update: E-051 and
+[experiment 0025](../../../../docs/research/experiments/0025-t003-full-sequence08.md)
+record all 4,071 held-out sequence 08 semantic predictions and receipts, with
+0.675469 official 19-class mIoU. This establishes the held-out baseline sought
+by the 2026-09-27 approval; numeric D-005 gates, exact public checkpoint bytes,
+separate weight terms and complete-path release evidence remain open.

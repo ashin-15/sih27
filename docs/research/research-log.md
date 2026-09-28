@@ -1,5 +1,27 @@
 # Research log
 
+## 2026-09-28 - Full sequence 08 semantic baseline scored
+
+- RQ-001 / T-003: [experiment 0025](experiments/0025-t003-full-sequence08.md)
+  and E-051 verify 4,071 ordered predictions, matching point counts and
+  accepted schema-2 semantic receipts. The continuation service exited
+  successfully and the pinned official evaluator reported 0.675469 19-class
+  mIoU and 0.922835 labeled accuracy. Supplemental overall metrics match;
+  range mIoU is 0.690760/0.543065/0.157163 for 0-20/20-50/50+ m.
+- LIMIT: the continuation reset engine state after frame 792. This is a
+  complete point-semantic baseline, not continuous map-state or AC-008 proof.
+  Numeric D-005 gates, exact public checkpoint bytes and separate weight
+  terms remain open. T-003 stays IN PROGRESS.
+
+## 2026-09-28 - Semantic replay resumed from frame 793
+
+- RQ-001 / T-003: checkpoint hashes and persistent runtime paths validated
+  after shutdown. A managed service now runs `resume.py` from frame 000793.
+  The first three continuation predictions and receipts were accepted.
+- Experiment 0025 records the exact service and output path. Official
+  full-sequence and range results remain pending; the new engine prevents a
+  continuous map-state claim across the checkpoint.
+
 ## 2026-09-28 - Semantic replay checkpointed for shutdown
 
 - RQ-001 / T-003: the user requested a stop before machine shutdown. The

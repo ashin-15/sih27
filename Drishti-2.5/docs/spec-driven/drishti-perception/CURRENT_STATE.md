@@ -7,7 +7,9 @@ The approved CPU FRNet semantic slice, schema-2 semantic-only evaluator
 receipt and installed-wheel one-scan replay are recorded in
 `docs/research/experiments/0024-t003-frnet-drishti-integration.md` and
 `docs/decisions/0004-frnet-semantic-cpu-slice.md` at the repository root.
-Full held-out quality and release timing remain unverified.
+The later [experiment 0025](../../../../docs/research/experiments/0025-t003-full-sequence08.md)
+records complete sequence 08 point-semantic quality at 0.675469 official mIoU.
+Numeric quality acceptance and release timing remain unverified.
 
 ## Active path
 

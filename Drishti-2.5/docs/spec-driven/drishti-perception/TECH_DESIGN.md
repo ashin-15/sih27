@@ -96,8 +96,10 @@ a version-2 receipt before audit. `--write-predictions` writes one raw-ID
 SemanticKITTI file per input scan under the new run directory, filling any
 rejected input point with raw unknown 0. Official sequence scoring uses the
 upstream SemanticKITTI API; `drishti.evaluation` adds range/unknown breakdowns.
-No numeric D-005 quality threshold is frozen. See decision 0004 and experiment
-0024. This CPU slice is not a complete-result release producer.
+No numeric D-005 quality threshold is frozen. See decision 0004, experiment
+0024 for implementation and [experiment 0025](../../../../docs/research/experiments/0025-t003-full-sequence08.md)
+for the complete held-out semantic baseline. This CPU slice is not a
+complete-result release producer.
 
 Status: The remaining design below is Draft. Based on the draft PRD.
 

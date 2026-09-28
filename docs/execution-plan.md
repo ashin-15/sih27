@@ -20,7 +20,7 @@ Build a standalone, evidence-backed LiDAR perception and adaptive 2.5D map pipel
 | T-014 | Test durable 10 Hz ingestion and ordered scheduling | The existing audit-inclusive worker is slower than 10 Hz. User-authorized technology research is active; an approved live-source and overload policy is required before production integration. | SQLite/MCAP, concurrent replay and SQLite faults are in experiment 0008. A C++ SQLite/LMDB/custom-log comparison, long paced runs and LMDB injected faults are in experiment 0009. A separate scheduled producer with a volatile two-frame queue is in experiment 0013; it filled 93 times over 100 scans. Next test bounded ordered work with sustained concurrent durable storage/readers outside the active product path. | Real sensor retry/ack, physical disk and power faults, contiguous acknowledged IDs, exact digests, sustained throughput, queue age and capture-to-output tails on target hardware. | IN PROGRESS (research only) |
 | T-001 | Freeze product and measurement contract | D-001 replay-first NVIDIA platform, strict 100 ms zero-miss deadline and same-process complete-product evaluator receipt are selected. D-002 selects FRNet for bounded semantic CPU development. D-003 selects evidence-only output; D-004 defers live/planner use. Physical host, complete payload schema, resources and D-005 remain open; workload/window/cap approval is explicitly deferred. The current Intel laptop is the CPU reference. The present JSONL is audit metadata only. | PRD, technical design, acceptance; specify remaining thresholds, output boundary and navigation boundary. See the O-001 output-boundary audit and platform decision 0002. | Signed-off stable FR/AC set with no blocking TBD. Review documents and record approval. | IN PROGRESS |
 | T-002 | Freeze interfaces and evaluation harness | The product owner approved the bounded CPU slice. Version-1 diagnostic result and same-process evaluator are integrated from the handoff worktree. | `product_result.py`, CLI schema-3 receipts, interfaces and decision 0003. Schema-1 digest compatibility with the handoff was checked. | AC-013: final broader suite 71 passed, 3 skipped; strict mypy/Ruff/build; installed-wheel 2/2 diagnostic receipts accepted and release gate false. | DONE for T-002 slice |
-| T-003 | Learned semantic inference and reproducible model workflow | The owner approved the semantic-only CPU slice on 2026-09-27. The checkpoint and source are hash/revision pinned; T-002 is integrated. | Isolated FRNet worker, label-free `Mode.LEARNED` on the shared engine path, schema-2 semantic-only receipts, raw-ID prediction files and supplemental range evaluator. See [decision 0004](decisions/0004-frnet-semantic-cpu-slice.md) and [experiment 0024](research/experiments/0024-t003-frnet-drishti-integration.md). | AC-014 implementation evidence: real source and installed-wheel one-scan replay, exact prediction bytes, official one-scan format score, tests/lint/types/build. Full sequence 08 official quality, numeric D-005 gates and separate weight terms remain open. | IN PROGRESS |
+| T-003 | Learned semantic inference and reproducible model workflow | The owner approved the semantic-only CPU slice on 2026-09-27. The checkpoint and source are hash/revision pinned; T-002 is integrated. | Isolated FRNet worker, label-free `Mode.LEARNED` on the shared engine path, schema-2 semantic-only receipts, raw-ID prediction files and supplemental range evaluator. See [decision 0004](decisions/0004-frnet-semantic-cpu-slice.md) and [experiment 0025](research/experiments/0025-t003-full-sequence08.md). | AC-014 implementation evidence: source and wheel replay, point alignment, tests/lint/types/build. E-051: all 4,071 held-out sequence 08 scans scored officially at 0.675469 mIoU; range report saved. Numeric D-005 gates, separate weight terms and exact public checkpoint-byte identity remain open. | IN PROGRESS |
 | T-004 | Obstacle instance detection | Cell nonground envelopes are not objects. Depends T-002/T-003. | Object observations with class/unknown, bounds, source points and uncertainty. | AC-002; thin/near/far/overhang fixtures and held-out recall/false positives. | BLOCKED |
 | T-005 | Tracking and motion | Semantic class is not measured motion. Depends T-004 and timestamp/pose contract. | Sequence-owned association, track lifecycle and ego-motion compensated velocity. | AC-004/005; crossing, occlusion, static-wall, moving-object and reset sequences. | BLOCKED |
 | T-006 | Visibility and temporal map | Single-frame map cannot prove free space or maintain history. Depends T-002/T-004/T-005. | Bounded timestamped cell state, ray evidence, unknown/stale/occupied/free, safe conflict rules. | AC-003/006; no-return, occlusion, re-observation, ghost and capacity fixtures. | BLOCKED |
@@ -38,14 +38,12 @@ and next evidence live in `docs/open-items.md`; completed work is recorded in `d
 
 ## Immediate next step
 
-T-003 full sequence 08 validation was restarted under the user's instruction
-after the first managed session stopped at 219 scans. [Experiment 0025](research/experiments/0025-t003-full-sequence08.md)
-records both incomplete runs. The restarted user service was stopped at the
-user's request before machine shutdown after 793 accepted frames. A hashed
-checkpoint and `resume.py` are ready to continue at frame 793 next session;
-the follow-up is paused. Combined semantic quality will cover all 4,071
-scans when the continuation and evaluators finish. Final quality is NOT
-VERIFIED until then.
+T-003 sequence 08 semantic evaluation is complete. [Experiment 0025](research/experiments/0025-t003-full-sequence08.md)
+records the interrupted 219-scan attempt, saved 793-scan prefix and new-engine
+continuation. E-051 confirms all 4,071 predictions and accepted receipts,
+official mIoU 0.675469, labeled accuracy 0.922835 and supplemental range
+metrics. The split cannot prove continuous map state. Decide D-005 numeric
+quality gates and resolve checkpoint terms/identity before T-003 closure.
 
 Continue T-001. [O-001's release-profile brief](o-001-release-profile.md) records the selected
 NVIDIA platform, strict 100 ms evaluator-receipt endpoint and evidence-only output scope.
@@ -67,8 +65,8 @@ contract and prerequisite stages are ready.
 E-050 and [experiment 0024](research/experiments/0024-t003-frnet-drishti-integration.md)
 now show the pinned FRNet checkpoint running on Drishti's shared learned path
 from both source and installed wheel. The official evaluator was checked on
-one sequence 08 scan only. Release-byte identity, separate weight terms,
-complete held-out quality and D-005 numeric gates remain unresolved; T-003
+all 4,071 held-out sequence 08 scans (E-051). Release-byte identity, separate
+weight terms and D-005 numeric gates remain unresolved; T-003
 stays IN PROGRESS until those acceptance items are evidenced.
 
 User-requested CPU concurrency verification E-046 found that installed Patchwork++ 1.4.1

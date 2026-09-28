@@ -3,7 +3,7 @@
 Audited 2026-09-24 from source, tests, synthetic validation and two short real-data replays.
 Categories are explicit; this is not an implementation claim.
 
-## 2026-09-27 implementation update
+## 2026-09-28 implementation and validation update
 
 FACT: T-002's version-1 diagnostic product result and same-process evaluator
 are integrated. T-003 now has a CPU FRNet worker using a hash-pinned checkpoint,
@@ -11,8 +11,11 @@ label-free learned replay, schema-2 semantic-only receipts, raw-ID prediction
 files and supplemental range metrics. An installed-wheel sequence 08 scan
 returned one aligned prediction per accepted original point and an accepted
 semantic receipt; see [experiment 0024](research/experiments/0024-t003-frnet-drishti-integration.md).
-The official evaluator was checked on one scan only. Complete held-out quality,
-numeric D-005 thresholds, checkpoint weight terms and CUDA latency remain
+E-051 now verifies 4,071 held-out sequence 08 point predictions and accepted
+semantic receipts, with official 19-class mIoU 0.675469 and labeled accuracy
+0.922835. The evaluation combined a saved 793-frame prefix and a new-engine
+continuation, so continuous map state is unverified. Numeric D-005 thresholds,
+checkpoint weight terms, exact public bytes and CUDA/release latency remain
 UNKNOWN, so T-003 is IN PROGRESS rather than DONE. The original audit below
 describes the 2026-09-24 baseline and is retained as historical context.
 

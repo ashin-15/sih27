@@ -1,5 +1,33 @@
 # Work log
 
+## 2026-09-28 - T-003 sequence 08 semantic evaluation completed
+
+- MEASURED RESULT: the managed continuation exited successfully. All 4,071
+  sequence 08 scans have ordered, point-count-checked predictions and accepted
+  schema-2 semantic receipts. The pinned official evaluator reported 0.675469
+  19-class mIoU and 0.922835 labeled accuracy; supplemental range metrics
+  agree overall. See [experiment 0025](research/experiments/0025-t003-full-sequence08.md)
+  and E-051. Saved evidence remains under ignored `artifacts/` paths.
+- LIMIT: the process restart at frame 793 reset map engine state, and CPU
+  processing p50 was 7.213 s on the continuation. No continuous map-state,
+  100 ms or complete-product AC-008 claim follows. Numeric D-005 gates,
+  exact public checkpoint bytes and separate weight terms remain open, so
+  T-003/O-002/O-007 remain IN PROGRESS. The completed-run follow-up is closed.
+
+## 2026-09-28 - T-003 resumed after shutdown
+
+- User instruction: resume from the saved stop point. Validated the hashed
+  793-frame prefix, restored runtime paths, and confirmed the prior service
+  was inactive before launching a managed continuation at frame 000793.
+- MEASURED RESULT: the new service was active at inspection; frames 000793 to
+  000795 each had an accepted semantic receipt and matching prediction file.
+  The 30-minute task follow-up is ACTIVE again. See
+  [experiment 0025](research/experiments/0025-t003-full-sequence08.md).
+- NOT VERIFIED: the remaining 3,278 scans and complete held-out quality.
+  The new engine resets Patchwork++ state at the boundary; no continuous
+  map-state claim follows from the combined semantic evaluation. T-003,
+  O-002 and O-007 remain IN PROGRESS.
+
 ## 2026-09-28 - T-003 stopped for machine shutdown
 
 - User instruction: stop the process and resume after the machine is turned

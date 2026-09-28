@@ -38,5 +38,6 @@ window accounting and a metric/threshold worksheet. T-002 freezes version-1 sche
 validation in the technical design. Quality and host resource limits remain TBD; no complete-path
 acceptance run exists. T-002 receipts are diagnostic and cannot be counted in AC-008's denominator.
 T-003 schema-2 semantic-only receipts also cannot be counted as complete AC-008
-results. The one-scan official evaluator check is format/metric validation,
-not the required full held-out quality result.
+results. The one-scan official evaluator check was format/metric validation.
+E-051 now records the full sequence 08 semantic baseline, but D-005 numeric
+gates have not been approved and the split engine does not establish AC-008.

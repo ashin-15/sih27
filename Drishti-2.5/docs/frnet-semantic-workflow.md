@@ -3,8 +3,9 @@
 T-003 is a local development slice. Use a new output directory for each run.
 The source dataset and pretrained checkpoint stay read-only and outside Git.
 The checkpoint's separate terms and exact public-byte identity remain UNKNOWN;
-do not redistribute it. The full sequence 08 quality gate and CUDA release
-gate have not passed.
+do not redistribute it. Full sequence 08 semantic baseline metrics are saved
+in [experiment 0025](../../docs/research/experiments/0025-t003-full-sequence08.md),
+but D-005 numeric quality acceptance and the CUDA release gate remain open.
 
 ## Prepare the isolated model runtime
 
