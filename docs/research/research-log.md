@@ -1,5 +1,54 @@
 # Research log
 
+## 2026-09-28 - Semantic replay checkpointed for shutdown
+
+- RQ-001 / T-003: the user requested a stop before machine shutdown. The
+  restarted service ended after 793 accepted scans; saved hashes and
+  prediction point-count checks appear in experiment 0025.
+- A checked continuation script will start at frame 793 next session and
+  combine all prediction files for official sequence 08 and range scoring.
+  It has not run the remaining scans. New engine state after shutdown limits
+  any continuous map-path conclusion, while per-scan semantic scoring remains
+  possible. Full quality and D-005 acceptance remain NOT VERIFIED.
+
+## 2026-09-28 - Full sequence 08 replay restarted
+
+- RQ-001 / T-003: the first managed replay stopped at 219 scans after its
+  temporary runtime disappeared. The user requested a fresh start. All
+  partial evidence is preserved in the original run directory.
+- [Experiment 0025](experiments/0025-t003-full-sequence08.md) records the
+  restored pinned CPU environment, matching checkpoint export and wheel hashes,
+  one-scan prediction parity and a new managed user service. Its initial
+  consecutive semantic receipts were accepted.
+- Full held-out and range metrics remain pending. D-005 numeric acceptance
+  and weight terms remain open; T-003 is IN PROGRESS.
+
+## 2026-09-27 - Full sequence 08 CPU validation running
+
+- RQ-001 / T-003: the user requested continuation through remaining scans.
+  [Experiment 0025](experiments/0025-t003-full-sequence08.md) runs all 4,071
+  scans continuously from the final installed wheel, with automatic coverage,
+  official evaluator and range checks afterward.
+- MEASURED RESULT: initial seven consecutive semantic receipts accepted.
+  Complete metrics are pending; D-005 numeric gates remain open.
+
+## 2026-09-27 - Approved FRNet CPU semantic integration
+
+- RQ-001: D-002 approved the bounded semantic-only CPU slice. The pinned
+  checkpoint, tensor export and authors' source now run through the shared
+  Drishti engine from source and an installed wheel. See E-050 and
+  [experiment 0024](experiments/0024-t003-frnet-drishti-integration.md).
+- MEASURED RESULT: sequence 08 scan 000000 returned 123,389 aligned predictions
+  and accepted schema-2 semantic receipts. Prediction files matched byte for
+  byte. The official evaluator on this one-scan view reported 0.439 mIoU over
+  all 19 classes and 0.916 labeled accuracy; the CPU model stage took 7.161 s
+  in one source-tree run.
+- Limit: one scan does not establish full held-out quality. Numeric D-005 gates,
+  exact checkpoint release bytes, separate weight terms and CUDA/release timing
+  are still open. T-003 remains IN PROGRESS.
+- Engineering impact: retain the bounded adapter and raw-ID output; run the
+  complete validation sequence and approve numeric gates before task closure.
+
 ## 2026-09-27 - Isolated FRNet CPU inference on one real scan
 
 - RQ-001: [experiment 0023](experiments/0023-frnet-cpu-inference-screen.md)

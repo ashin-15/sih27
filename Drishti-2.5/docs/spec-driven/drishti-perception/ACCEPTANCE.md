@@ -1,6 +1,10 @@
 # Drishti-2.5 perception acceptance contract
 
-Status: Draft, not frozen. Based on draft PRD and technical design, updated 2026-09-25. Approval: Pending. The CUDA-backed replay gate targets an identified NVIDIA host; the per-scan deadline is 100 ms with zero misses. Host inventory and other thresholds remain TBD under D-001/D-005. No item below is claimed as implemented.
+Status: T-002 slice approved 2026-09-26; T-003 semantic CPU implementation
+approved 2026-09-27. T-003 quality acceptance and full release remain open.
+The product owner approved the O-001 checklist and staged implementation. The CUDA-backed
+replay gate still requires an identified NVIDIA host, pinned checkpoint, numeric quality and
+resource thresholds, and final evidence. AC-008 is NOT VERIFIED.
 
 ## Release boundaries
 
@@ -22,12 +26,17 @@ The first CUDA-backed release uses evidence-only dataset replay on an identified
 | AC-010 | 010 | Viewer and machine output distinguish occupied, observed-free, unknown, stale and ambiguous cells and show track/motion provenance. Unknown never appears drivable. | Output schema tests and real viewer recording inspection. | Yes |
 | AC-011 | 011 | Deferred beyond the first release: if live input is later approved, feed timestamped scans with calibration and pose quality; invalid or missing timing degrades explicitly. Deskew status is accurate. | Live-source fixtures and target sensor run for that later scope. | Deferred |
 | AC-012 | 001 to 011 | Existing tests, lint, format, type check and package build pass; a complete-path regression replay finishes from an installed wheel. | Commands, logs and wheel replay artifact. | Yes |
+| AC-013 | 007, 008, 009 | T-002 CPU slice: the actual `MappingEngine.process` result becomes a version-1 immutable diagnostic `ProductFrameResult`. A same-process evaluator validates the array payload, source/pose/point alignment, provenance, cell ownership and conservative proof rules before a versioned receipt. Invalid input yields a rejection receipt without a digest or state advance. Canonical digest repeats for identical field values. CLI replay saves accepted diagnostic receipts and explicitly marks them as non-release. | Unit invalid/boundary fixtures, CLI same-path replay, receipt/artifact inspection, lint/types/build. | Yes for T-002 only |
+| AC-014 | 001, 007, 009 | T-003 CPU slice: a hash-pinned FRNet worker receives accepted sensor points without oracle labels, returns one mapped class and uncalibrated score per accepted original ID, and the shared mapping path yields a schema-2 semantic-only receipt. Invalid hash, source revision, intensity, count, class and score fail explicitly. Prediction files preserve full input order and unknown rejected points. Official full sequence 08 scoring and supplemental class/range/unknown reports must meet frozen D-005 numeric gates before T-003 is DONE. | Source and installed-wheel real replay, access/alignment/error fixtures, official evaluator output, range report, runtime manifest, lint/types/build. | Yes for T-003; implementation verified, quality gate pending |
 
 ## Required threshold decisions
 
-Freeze numeric targets for semantic classes and ranges, obstacle classes and sizes, motion/track quality, false-free rate, map freshness and capacity. The product owner explicitly deferred approval of the proposed sample window, workload and density cap. Identify and inventory the NVIDIA release host; freeze the complete payload schema, bounded audit behavior and CPU/GPU memory and disk ceilings. Rerun is excluded from the 100 ms timing and needs a separate resource/quality check. The 100 ms per-scan deadline, zero-miss policy, same-process evaluator receipt endpoint and evidence-only output scope are selected. Until the remaining fields are frozen this remains a draft; passing the current tests or producing a current-slice diagnostic receipt cannot satisfy this contract.
+Freeze numeric targets for semantic classes and ranges, obstacle classes and sizes, motion/track quality, false-free rate, map freshness and capacity after the pinned baseline. The approved future release workload is complete sequences 08 and 00 at 10 Hz plus the separate sequence 10 frame 206 cold-start fixture, with explicit rejection above 130,000 points. Identify and inventory the NVIDIA release host; freeze bounded audit behavior and CPU/GPU memory and disk ceilings. Rerun is excluded from the 100 ms timing and needs a separate resource/quality check. The 100 ms per-scan deadline, zero-miss policy, same-process evaluator receipt endpoint and evidence-only output scope are selected. Passing AC-013 cannot satisfy AC-001 to AC-012 or the full release contract.
 
-The [O-001 contract proposal](../../../../docs/o-001-contract-proposal.md) supplies exact proposed
-window accounting, invalid-scan handling, receipt and audit checks, and a metric/threshold
-worksheet. Its candidate workload and structural rules are not accepted criteria until reviewed.
-Quality and host resource limits remain TBD; no complete-path acceptance run exists.
+The [O-001 contract proposal](../../../../docs/o-001-contract-proposal.md) supplies the selected
+window accounting and a metric/threshold worksheet. T-002 freezes version-1 schema and
+validation in the technical design. Quality and host resource limits remain TBD; no complete-path
+acceptance run exists. T-002 receipts are diagnostic and cannot be counted in AC-008's denominator.
+T-003 schema-2 semantic-only receipts also cannot be counted as complete AC-008
+results. The one-scan official evaluator check is format/metric validation,
+not the required full held-out quality result.

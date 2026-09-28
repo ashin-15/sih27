@@ -36,6 +36,14 @@ CLASS_NAMES = (
     "traffic-sign",
 )
 
+# One canonical raw ID per learning class for official SemanticKITTI prediction files.
+# Class 5 covers several raw vehicle IDs; 20 is its representative inverse.
+LEARNING_TO_RAW = np.array(
+    [0, 10, 11, 15, 18, 20, 30, 31, 32, 40, 44, 48, 49, 50, 51, 70, 71, 72, 80, 81],
+    dtype=np.uint32,
+)
+LEARNING_TO_RAW.setflags(write=False)
+
 RAW_TO_LEARNING = {
     0: 0,
     1: 0,

@@ -1,10 +1,13 @@
 # O-001 complete-path contract for review
 
-Status: DESIGN PROPOSAL, 2026-09-25. This document makes the remaining choices reviewable. It is
-not an approved release specification, implementation record, or AC-008 result. The selected
+Status: APPROVED STAGED DEVELOPMENT CONTRACT, 2026-09-26. The product owner reviewed the
+checklist and said "I approve the checklist. Move forward." T-002 is authorized first; exact
+version-1 types/checks are frozen in the technical design and decision 0003. This is not an
+AC-008 or full-release result. The selected
 100 ms, zero-miss, same-process evaluator-receipt boundary and evidence-only scope are recorded
-in [decision 0002](decisions/0002-cuda-replay-release-platform.md). The product owner has
-explicitly deferred approval of the workload/window and point cap below.
+in [decision 0002](decisions/0002-cuda-replay-release-platform.md). The workload/window and
+point cap below are selected for later release validation. Checkpoint, numeric gates, physical
+CUDA host and final proof remain open.
 
 ## Two milestones
 
@@ -54,8 +57,8 @@ canonicalization must be frozen in the technical design before T-002.
 3. Proposed accepted windows are complete ordered SemanticKITTI sequences 08 (4,071 scans)
    and 00 (4,541 scans), each paced at 10 Hz from its first scan with a fresh engine. Run the
    sequence 10 frame 206 129,392-point scan as a separate cold-start first-frame boundary.
-   Proposed input cap is 130,000 points; above-cap scans are explicit rejects, never truncation.
-   These sequence, window and cap selections are still pending product approval. Sequence 08
+   Selected input cap is 130,000 points; above-cap scans are explicit rejects, never truncation.
+   These sequence, window and cap selections are approved for later release validation. Sequence 08
    can serve semantic validation; sequence 00 is a performance workload, not held-out quality.
 4. `scheduled_arrival_ns = t0 + frame_index * 100,000,000` on one monotonic clock. Age is
    successful evaluator receipt time minus scheduled arrival. Count every selected scan,
@@ -123,14 +126,15 @@ proof and bounded temporal map; T-007: complete output, audit and viewer; T-008:
 profiling and full gate. Optimize from measured stage/queue profiles. A native GIL-release
 slice has separate authorization; it does not approve T-002 through T-007.
 
-## Approval checklist
+## Approval checklist - staged approval recorded 2026-09-26
 
-- [ ] Select the CPU development gate versus the later CUDA release gate relationship and
+- [x] Select the CPU development gate versus the later CUDA release gate relationship and
       identify the physical CUDA host when available.
-- [ ] Adopt or revise the proposed 10 Hz sequences, full windows and 130,000-point cap.
+- [x] Adopt or revise the proposed 10 Hz sequences, full windows and 130,000-point cap.
 - [ ] Select a compatible checkpoint, terms, class map and first model milestone.
-- [ ] Freeze exact payload types, reason codes, audit bounds and failure/drain rules.
-- [ ] Approve numeric semantic, detector, track, motion, free-space and resource limits after
-      their required baselines, or explicitly approve a staged contract with a defined pilot.
-- [ ] Explicitly approve the resulting PRD, technical design and acceptance contract for
-      product implementation. AC-008 requires implementation plus a saved zero-miss run.
+- [x] Freeze exact payload types and evaluator reason codes in T-002. Audit bounds and
+      failure/drain rules remain T-007 prerequisites.
+- [x] Approve a staged contract with development pilots before numeric semantic, detector,
+      track, motion, free-space and resource limits are frozen. No numeric limit was invented.
+- [x] Explicitly approve staged T-002 implementation against the version-1 design and AC-013.
+      Full release acceptance still requires the open gates and a saved zero-miss run.

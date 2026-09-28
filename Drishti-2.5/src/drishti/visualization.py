@@ -175,11 +175,15 @@ class RerunView:
                 radii=0.025,
             ),
         )
-        badge = (
-            "ORACLE semantics and motion. Mapping evaluation, not autonomous perception."
-            if snapshot.mode == Mode.ORACLE
-            else "LABEL-FREE geometry. Semantic and motion classes are unknown."
-        )
+        if snapshot.mode == Mode.ORACLE:
+            badge = "ORACLE semantics and motion. Mapping evaluation, not autonomous perception."
+        elif snapshot.mode == Mode.LEARNED:
+            badge = (
+                "LEARNED point semantics from a checkpoint. Motion, temporal state and "
+                "free space are unknown."
+            )
+        else:
+            badge = "LABEL-FREE geometry. Semantic and motion classes are unknown."
         status = (
             f"# Drishti-2.5\n\n**{badge}**\n\n"
             f"Sequence: {snapshot.sequence} | Frame: {snapshot.frame_id}\n\n"

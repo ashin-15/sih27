@@ -18,10 +18,10 @@ The viewer extra is needed for full type checking and viewer tests. Headless run
 ## Current scope and contracts
 
 - Independent project: do not modify the source dataset. Historical prototype evidence is not an implementation dependency.
-- Only single-frame map aggregation is implemented. Patchwork++ retains adaptive preprocessing state per engine; use a new engine for a new sequence or replay. Frames must have increasing IDs and timestamps.
+- Only single-frame map aggregation and a bounded CPU FRNet point-semantic slice are implemented. Patchwork++ retains adaptive preprocessing state per engine; use a new engine for a new sequence or replay. Frames must have increasing IDs and timestamps.
 - CLI, Rerun and headless consumers share MappingEngine.process and immutable MapSnapshot arrays. Do not create a second candidate mapping implementation for evaluation.
 - Semantic IDs are explicitly SemanticKITTI learning IDs: 0 unknown/ignored, 1 car, through 19 traffic-sign. Do not import a different class-ID convention.
-- Geometric mode never uses annotations for ground, semantics, or motion. Missing intensity remains invalid; affected points are unclassified by Patchwork++, not discarded from the map.
+- Geometric and learned modes never use annotations for ground, semantics, or motion. Geometric mode tolerates missing intensity as unclassified ground input; learned FRNet mode rejects nonfinite accepted intensity.
 - Points enter mapping independently of projection winners. Original point IDs and per-point intensity are retained. Cell indices use floor(x / 0.05), then integer division for coarser levels.
 - A coarse block is promoted as a whole when its footprint intersects the next finer requested region. Cells are half-open; the outer point ROI is strict. Square and radial policies are distinct.
 - Heights are int32 centimetres, sums and squared sums int64, with startup overflow checks. Ground spread is descriptive population variance, not estimator uncertainty. Unsupported or ambiguous heights remain invalid. There are no clearance, free-space, or passability claims.

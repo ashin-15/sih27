@@ -18,9 +18,16 @@ import numpy as np
 from drishti.config import load_config
 from drishti.contracts import Mode, PoseSource, ScanFrame, make_frame
 from drishti.dataset import DatasetSource
+from drishti.learned import FRNET_CLASS_MAP_VERSION, FRNET_REVISION, FRNetPredictor
 from drishti.output import InProcessFrameConsumer
 from drishti.pipeline import FrameResult, MappingEngine
-from drishti.semantics import decode_semantickitti
+from drishti.product_result import (
+    InProcessProductEvaluator,
+    ReceiptStatus,
+    diagnostic_product_result,
+    semantic_product_result,
+)
+from drishti.semantics import LEARNING_TO_RAW, decode_semantickitti
 
 REPLAY_RATE_HZ = 10.0
 REPLAY_DEADLINE_MS = 100.0
@@ -46,6 +53,22 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument("--mode", choices=list(Mode), default=Mode.GEOMETRIC, type=Mode)
         command.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
         command.add_argument("--view", choices=("none", "record", "spawn"), default="none")
+        command.add_argument("--frnet-python", type=Path)
+        command.add_argument("--frnet-source", type=Path)
+        command.add_argument("--frnet-checkpoint", type=Path)
+        command.add_argument("--frnet-checkpoint-sha256")
+        command.add_argument("--frnet-weights-npz", type=Path)
+        command.add_argument("--frnet-weights-sha256")
+        command.add_argument(
+            "--write-predictions",
+            action="store_true",
+            help="write raw-ID SemanticKITTI .label files under the new run directory",
+        )
+        command.add_argument(
+            "--evaluate-product-contract",
+            action="store_true",
+            help="validate a version-1 diagnostic product result; not release acceptance",
+        )
         if name == "replay":
             command.add_argument(
                 "--dataset",
@@ -140,7 +163,7 @@ def _percentiles(values: list[float]) -> dict[str, float] | None:
     return dict(zip(("p50", "p95", "p99"), map(float, result), strict=True))
 
 
-def _run(args: argparse.Namespace) -> int:
+def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> int:
     config = load_config(args.config)
     mode = Mode(args.mode)
     check_deadline = bool(args.command == "replay" and args.check_100ms)
@@ -192,8 +215,13 @@ def _run(args: argparse.Namespace) -> int:
             "requested_frames": args.frames,
             "pose_source": PoseSource.SYNTHETIC.value,
         }
-    engine = MappingEngine(config, mode=mode, device=args.device)
+    engine = MappingEngine(config, mode=mode, predictor=predictor, device=args.device)
     consumer = InProcessFrameConsumer() if check_deadline else None
+    product_evaluator = (
+        InProcessProductEvaluator()
+        if args.evaluate_product_contract or mode == Mode.LEARNED
+        else None
+    )
     sink: SnapshotSink | None = None
     if args.view != "none":
         try:
@@ -205,7 +233,26 @@ def _run(args: argparse.Namespace) -> int:
         **metadata,
         "mode": mode.value,
         "device": args.device,
-        "report_schema_version": 2,
+        "report_schema_version": 4 if mode == Mode.LEARNED else (3 if product_evaluator else 2),
+        "product_result_schema_version": (
+            2 if mode == Mode.LEARNED else (1 if product_evaluator else None)
+        ),
+        "product_result_stage": (
+            "semantic" if mode == Mode.LEARNED else ("diagnostic" if product_evaluator else None)
+        ),
+        "model": (
+            {
+                "name": "FRNet SemanticKITTI",
+                "checkpoint_sha256": predictor.checkpoint_sha256,
+                "weights_sha256": predictor.weights_sha256,
+                "source_revision": FRNET_REVISION,
+                "class_map_version": FRNET_CLASS_MAP_VERSION,
+                "worker_environment": predictor.environment,
+                "score_meaning": "uncalibrated maximum softmax score",
+            }
+            if predictor is not None
+            else None
+        ),
         "scope": "single-frame",
         "ground_method": engine.ground.method,
         "deskew_status": "unavailable",
@@ -242,6 +289,9 @@ def _run(args: argparse.Namespace) -> int:
             "no clearance or passability verdict",
             "no real-time claim",
         ],
+        "prediction_format": (
+            "SemanticKITTI uint32 raw semantic IDs, unknown=0" if args.write_predictions else None
+        ),
     }
     _write_json(output / "manifest.json", manifest)
     status = "failed"
@@ -249,8 +299,10 @@ def _run(args: argparse.Namespace) -> int:
     end_to_end: list[float] = []
     output_age_ms: list[float] = []
     receipt_age_ms: list[float] = []
+    product_receipts = 0
     deadline_check_met = False
     peak_snapshot_bytes = 0
+    prediction_files = 0
     flush_ms = 0.0
     run_start = perf_counter()
     try:
@@ -286,6 +338,59 @@ def _run(args: argparse.Namespace) -> int:
                 processed = perf_counter()
                 receipt = consumer.receive(frame, result) if consumer is not None else None
                 receipt_ready = perf_counter()
+                product_receipt = None
+                if product_evaluator is not None:
+                    arrival_ns = (
+                        round(scheduled_capture * 1_000_000_000)
+                        if scheduled_capture is not None
+                        else None
+                    )
+                    if predictor is not None:
+                        product = semantic_product_result(
+                            frame,
+                            result,
+                            run_id=output.name,
+                            code_revision=manifest["source_digest"],
+                            checkpoint_sha256=predictor.checkpoint_sha256,
+                            weights_sha256=predictor.weights_sha256,
+                            cell_sizes_cm=config.cell_sizes_cm,
+                            scheduled_arrival_ns=arrival_ns,
+                        )
+                    else:
+                        product = diagnostic_product_result(
+                            frame,
+                            result,
+                            run_id=output.name,
+                            code_revision=manifest["source_digest"],
+                            backend=engine.device,
+                            cell_sizes_cm=config.cell_sizes_cm,
+                            scheduled_arrival_ns=arrival_ns,
+                        )
+                    product_receipt = product_evaluator.receive(frame, product)
+                    if product_receipt.status != ReceiptStatus.ACCEPTED:
+                        raise ValueError(f"product result rejected: {product_receipt.error_code}")
+                    product_receipts += 1
+                if args.write_predictions:
+                    positions = {int(point_id): i for i, point_id in enumerate(frame.point_ids)}
+                    raw = np.zeros(len(frame.point_ids), dtype=np.uint32)
+                    for point_id, semantic_id in zip(
+                        result.observations.point_ids,
+                        result.observations.semantic,
+                        strict=True,
+                    ):
+                        raw[positions[int(point_id)]] = LEARNING_TO_RAW[int(semantic_id)]
+                    prediction_path = (
+                        output
+                        / "predictions"
+                        / "sequences"
+                        / frame.sequence
+                        / "predictions"
+                        / f"{frame.frame_id:06d}.label"
+                    )
+                    prediction_path.parent.mkdir(parents=True, exist_ok=True)
+                    with prediction_path.open("xb") as prediction_stream:
+                        raw.tofile(prediction_stream)
+                    prediction_files += 1
                 publish_start = perf_counter()
                 viewer_flush_ms = 0.0
                 if sink is not None:
@@ -308,6 +413,14 @@ def _run(args: argparse.Namespace) -> int:
                         receipt.map_digest if receipt is not None else result.snapshot.digest
                     ),
                     "result_receipt": asdict(receipt) if receipt is not None else None,
+                    "product_result_receipt": (
+                        asdict(product_receipt) if product_receipt is not None else None
+                    ),
+                    "semantic_unknown_points": (
+                        int(np.count_nonzero(result.observations.semantic == 0))
+                        if predictor is not None
+                        else None
+                    ),
                     "receipt_ms": (
                         (receipt_ready - processed) * 1000 if receipt is not None else None
                     ),
@@ -375,6 +488,8 @@ def _run(args: argparse.Namespace) -> int:
                 "status": status,
                 "frames": len(processing),
                 "expected_frames": expected_frames,
+                "product_receipts": product_receipts,
+                "prediction_files": prediction_files,
                 "cold_processing_ms": processing[0] if processing else None,
                 "processing_ms": _percentiles(processing),
                 "steady_processing_ms": _percentiles(processing[1:]),
@@ -414,6 +529,35 @@ def _run(args: argparse.Namespace) -> int:
     if check_deadline and not deadline_check_met:
         return 2
     return 0
+
+
+def _run(args: argparse.Namespace) -> int:
+    mode = Mode(args.mode)
+    model_options = (
+        args.frnet_python,
+        args.frnet_source,
+        args.frnet_checkpoint,
+        args.frnet_checkpoint_sha256,
+        args.frnet_weights_npz,
+        args.frnet_weights_sha256,
+    )
+    if mode != Mode.LEARNED:
+        if any(value is not None for value in model_options) or args.write_predictions:
+            raise ValueError("FRNet options require --mode learned")
+        return _run_ready(args, None)
+    if args.device != "cpu":
+        raise ValueError("the FRNet semantic slice supports CPU only")
+    if any(value is None for value in model_options):
+        raise ValueError("learned mode requires all six --frnet-* options")
+    with FRNetPredictor(
+        python=args.frnet_python,
+        source_root=args.frnet_source,
+        checkpoint=args.frnet_checkpoint,
+        checkpoint_sha256=args.frnet_checkpoint_sha256,
+        weights_npz=args.frnet_weights_npz,
+        weights_sha256=args.frnet_weights_sha256,
+    ) as predictor:
+        return _run_ready(args, predictor)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

@@ -2,6 +2,13 @@
 
 Checked: 2026-09-24. Status: code inspection plus local synthetic run. This document describes the standalone implementation at this date. It is not a product specification.
 
+2026-09-27 update: the table below is the pre-T-002/T-003 baseline audit.
+The approved CPU FRNet semantic slice, schema-2 semantic-only evaluator
+receipt and installed-wheel one-scan replay are recorded in
+`docs/research/experiments/0024-t003-frnet-drishti-integration.md` and
+`docs/decisions/0004-frnet-semantic-cpu-slice.md` at the repository root.
+Full held-out quality and release timing remain unverified.
+
 ## Active path
 
 `drishti.cli._run` obtains `ScanFrame` values from `DatasetSource.frames` or `synthetic_frames`, calls `MappingEngine.process`, optionally publishes through `RerunView`, and writes JSON audit files. `MappingEngine.process` validates the ordered stream, filters/transforms points, calls Patchwork++ ground segmentation, constructs a diagnostic range image, and calls `aggregate_cells`. The returned `MapSnapshot` is explicitly `single-frame`.

@@ -1,6 +1,11 @@
 # Drishti-2.5 perception product requirements
 
-Status: Draft, awaiting product decisions. Updated: 2026-09-25. Approval: Pending.
+Status: Staged approval for T-002 on 2026-09-26 and semantic-only T-003 on
+2026-09-27; full release contract remains Draft.
+Approval: product owner said "I approve the checklist. Move forward." after reviewing
+`docs/o-001-contract-proposal.md`. This authorizes the staged implementation beginning with
+T-002. The owner separately approved T-003 implementation on 2026-09-27;
+neither approval is an AC-008 or full-release pass.
 
 ## Problem and goal
 
@@ -14,7 +19,7 @@ The immediate users are developers evaluating SemanticKITTI replay and operators
 
 | ID | Requirement | Status |
 | --- | --- | --- |
-| FR-001 | In geometric production mode, predict a semantic learning ID and confidence or unknown for every accepted original point, without reading evaluation labels. | Draft |
+| FR-001 | In learned mode, predict a semantic learning ID and model score or unknown for every accepted original point, without reading evaluation labels. Geometric mode remains all unknown. | T-003 CPU slice implemented; held-out acceptance pending |
 | FR-002 | Detect obstacle instances with stable object type, bounded geometry and evidence provenance; preserve small/thin objects and ambiguous height cases. | Draft |
 | FR-003 | Fuse ordered frames in a bounded local map using poses and timestamps; distinguish observed, stale and unknown evidence and reset on a new sequence. | Draft |
 | FR-004 | Assign and maintain object track IDs across visible frames, occlusion and reappearance, with explicit confidence and expiry. | Draft |
@@ -28,12 +33,23 @@ The immediate users are developers evaluating SemanticKITTI replay and operators
 
 ## Success measures
 
-Baseline: no measured learned accuracy, tracking, free-space quality, or full-pipeline latency. The first-release deadline is 100 ms for every scheduled scan with zero misses in the accepted window. Targets for semantic mIoU, obstacle recall by size/range, moving IoU, track ID switches, false-free rate, peak memory and disk are TBD. They must be frozen before implementation acceptance. Synthetic demo and oracle scores are not substitutes.
+Baseline: one sequence 08 validation scan has a diagnostic official-evaluator
+score, but no complete held-out learned accuracy, tracking, free-space quality,
+or full-pipeline release latency is measured. The first-release deadline is
+100 ms for every scheduled scan with zero misses in the accepted window.
+Targets for semantic mIoU, obstacle recall by size/range, moving IoU, track ID
+switches, false-free rate, peak memory and disk are TBD. They must be frozen
+before T-003 quality or release acceptance. Synthetic demo and oracle scores
+are not substitutes.
 
-The [O-001 contract proposal](../../../../docs/o-001-contract-proposal.md) defines a reviewable
-full-result field list, evaluator behavior, replay protocol and D-005 metric worksheet. Its
-sequence/window/cap and numeric quality/resource choices remain unapproved. CPU development
-measurements and the later CUDA release judgment are separate milestones.
+The [O-001 contract proposal](../../../../docs/o-001-contract-proposal.md) is approved as a staged
+development contract. The proposed 10 Hz complete sequences 08 and 00, separate sequence 10
+frame 206 cold-start case, and 130,000-point explicit-reject cap are the selected future release
+workload. CPU development measurements and the later CUDA release judgment are separate
+milestones. A checkpoint is pinned for T-003 local development; its separate
+terms and exact public-byte identity, numeric quality/resource gates, physical
+CUDA host and final
+release verification remain open; no result may claim those gates passed.
 
 ## Data and use rules
 
@@ -50,8 +66,8 @@ In scope for the first release: the existing Python package, its CLI, determinis
 
 | ID | Decision | Recommendation | Affected requirements |
 | --- | --- | --- | --- |
-| D-001 | Target hardware, input rate, complete-path deadline and allowed miss rate. | Implementation hardware is selected: current laptop CPU now, optional NVIDIA CUDA support later; GPU access does not block CPU work. Strict 100 ms and zero misses remain selected, not achieved. Publication is the same-process evaluator's receipt after validation of the complete versioned immutable result; persist receipts and audit evidence. Full-payload disk persistence is not part of this endpoint. The physical NVIDIA validation host and complete payload schema remain TBD; workload/window approval is explicitly deferred. The present diagnostic receipt is not the complete product result. | FR-008 |
-| D-002 | First model milestone: semantic-only, joint semantic/motion, or checkpoint integration before training. | Integrate a versioned semantic checkpoint first, then measure a motion model separately. | FR-001, FR-005, FR-009 |
+| D-001 | Target hardware, input rate, complete-path deadline and allowed miss rate. | Current laptop CPU is the development path; NVIDIA CUDA validation follows on a physical host still to be identified. Strict 100 ms, zero misses, same-process complete-result receipt and the proposal's complete-sequence 10 Hz workload and 130,000-point cap are selected, not achieved. Full-payload disk persistence and Rerun are outside the deadline. T-002 freezes the payload schema; the present and new diagnostic receipts are not release proof. | FR-008 |
+| D-002 | First model milestone: semantic-only, joint semantic/motion, or checkpoint integration before training. | Semantic-only FRNet checkpoint integration approved for local CPU development on 2026-09-27. Motion remains separate. Checkpoint redistribution/release terms remain open. | FR-001, FR-005, FR-009 |
 | D-003 | Free-space output for evidence only or navigation consumption in the first release. | Evidence-only selected. No navigation-safe or drivable-space verdict; unknown/stale states remain explicit. Evidence-quality and recovery thresholds still require D-005 approval. | FR-006, FR-010 |
 | D-004 | Dataset replay only or live LiDAR and planner integration in the first release. | Dataset replay selected; live LiDAR and planner-facing output deferred beyond the first release. | FR-008, FR-011 |
 | D-005 | Numeric release thresholds for every success measure. | Set thresholds after a baseline on held-out data and target hardware; do not infer them from the synthetic demo. | FR-001 to FR-010 |
@@ -115,3 +131,18 @@ hardware access. Lack of an NVIDIA device must not block approved CPU-only devel
 GPU-specific validation is deferred. This closes the implementation-hardware choice, not
 all of D-001: the workload/window, complete product payload and remaining quality/resource
 contract are still unresolved, and neither CPU nor CUDA has achieved the release deadline.
+
+2026-09-26 staged approval: The product owner reviewed the O-001 checklist and explicitly
+approved moving forward. Freeze and implement the T-002 result/evaluator contract first on the
+CPU path. Adopt the proposal's workload/window/cap for eventual release validation. The model
+and terms, numeric quality/resource limits, physical CUDA host and final release judgment remain
+open dependencies in that order. T-003 and later product claims require their own evidenced
+prerequisites; T-002's diagnostic result is schema validation, not complete perception.
+
+2026-09-27 T-003 approval: The product owner explicitly approved T-003
+implementation after reviewing the [semantic checkpoint slice](../../../../docs/t-003-semantic-checkpoint-proposal.md).
+Decision 0004 limits this approval to local CPU semantic inference with a
+pinned FRNet checkpoint, label-free replay, versioned semantic-only result and
+offline evaluation workflow. The model is not a motion, object or free-space
+producer. Numeric D-005 thresholds, full held-out quality, applicable weight
+terms and CUDA release evidence remain open.

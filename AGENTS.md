@@ -1,6 +1,6 @@
 # SIH / Drishti-2.5 agent operating manual
 
-This is the primary project contract. Read it, then the narrower `Drishti-2.5/AGENTS.md` before editing that package. Treat `docs/` as durable project context. The current product-feature specification under `Drishti-2.5/docs/spec-driven/drishti-perception/` is a draft and does not authorize implementation.
+This is the primary project contract. Read it, then the narrower `Drishti-2.5/AGENTS.md` before editing that package. Treat `docs/` as durable project context. T-002 and the bounded semantic-only T-003 CPU slice have explicit staged approval; later product features and full-release acceptance remain draft.
 
 At the start of substantive work, read `docs/README.md`, `docs/open-items.md`, and the relevant
 part of `docs/execution-plan.md`. Read every applicable nested `AGENTS.md` from the target path.
@@ -8,7 +8,7 @@ Afterward, update the task status, open-item register, and dated work log with a
 
 ## Project identity
 
-FACT: `SIH26053.md` describes an adaptive 2.5D LiDAR perception challenge. `Drishti-2.5/` is the standalone Python package. It currently maps individual scans, extracts ground, aggregates multiresolution cells, replays SemanticKITTI data and renders optional Rerun views. It is a prototype for developers and evaluators. Learned perception, detection, tracking, temporal fusion, motion estimation, free-space proof and a verified real-time guarantee are absent from the active path. See `docs/project-assessment.md`.
+FACT: `SIH26053.md` describes an adaptive 2.5D LiDAR perception challenge. `Drishti-2.5/` is the standalone Python package. It maps individual scans, extracts ground, aggregates multiresolution cells, replays SemanticKITTI data and renders optional Rerun views. An approved CPU FRNet slice now predicts point semantics from a pinned checkpoint; full held-out quality acceptance is pending. Detection, tracking, temporal fusion, motion estimation, free-space proof and a verified real-time guarantee are absent from the active path. See `docs/project-assessment.md`.
 
 ## Repository map
 
@@ -30,7 +30,7 @@ Ignored local `data/`, `artifacts/`, environments and model files are not source
 
 ## Existing architecture
 
-`DatasetSource.frames` or `synthetic_frames` yields `ScanFrame` -> `MappingEngine.process` validates/filter/transforms -> Patchwork++ segments ground -> `project` creates an auxiliary range image -> `aggregate_cells` creates a single-frame immutable `MapSnapshot` -> CLI writes manifest/JSONL/summary and optional `RerunView` publishes a view. Oracle annotations are evaluation input only. No persistent map service or database exists.
+`DatasetSource.frames` or `synthetic_frames` yields `ScanFrame` -> `MappingEngine.process` validates/filter/transforms -> optional isolated FRNet point semantics in learned mode -> Patchwork++ segments ground -> `project` creates an auxiliary range image -> `aggregate_cells` creates a single-frame immutable `MapSnapshot` -> CLI writes manifest/JSONL/summary and optional `RerunView` publishes a view. Learned mode emits a semantic-only evaluator receipt; oracle annotations are evaluation input only. No persistent map service or database exists.
 
 ## Development commands
 

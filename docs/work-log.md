@@ -1,5 +1,68 @@
 # Work log
 
+## 2026-09-28 - T-003 stopped for machine shutdown
+
+- User instruction: stop the process and resume after the machine is turned
+  on again. The user service is now inactive/dead; the follow-up automation
+  is PAUSED.
+- MEASURED RESULT: frames 000000 through 000792 have 793 ordered, accepted
+  semantic receipts and 793 matching prediction files. The
+  [experiment 0025](research/experiments/0025-t003-full-sequence08.md)
+  checkpoint records verified hashes and next frame 000793.
+- FACT: power-off destroys the in-memory process. `resume.py` validates the
+  saved prefix and is ready to process the remaining 3,278 scans in a new
+  engine, then evaluate all 4,071 prediction files together. Its syntax and
+  prefix validation passed; remaining scans have NOT RUN. Patchwork++ map
+  state resets at the boundary, so a combined semantic score will not prove
+  one continuous map-state run.
+- T-003, O-002 and O-007 remain IN PROGRESS pending full-sequence metrics,
+  D-005 numeric gates and weight provenance.
+
+## 2026-09-28 - T-003 full sequence 08 restart
+
+- MEASURED RESULT: the first continuous run stopped after 219 accepted
+  semantic receipts without a summary. Its managed session and temporary
+  runtimes disappeared. Preserved all 219 predictions and audit rows.
+- User instruction: start the process once again. Restored the pinned FRNet
+  source, Python 3.8 runtime, frozen packages, safe tensor export and official
+  evaluator under persistent ignored `artifacts/` paths. The safe export and
+  wheel hashes match the initial run.
+- VERIFIED: a real one-scan restart smoke accepted a schema-2 semantic receipt
+  and produced byte-identical predictions to the prior run. Launched a new
+  complete sequence 08 run as a user service, active at first inspection with
+  four consecutive accepted receipts. See [experiment 0025](research/experiments/0025-t003-full-sequence08.md).
+- NOT VERIFIED: full coverage and quality, numeric D-005 gates and T-003
+  closure. A 30-minute task follow-up tracks the restarted service.
+
+## 2026-09-27 - T-003 full sequence 08 validation started
+
+- User instruction: continue the remaining T-003 scans.
+- FACT: launched a continuous 4,071-scan replay from the final installed wheel
+  in a new ignored run directory, with automatic coverage/receipt validation,
+  official SemanticKITTI scoring and supplemental range evaluation afterward.
+  [Experiment 0025](research/experiments/0025-t003-full-sequence08.md) records
+  the exact run location and managed execution session.
+- MEASURED RESULT: initial frames 0 through 6 have accepted semantic receipts.
+  A 30-minute task follow-up is active to inspect progress and final evidence.
+- NOT VERIFIED: complete sequence quality and numeric acceptance. T-003 and
+  O-002/O-007 remain IN PROGRESS. Source dataset and checkpoint are unchanged.
+
+## 2026-09-27 - T-002 handoff and approved T-003 CPU implementation
+
+- FACT: integrated the bounded T-002 versioned result/evaluator handoff into
+  the main checkout. Schema-1 canonical digest parity with the handoff and a
+  two-frame installed-wheel diagnostic receipt run were checked. Decision 0003
+  and AC-013 record that diagnostic boundary.
+- DESIGN DECISION: the owner approved the T-003 semantic-only FRNet CPU slice;
+  decision 0004 and AC-014 scope the implementation and closure gates.
+- MEASURED RESULT: a label-free source and installed-wheel sequence 08 replay
+  each accepted a schema-2 semantic receipt and produced byte-identical raw-ID
+  predictions. The official one-scan evaluator reported 0.439 mIoU across 19
+  classes and 0.916 labeled accuracy. See E-050 and experiment 0024.
+- OPEN: complete sequence 08 official and range quality, numeric D-005 gates,
+  exact public checkpoint-byte identity, separate weight terms, CUDA timing
+  and AC-008 release evidence. T-003 remains IN PROGRESS.
+
 Append dated entries for meaningful work. State what changed, what was verified, and what remains.
 Detailed test evidence belongs in `testing.md`; active blockers belong in `open-items.md`.
 

@@ -10,6 +10,7 @@ from drishti.contracts import Accounting, Mode, ScanFrame
 from drishti.cuda_backend import CudaFramePath
 from drishti.geometry import transform_points
 from drishti.ground import GroundClass, GroundSegmenter, PatchworkGround
+from drishti.learned import SemanticPredictor
 from drishti.mapping import MapSnapshot, aggregate_cells
 from drishti.projection import RangeImage, project
 
@@ -21,6 +22,8 @@ class PointObservations:
     point_ids: IntArray
     ground: ByteArray
     semantic: ByteArray
+    semantic_confidence: FloatArray
+    semantic_unknown_reason: ByteArray
     motion: ByteArray
     cell_indices: IntArray
 
@@ -28,6 +31,7 @@ class PointObservations:
 @dataclass(frozen=True)
 class StageTimings:
     preprocess_ms: float
+    model_ms: float | None
     ground_ms: float
     projection_ms: float
     mapping_ms: float
@@ -50,10 +54,13 @@ class MappingEngine:
         *,
         mode: Mode = Mode.GEOMETRIC,
         ground: GroundSegmenter | None = None,
+        predictor: SemanticPredictor | None = None,
         device: Literal["cpu", "cuda"] = "cpu",
     ) -> None:
-        if mode not in (Mode.GEOMETRIC, Mode.ORACLE):
-            raise ValueError("mapping mode must be geometric or oracle")
+        if mode not in (Mode.GEOMETRIC, Mode.ORACLE, Mode.LEARNED):
+            raise ValueError("mapping mode must be geometric, oracle or learned")
+        if (mode == Mode.LEARNED) != (predictor is not None):
+            raise ValueError("learned mode requires a predictor; other modes forbid it")
         if device not in ("cpu", "cuda"):
             raise ValueError("mapping device must be cpu or cuda")
         self.config = config
@@ -61,6 +68,7 @@ class MappingEngine:
         self.device = device
         self._cuda = CudaFramePath() if device == "cuda" else None
         self.ground = PatchworkGround(config) if ground is None else ground
+        self.predictor = predictor
         self._stream: str | None = None
         self._last_frame = -1
         self._last_timestamp = -1.0
@@ -108,14 +116,30 @@ class MappingEngine:
             ids = immutable(frame.point_ids[accepted])
         mapped = immutable(xyz_map_m[in_roi & in_height])
         semantic = np.zeros(len(points), dtype=np.uint8)
+        semantic_confidence = np.zeros(len(points), dtype=np.float64)
+        semantic_unknown_reason = np.ones(len(points), dtype=np.uint8)
         motion = np.zeros(len(points), dtype=np.uint8)
         if self.mode == Mode.ORACLE:
             annotations = frame.annotations
             if annotations is None:
                 raise ValueError("oracle mode requires annotations")
             semantic = annotations.semantic[accepted]
+            semantic_confidence = np.where(semantic == 0, 0.0, 1.0).astype(np.float64)
+            semantic_unknown_reason = np.where(semantic == 0, 2, 0).astype(np.uint8)
             motion = annotations.motion[accepted]
         preprocessed = perf_counter()
+        if self.mode == Mode.LEARNED:
+            if self.predictor is None:
+                raise ValueError("learned mode requires a predictor")
+            if not np.isfinite(points[:, 3]).all():
+                raise ValueError("FRNet requires finite intensity for every accepted point")
+            prediction = self.predictor.predict(points, ids)
+            if len(prediction.semantic_id) != len(points):
+                raise ValueError("predictor returned the wrong number of point labels")
+            semantic = prediction.semantic_id
+            semantic_confidence = prediction.confidence
+            semantic_unknown_reason = prediction.unknown_reason
+        model_completed = perf_counter()
         ground = self.ground.segment(points)
         if ground.shape != (len(points),) or not np.isin(ground, list(GroundClass)).all():
             raise ValueError("ground provider returned invalid point-aligned classifications")
@@ -148,6 +172,8 @@ class MappingEngine:
             ids,
             immutable(ground),
             immutable(semantic),
+            immutable(semantic_confidence),
+            immutable(semantic_unknown_reason),
             immutable(motion),
             cell_indices,
         )
@@ -168,7 +194,8 @@ class MappingEngine:
         end = perf_counter()
         timings = StageTimings(
             (preprocessed - start) * 1000,
-            (segmented - preprocessed) * 1000,
+            (model_completed - preprocessed) * 1000 if self.mode == Mode.LEARNED else None,
+            (segmented - model_completed) * 1000,
             (projected - segmented) * 1000,
             (end - projected) * 1000,
             (end - start) * 1000,

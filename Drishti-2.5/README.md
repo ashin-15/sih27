@@ -1,20 +1,31 @@
 # Drishti-2.5
 
-Drishti-2.5 is a standalone, CPU-default prototype for single-frame adaptive 2.5D LiDAR mapping. It accepts SemanticKITTI scans or a synthetic demo, segments ground with Patchwork++, aggregates all accepted points into multiresolution cells, and publishes an immutable snapshot. The range image is auxiliary; projection collisions do not remove points from map aggregation. An optional CUDA backend now runs projection, cell ownership and reductions through CuPy; GPU parity and timing are not yet verified.
+Drishti-2.5 is a standalone, CPU-default prototype for single-frame adaptive
+2.5D LiDAR mapping. It accepts SemanticKITTI scans or a synthetic demo,
+segments ground with Patchwork++, aggregates all accepted points into
+multiresolution cells, and publishes an immutable snapshot. An approved CPU
+slice now runs a pinned FRNet checkpoint for point semantics in an isolated
+worker. The range image is auxiliary; projection collisions do not remove
+points from map aggregation. Optional CUDA projection, ownership and
+reductions exist, but GPU parity and timing are not verified.
 
 ## Current capabilities and limits
 
 | Capability | Current behavior |
 | --- | --- |
 | Ground and elevation | Patchwork++ and per-cell ground height, vertical span, ambiguity, observed and nonground height bounds. These are observations, not clearance or passability proof. |
-| Semantics and motion | Geometric mode publishes unknown values. Oracle mode uses aligned SemanticKITTI labels for mapping evaluation; it is not autonomous inference. |
+| Semantics and motion | Geometric mode publishes unknown values. Learned mode predicts point semantics with a pinned FRNet CPU worker and an uncalibrated model score; held-out quality acceptance is pending. Oracle mode uses aligned SemanticKITTI labels for mapping evaluation. No learned motion estimate exists. |
 | Obstacles | Nonground return envelopes are stored per cell. There is no object detector, object boundary, class prediction, collision volume, or persistence. |
 | Time | Each output is a new single-frame snapshot. There is no temporal fusion, tracking, motion estimation, or stale evidence policy. |
 | Free space | No ray-based visibility or free-space proof is produced. Unknown space must stay unknown. |
 | Performance | The CLI records processing and audited end-to-end latency, deadline misses, snapshot payload, and worker RSS. A paced replay check measures scheduled-arrival-to-current-frame in-process receipt age against 100 ms per scan, with report-flush age separate. It does not establish a full-path real-time guarantee or measure viewer memory and rendering FPS. |
 | Input | Dataset replay expects poses, calibration, and ordered timestamps. Per-point timestamps and scan deskew are unavailable. No live sensor ingestion exists. |
 
-The [current-state audit](docs/spec-driven/drishti-perception/CURRENT_STATE.md) lists code evidence for each gap. The [draft PRD](docs/spec-driven/drishti-perception/PRD.md), [technical design](docs/spec-driven/drishti-perception/TECH_DESIGN.md), and [acceptance contract](docs/spec-driven/drishti-perception/ACCEPTANCE.md) define the planned work. They are pending product decisions and implementation approval.
+The [current-state audit](docs/spec-driven/drishti-perception/CURRENT_STATE.md)
+records the earlier geometric baseline. The [PRD](docs/spec-driven/drishti-perception/PRD.md),
+[technical design](docs/spec-driven/drishti-perception/TECH_DESIGN.md), and
+[acceptance contract](docs/spec-driven/drishti-perception/ACCEPTANCE.md) record
+the approved T-002/T-003 slices and the remaining draft release stages.
 
 ## Setup and demo
 
@@ -43,9 +54,19 @@ uv run --frozen drishti replay \
 
 The dataset root must contain `sequences/<XX>/velodyne`, `times.txt`, `calib.txt`, and a pose file. `--pose-source slam` reads sequence-local poses; `--pose-source kitti-gt` reads `poses/<XX>.txt`. `--mode oracle` additionally reads point-aligned labels. Keep training, validation, and evaluation sequences separate. Do not interpret oracle output as a learned prediction.
 
+For `--mode learned`, use the [FRNet semantic CPU workflow](docs/frnet-semantic-workflow.md).
+It covers the isolated model environment, checkpoint hashes, prediction files,
+the official evaluator and the supplemental range report. The model runs on
+CPU and the complete held-out quality gate is still open.
+
 ## Outputs
 
 Each run writes `manifest.json`, `frames.jsonl`, and `summary.json`. A recording also writes `map.rrd`. `map_digest` supports exact replay comparison. `snapshot_array_bytes` counts array payload, while `worker_peak_rss_bytes` is the process peak. `realtime_release_gate_met` remains false because the full pipeline has not been implemented and validated.
+
+Learned runs automatically validate a schema-2 semantic-only product result
+and record its receipt. `--write-predictions` adds raw-ID `.label` files under
+the new run directory. These receipts do not contain motion, object tracks,
+temporal state or free-space proof.
 
 For the current-path deadline check, add `--check-100ms` to a geometric replay. It schedules
 scans at 10 Hz and writes `replay-timing.jsonl` with each scheduled arrival, load lag,

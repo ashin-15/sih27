@@ -47,8 +47,8 @@ class DatasetSource:
             raise ValueError("max_points must be a positive integer")
         if pose_source not in (PoseSource.SLAM, PoseSource.KITTI_GT):
             raise ValueError("dataset pose source must be slam or kitti-gt")
-        if mode not in (Mode.GEOMETRIC, Mode.ORACLE):
-            raise ValueError("dataset mode must be geometric or oracle")
+        if mode not in (Mode.GEOMETRIC, Mode.ORACLE, Mode.LEARNED):
+            raise ValueError("dataset mode must be geometric, oracle or learned")
         self.root = root.expanduser().resolve(strict=True)
         self.sequence = sequence
         self.mode = mode

@@ -3,6 +3,19 @@
 Audited 2026-09-24 from source, tests, synthetic validation and two short real-data replays.
 Categories are explicit; this is not an implementation claim.
 
+## 2026-09-27 implementation update
+
+FACT: T-002's version-1 diagnostic product result and same-process evaluator
+are integrated. T-003 now has a CPU FRNet worker using a hash-pinned checkpoint,
+label-free learned replay, schema-2 semantic-only receipts, raw-ID prediction
+files and supplemental range metrics. An installed-wheel sequence 08 scan
+returned one aligned prediction per accepted original point and an accepted
+semantic receipt; see [experiment 0024](research/experiments/0024-t003-frnet-drishti-integration.md).
+The official evaluator was checked on one scan only. Complete held-out quality,
+numeric D-005 thresholds, checkpoint weight terms and CUDA latency remain
+UNKNOWN, so T-003 is IN PROGRESS rather than DONE. The original audit below
+describes the 2026-09-24 baseline and is retained as historical context.
+
 ## Current state
 
 FACT: `Drishti-2.5/src/drishti/pipeline.py` creates one `MapSnapshot` per frame and does not read earlier snapshots. `mapping.py` computes adaptive cell ownership, ground/observed/nonground statistics and oracle semantic histograms. `cli.py` provides demo/replay, run manifests, point accounting, latency and memory reporting. `visualization.py` renders geometry/semantic cells and states limitations. `dataset.py` loads SemanticKITTI with explicit poses. `tests/` covers the present slice.
@@ -11,7 +24,13 @@ MEASURED RESULT: On 2026-09-24, 42 tests passed with warnings as errors. A three
 
 ## Incomplete areas
 
-FACT: There is no learned model or training workflow, object instance detector, temporal fusion, tracker, motion estimation, ray-based free-space proof, live input, or real-time release guarantee. Oracle labels are copied from evaluation data. See `Drishti-2.5/docs/spec-driven/drishti-perception/CURRENT_STATE.md` for code-by-code evidence.
+FACT for the 2026-09-24 baseline: there was no learned model or training
+workflow. The 2026-09-27 update above supersedes that semantic-inference gap.
+There is still no completed local training run, object instance detector,
+temporal fusion, tracker, motion estimation, ray-based free-space proof, live
+input or real-time release guarantee. Oracle labels remain evaluation input.
+See `Drishti-2.5/docs/spec-driven/drishti-perception/CURRENT_STATE.md` for
+the baseline code audit.
 
 FACT: `Drishti-2.5/deeplearningpipeline.md` describes a proposed model and safety architecture;
 it does not implement it. Its previous real-data links were absent; it now cites fresh 100-frame
@@ -32,7 +51,8 @@ measure the future complete path or prove a real-time guarantee.
 ## High-value questions
 
 1. Which complete payload schema and resource limits define the CUDA replay gate? The 100 ms deadline, zero misses and same-process evaluator receipt are selected; physical host and workload approval are deferred.
-2. Is the first learned milestone semantic-only, joint semantic/motion, or checkpoint integration before local training?
+2. DECIDED on 2026-09-27: first learned milestone is semantic-only FRNet CPU
+   integration. Weight terms, full held-out quality and local retraining remain open.
 3. Which false-free, unknown/stale and recovery thresholds apply to the selected evidence-only output? Planner-facing use is deferred.
 4. What timing/calibration/pose quality contract would be required for a later live release? Live input is deferred beyond this first replay release.
 5. What held-out data and numeric quality thresholds are acceptable for each requested capability?

@@ -1,6 +1,105 @@
 # Drishti-2.5 perception technical design
 
-Status: Draft. Based on draft PRD updated 2026-09-25. Approval: Pending.
+Status: T-002 interface contract frozen 2026-09-26; T-003 semantic CPU slice
+approved 2026-09-27. Other product stages and full release design stay Draft.
+
+## Frozen T-002 result and receipt, version 1
+
+`src/drishti/product_result.py` owns `ProductFrameResult`, `CellEvidence`, `InstanceEvidence`,
+`TrackEvidence`, `BeamProof`, `ProductDiagnostics` and `ProductReceipt`. `schema_version=1`
+is exact; unknown versions are rejected. All fields are required Python dataclass fields.
+`stage=diagnostic` is the existing geometric producer and may only emit unknown semantic/motion,
+no instances/tracks/beams, and unknown/ambiguous cells. `stage=complete` is reserved for future
+learned/temporal producers and requires checkpoint and calibration hashes; a schema-valid
+receipt alone does not prove quality or timing.
+
+- Identity: nonempty run/sequence, nonnegative ordered frame ID and timestamp in ns,
+  optional scheduled monotonic arrival ns, SHA-256 source scan/config/code/checkpoint hashes,
+  CPU/CUDA backend. The present CLI's `code_revision` value is its source-file SHA-256, not
+  a claimed Git commit. The source digest includes sequence, frame ID, timestamp, raw scan
+  point/ID buffers and pose, but excludes oracle labels.
+- The approved 130,000 raw-point release cap is checked for `stage=complete`; above-cap
+  inputs receive an explicit rejection receipt. The current diagnostic CLI retains its
+  pre-existing configurable 150,000-point default and cannot be used as the release gate.
+- Input: `Accounting` conserves input and projection points; accepted original `point_ids`
+  are sealed contiguous int64 in the same relative order as the input. The sealed 4x4 float64
+  pose matches the input. Pose source, explicit verified/degraded/unverified quality,
+  calibration ID/digest, fixed FLU map coordinate convention and metre/nanosecond units are
+  explicit. Diagnostic pose quality is unverified; calibration may be absent in that mode only.
+- Per point: accepted-order uint8 semantic ID (0..19), uint8 support and unknown reason,
+  float64 confidence in [0,1], uint8 motion state and float64 confidence. ID 0 requires a
+  reason; known IDs require support. Diagnostic mode emits 0/NO_MODEL and unknown motion.
+- Instances/tracks: immutable tuples of typed records. Instance IDs are unique per frame,
+  support IDs subset the accepted IDs, and overlap is rejected unless the explicit
+  `allow_overlapping_instance_support` flag is true. Geometry is finite with center inside
+  bounds. Track IDs
+  are unique per result, associated instance IDs must exist, and velocity requires at least
+  two supporting frames and a 3x3 covariance tuple. Future stages must add lifecycle and
+  cross-frame identity tests before using this as tracking evidence.
+- Cells: `cell_sizes_cm` begins at 5 cm and contains nested integer widths. Parallel sealed
+  arrays carry level/int64 indices, occupancy enum, semantic ID/support, observed timestamp,
+  source, ray/obstacle counts, uncertainty, conflict and free-beam reference. Ownership is checked
+  across levels using parent indices; duplicate or overlapping cells are rejected. Unknown
+  uncertainty uses -1, never NaN. Observed-free requires a beam referencing an accepted
+  return, matching transformed return coordinates, and a segment through cell interior
+  before a return outside the cell, with sensor origin matching pose and no accepted return
+  inside the claimed free cell. This validates reference geometry only; it does not yet
+  establish a full visibility/occlusion policy or AC-006.
+- Diagnostics: explicit stage timings or unavailable values, queue/drop/invalid counters,
+  map/track size, RSS/device sample or unavailable status. Receipt validation duration is
+  measured separately after consuming the result. These fields do not replace payload fields.
+
+Arrays must be C contiguous, little-endian/native on this little-endian runtime, and backed
+by immutable `bytes`, which prevents writable aliases after receipt. `canonical_result_digest`
+is SHA-256 over the entire dataclass tree encoded as UTF-8 JSON with sorted keys, compact
+separators and no NaN. Arrays encode `dtype.str`, shape and C-order payload hex; tuple order is
+retained. Changing any field, including diagnostics, changes the digest. This is a Python
+version-1 contract, not a cross-language wire format.
+
+`InProcessProductEvaluator.receive` checks the actual payload synchronously and stamps
+`receipt_monotonic_ns` after validation/digest. It returns `accepted` with a digest or
+`rejected` with a reason and no digest. Only acceptance advances sequence/frame ownership.
+The `--evaluate-product-contract` CLI option builds diagnostic results immediately after the
+same `MappingEngine.process` used by replay/demo/viewer and records receipts in `frames.jsonl`
+under report schema 3. It does not replace the existing `--check-100ms` current-frame diagnostic
+receipt or make that timing an AC-008 measurement. Audit fsync, bounded queue/drain, complete
+producer and release timing remain T-007/T-008 work.
+
+## Approved T-003 semantic-only CPU path
+
+`MappingEngine.process` accepts `Mode.LEARNED` with a `SemanticPredictor`.
+It filters accepted points exactly once, passes their sensor-frame float32
+x/y/z/intensity and int64 IDs to the predictor, then aggregates all accepted
+points into the same cell path. `DatasetSource` in learned mode never opens
+label files. Missing or nonfinite accepted intensity rejects the frame. Oracle
+annotations are not consulted by the learned engine or source.
+
+`learned.py` verifies the local checkpoint and safe tensor-export SHA-256,
+requires a clean checkout of the pinned FRNet revision, and launches a
+persistent Python 3.8 CPU worker. The worker reads only per-scan accepted
+points from a private temporary directory, applies the authors'
+`RangeInterpolation` and model preprocessor, strictly loads all 421 state
+keys, and returns original-point logits. Torch 1.8 SyncBatchNorm evaluation
+uses stored statistics through CPU `batch_norm`. The host validates count,
+dtype, channel range and finite score, remaps channels 0..18 to learning IDs
+1..19 and channel 19 to unknown 0, then seals the arrays. The maximum
+softmax score is not calibrated uncertainty. A worker timeout or invalid
+output fails the run visibly.
+
+`product_result.py` retains version-1 `stage=diagnostic` and reserved
+`stage=complete` behavior. Version 2 adds `stage=semantic`, with accepted-order
+point IDs/classes/scores/reasons and cell semantic evidence. It requires
+checkpoint/export SHA-256, upstream revision, class-map version and model
+stage time. Its motion, instances, tracks, beams and free-space claims remain
+absent; occupancy is unknown or ambiguous. The same-process evaluator returns
+a version-2 receipt before audit. `--write-predictions` writes one raw-ID
+SemanticKITTI file per input scan under the new run directory, filling any
+rejected input point with raw unknown 0. Official sequence scoring uses the
+upstream SemanticKITTI API; `drishti.evaluation` adds range/unknown breakdowns.
+No numeric D-005 quality threshold is frozen. See decision 0004 and experiment
+0024. This CPU slice is not a complete-result release producer.
+
+Status: The remaining design below is Draft. Based on the draft PRD.
 
 ## Current architecture and planned flow
 
@@ -74,7 +173,7 @@ Use labels only in oracle evaluation and scoring. SemanticKITTI semantic and mov
 
 ## Alternatives and blockers
 
-A specific network architecture, framework, checkpoint source, physical NVIDIA release host, association algorithm and ray discretization remain technical decisions under the selected CUDA platform direction and unresolved D-002/D-005 gates. Choose using measured accuracy, license, integration cost and complete-path latency. Do not commit to an external model or claim real-time performance from model-only benchmarks. D-003 selects evidence-only output; evidence-quality and recovery criteria remain open. D-004 defers planner-facing output and live sensor integration beyond the first release. The proposed performance workload is also explicitly deferred pending approval.
+FRNet and its framework/checkpoint source are selected for the bounded D-002 semantic CPU development slice. Exact public checkpoint bytes, separate weight terms, a physical NVIDIA release host, association algorithm, ray discretization and D-005 numeric gates remain open. Choose later stages using measured accuracy, license, integration cost and complete-path latency. Do not claim real-time performance from model-only benchmarks. D-003 selects evidence-only output; evidence-quality and recovery criteria remain open. D-004 defers planner-facing output and live sensor integration beyond the first release. The proposed performance workload is also explicitly deferred pending approval.
 
 2026-09-25 design direction: the user selected a CUDA frame path for O-001. Preserve
 `MappingEngine.process` and the existing data contracts while drafting a device-resident,

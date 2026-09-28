@@ -13,6 +13,7 @@ from drishti.semantics import Annotations
 class Mode(StrEnum):
     GEOMETRIC = "geometric"
     ORACLE = "oracle"
+    LEARNED = "learned"
 
 
 class PoseSource(StrEnum):

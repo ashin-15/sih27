@@ -1,7 +1,9 @@
-# T-003 semantic checkpoint slice for review
+# T-003 semantic checkpoint slice
 
-Status: Draft, 2026-09-27. This proposes a bounded T-003 implementation slice;
-it is not a frozen PRD, design or acceptance contract. T-003 remains BLOCKED.
+Status: Approved for bounded CPU implementation on 2026-09-27. The product
+owner explicitly approved T-003 implementation. [Decision 0004](decisions/0004-frnet-semantic-cpu-slice.md)
+freezes this semantic-only development scope. Numeric D-005 quality thresholds
+and full release acceptance remain open; T-003 is IN PROGRESS.
 
 ## Verified starting point
 
@@ -22,11 +24,11 @@ it is not a frozen PRD, design or acceptance contract. T-003 remains BLOCKED.
   sequence 00; both full-scan reorder checks had zero restored-label
   mismatches. Prediction took 6.417 and 6.344 seconds respectively. Both
   one-scan scores are diagnostic, not official held-out or product results.
-- The main checkout still has the pre-T-002 contracts. A separate local
-  worktree contains an uncommitted, validated T-002 version-1 product result
-  and evaluator. Integrate and review that prerequisite before T-003 edits.
+- The approved T-002 version-1 diagnostic product result and evaluator are
+  integrated in this checkout. T-003 adds a separate schema-2 semantic-only
+  result without promoting it to a complete release result.
 
-## Proposed T-003 scope
+## Approved T-003 scope
 
 1. Select a semantic-only, versioned FRNet checkpoint milestone. Treat motion,
    instances and free-space as separate later tasks. Keep raw scans/labels and
@@ -49,7 +51,7 @@ it is not a frozen PRD, design or acceptance contract. T-003 remains BLOCKED.
    offline workflow with an explicit train/validation split and no training on
    held-out labels.
 
-## Proposed acceptance for the T-003 slice
+## T-003 acceptance evidence
 
 | Gate | Required evidence |
 | --- | --- |
@@ -60,21 +62,21 @@ it is not a frozen PRD, design or acceptance contract. T-003 remains BLOCKED.
 | Reproducibility | Pinned runtime, config, checkpoint and split; saved command/manifests; fresh installed-wheel CPU replay; lint, format, types and relevant suite pass. |
 | Performance | Preprocess, inference, postprocess, mapping, result receipt and RSS measured together. This is a CPU development result; AC-008 remains a later complete-path CUDA release judgment. |
 
-## Decisions needed before production implementation
+## Decisions and evidence needed before closure
 
-- **D-002 model milestone:** approve the semantic-only checkpoint slice above
-  and whether the author's public project Apache-2.0 statement is sufficient
-  for use of the separately hosted weights. The exact local/upstream file hash
-  match was not independently established.
+- **D-002 model milestone:** semantic-only local CPU development is approved.
+  Redistribution or release use of the separately hosted weights awaits their
+  applicable terms and exact upstream-byte identity.
 - **D-005 semantic gates:** approve the held-out split, minimum total and
   per-class/by-range quality, maximum unknown coverage, and whether the
   target is to reproduce the authors' validation score or to meet a separate
   product threshold. A one-scan observed-class mean IoU of 0.6423 is available,
   but it cannot establish a defensible held-out numeric target.
-- **T-002 handoff:** review/integrate the approved T-002 version-1 result and
-  evaluator from the other worktree. Define how a semantic-only result enters
-  that schema without claiming complete temporal output or AC-008 success.
+- **T-002 handoff:** integrated in this checkout. Schema-1 diagnostic receipts
+  remain separate from schema-2 semantic-only receipts; neither is an AC-008
+  complete-path release receipt.
 
-Freeze the matching PRD, technical design and acceptance slice after these
-decisions. Only then start the product adapter. A checked checkpoint by itself
-does not complete AC-001, AC-007, AC-009 or T-003.
+The approved adapter and evaluation workflow are implemented and verified in
+[experiment 0024](research/experiments/0024-t003-frnet-drishti-integration.md).
+Full-sequence held-out quality and approved numeric gates are required before
+T-003 can move from IN PROGRESS to DONE.

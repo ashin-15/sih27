@@ -1,10 +1,58 @@
 # Drishti-2.5 perception delivery loop
 
-Current state: grilling
-Current loop: LOOP-001
-Frozen specification: none
-Current objective: Resolve product decisions and freeze the contract; research and current-path measurement preparation are under way.
-Blocking issue: NVIDIA platform, same-process evaluator receipt endpoint and evidence-only output are selected. Live/planner use is deferred. Physical host inventory, complete payload schema, D-002/D-005 quality/resource gates and full-contract implementation approval remain open; D-001 workload/window/cap approval is explicitly deferred.
+Current state: implementing
+Current loop: LOOP-003
+Frozen specification: staged T-002 version-1 result/evaluator and the approved T-003
+semantic-only CPU slice under PRD, TECH_DESIGN, AC-013/014, AGENT_PLAN and decisions 0003/0004.
+Current objective: complete T-003 held-out quality and numeric acceptance review.
+Blocking issue: complete sequence 08 quality, separate weight terms, D-005 numeric gates,
+physical CUDA host and full release validation remain open. AC-008 is NOT VERIFIED.
+Last updated: 2026-09-27
+
+## Current loop - LOOP-003: T-003 semantic CPU slice
+
+- Related FRs/ACs: FR-001/007/008/009, AC-013/014. AC-008 remains a separate
+  full-release gate.
+- Assignment: main agent only; no delegated edits.
+- Dependency: explicit product-owner T-003 approval on 2026-09-27 and integrated T-002
+  schema/evaluator handoff.
+- Outputs: pinned FRNet worker and safe tensor export, label-free `Mode.LEARNED`
+  shared-path inference, explicit class/unknown remap, schema-2 semantic result and
+  receipt, raw-ID prediction files, supplemental range evaluator and workflow guide.
+- Verification: E-050 and experiment 0024 record source and installed-wheel replay
+  of sequence 08 scan 000000, byte-identical prediction files, an accepted
+  semantic receipt and a one-scan official evaluator check. Final test/lint/type
+  and wheel results are recorded in that experiment.
+- Acceptance matrix: bounded CPU implementation verified on one scan. Full
+  sequence 08 quality, numeric D-005 gates, separate weight terms and later
+  CUDA/complete-path timing are NOT VERIFIED. T-003 remains IN PROGRESS.
+- Next action: evaluate the complete held-out sequence and approve numeric
+  gates before deciding T-003 closure.
+
+## Current loop - LOOP-002: T-002 CPU vertical slice
+
+- Related FRs/ACs: FR-007/008/009, AC-013. AC-001/008/009/012 remain full-release gates.
+- Assignment: main agent only; no delegated edits.
+- Dependency: approved staged O-001 checklist at starting commit `6af2b80`.
+- Outputs: version-1 typed result/receipt, canonical digest, sealed-array and semantic/cell
+  validation, synchronous rejection/acceptance, same-path CLI diagnostic adapter/receipt,
+  interface and decision records.
+- Changed files: `src/drishti/product_result.py`, `cli.py`, `tests/test_product_result.py`,
+  `tests/test_cli.py`, PRD, TECH_DESIGN, ACCEPTANCE, AGENT_PLAN, LOOP and root docs.
+- Checks: focused 14 passed; full suite 63 passed/3 CUDA skips; Ruff lint and format passed;
+  strict mypy passed on 31 source files; source/wheel build passed. Offline isolated wheel
+  installed in `/tmp/drishti-t002-wheel-env` and two-frame headless demo ran from `/tmp`
+  in `/tmp/drishti-t002-wheel-verified-20260926`.
+  Its manifest was schema 1 diagnostic, both receipts were accepted, summary count was 2,
+  and `realtime_release_gate_met` remained false.
+- Acceptance matrix: AC-013 Pass with tests and installed-wheel artifact above. AC-001/002/
+  003/004/005/006/007/008/009/010/012 Blocked for future stages and missing full-path
+  evidence; AC-011 Deferred.
+- Main-agent judgment: ACCEPTED_WITH_CAVEATS for T-002 only. The geometric adapter supplies
+  unknown/empty product fields, not learned or temporal results. No 100 ms claim follows from
+  these receipts. A physical CUDA host, model and numeric gates are still required later.
+- Next state: implementing. Next action: inspect a licensed compatible checkpoint and freeze
+  the T-003 model contract before adding learned predictions.
 
 ## O-001 contract drafting - 2026-09-25
 

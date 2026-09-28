@@ -161,6 +161,42 @@ def test_paced_replay_rejects_oracle_labels(dataset_root: Path, tmp_path: Path) 
     assert not output.exists()
 
 
+def test_replay_evaluates_product_contract_on_same_mapping_path(
+    dataset_root: Path, tmp_path: Path
+) -> None:
+    output = tmp_path / "product-contract"
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "drishti",
+            "replay",
+            "--dataset",
+            str(dataset_root),
+            "--sequence",
+            "08",
+            "--output",
+            str(output),
+            "--max-frames",
+            "2",
+            "--evaluate-product-contract",
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert completed.returncode == 0, completed.stderr
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["product_result_schema_version"] == 1
+    assert manifest["product_result_stage"] == "diagnostic"
+    records = [json.loads(line) for line in (output / "frames.jsonl").read_text().splitlines()]
+    assert len(records) == 2
+    assert [row["product_result_receipt"]["status"] for row in records] == ["accepted", "accepted"]
+    assert all(row["product_result_receipt"]["stage"] == "diagnostic" for row in records)
+    assert json.loads((output / "summary.json").read_text())["product_receipts"] == 2
+
+
 def test_paced_replay_excludes_rerun(dataset_root: Path, tmp_path: Path) -> None:
     from drishti.cli import main
 
