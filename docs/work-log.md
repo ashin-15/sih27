@@ -1,5 +1,38 @@
 # Work log
 
+## 2026-09-28 - Draft D-005 semantic threshold sheet v0.1
+
+- DONE: Wrote [the versioned semantic gate proposal](d-005-semantic-thresholds-v0.1.md)
+  with exact metric denominators, class/range support rules, numeric floor and
+  unknown ceilings, and separate final evaluation components. This is a draft
+  product decision, not approval or a T-003 acceptance pass.
+- FACT: E-051 is a complete sequence 08 semantic baseline, but sequence 08
+  results were inspected before these thresholds were proposed. The official
+  test sequences 11-21 have hidden labels; a separate labeled range audit set
+  is needed for the proposed local distance gates and is not yet established.
+- OPEN: Product-owner review of numeric rules and support policy, acquisition
+  of the independent labeled range set, official blind test scoring, exact
+  checkpoint public-byte identity and separate weight terms. T-003 remains
+  IN PROGRESS; AC-008 remains NOT VERIFIED.
+- VERIFIED: documentation links and `git diff --check` were checked. No model
+  replay or runtime tests were run for this documentation-only change.
+
+## 2026-09-28 - CPU semantic implementation verification
+
+- User requested checks, measurements and an explanation of the CPU semantic
+  slice. Inspected the sensor-point-to-FRNet-to-map-to-receipt path and its
+  guards. [Experiment 0026](research/experiments/0026-t003-cpu-semantic-verification.md)
+  records the fresh three-scan replay and timing/memory method.
+- VERIFIED: 22 focused tests passed; full suite 71 passed/3 CUDA skipped;
+  Ruff lint/format, strict mypy and source/wheel build passed. The fresh
+  replay produced three accepted schema-2 semantic receipts and three
+  prediction files byte-identical to the saved full run.
+- MEASURED RESULT: across 4,071 saved scans, model p50/p95/p99 was
+  7,177/7,564/7,689 ms. The three-scan sampled process-tree peak RSS was
+  2.44 GB. Official semantic mIoU remains 0.675469 with weak motorcyclist
+  and other-ground classes. Numeric D-005 gates and weight provenance remain
+  open; T-003 stays IN PROGRESS and no 100 ms release claim follows.
+
 ## 2026-09-28 - T-003 sequence 08 semantic evaluation completed
 
 - MEASURED RESULT: the managed continuation exited successfully. All 4,071

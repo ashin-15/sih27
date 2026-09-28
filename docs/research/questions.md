@@ -10,7 +10,7 @@ Status vocabulary: TODO, IN PROGRESS, BLOCKED, VALIDATION, DONE. A DONE question
 - Hypothesis: HYPOTHESIS, a replaceable checkpoint adapter can establish a measurable baseline before local training.
 - Evidence required: candidate licenses/weights, exact preprocessing and class map, held-out official metrics, full-path timing and memory on target hardware.
 - Falsifier: Any candidate fails class/order contract, license constraints or frozen accuracy/latency gates.
-- Status: IN PROGRESS. D-002 approved FRNet for the T-003 CPU semantic slice. E-047 to E-051 record the checkpoint, class remap, isolated probe, integrated replay and full sequence 08 official and range scores. Numeric D-005 gates, exact release-byte identity, weight terms and CUDA/release timing remain unverified. Conclusion: full held-out semantic baseline measured; release suitability UNKNOWN. Engineering impact: T-003/T-008. See `model-candidates.md`.
+- Status: IN PROGRESS. D-002 approved FRNet for the T-003 CPU semantic slice. E-047 to E-052 record the checkpoint, class remap, isolated probe, integrated replay, full sequence 08 official/range scores and fresh CPU prediction parity/timing. Numeric D-005 gates, exact release-byte identity, weight terms and CUDA/release timing remain unverified. Conclusion: full held-out semantic baseline and CPU cost measured; release suitability UNKNOWN. Engineering impact: T-003/T-008. See `model-candidates.md`.
 
 ## RQ-002 - Motion and track separation
 
@@ -36,7 +36,7 @@ Status vocabulary: TODO, IN PROGRESS, BLOCKED, VALIDATION, DONE. A DONE question
 
 - Question: Can the entire model, detection, temporal map, audit and viewer path meet the frozen deadline on target hardware for representative sequences?
 - Why: FR-008 is an end-to-end requirement.
-- Current understanding: MEASURED RESULT, two 100-frame real-data headless current-slice runs had 200/200 misses of the 100 ms budget; the full path does not exist.
+- Current understanding: MEASURED RESULT, two 100-frame real-data headless geometric current-slice runs had 200/200 misses of the 100 ms budget. E-052 adds an unpaced 4,071-scan FRNet CPU model p50 of 7,177 ms, also far above 100 ms. The complete product path does not exist.
 - Hypothesis: UNKNOWN until model and platform are selected.
 - Evidence required: hardware inventory, warmup, long sequences, point-density distribution, p50/p95/p99/max, misses/drops and process/model/viewer memory.
 - Falsifier: Any frozen gate fails under the declared workload.

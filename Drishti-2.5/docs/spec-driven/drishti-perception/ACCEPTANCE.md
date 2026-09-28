@@ -41,3 +41,6 @@ T-003 schema-2 semantic-only receipts also cannot be counted as complete AC-008
 results. The one-scan official evaluator check was format/metric validation.
 E-051 now records the full sequence 08 semantic baseline, but D-005 numeric
 gates have not been approved and the split engine does not establish AC-008.
+The [D-005 semantic threshold sheet v0.1](../../../../docs/d-005-semantic-thresholds-v0.1.md)
+is a draft proposal for AC-001/014 metrics, support and independent final
+evaluation; it is not a frozen pass rule.

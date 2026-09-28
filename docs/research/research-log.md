@@ -1,5 +1,18 @@
 # Research log
 
+## 2026-09-28 - CPU semantic implementation checked and measured
+
+- RQ-001 / RQ-004: [experiment 0026](experiments/0026-t003-cpu-semantic-verification.md)
+  records a fresh three-scan source replay, all three accepted schema-2
+  receipts and byte-identical predictions against the saved full-run prefix.
+  Focused 22 and full 71 tests passed, with 3 CUDA skips; Ruff, format, mypy
+  and source/wheel build passed. The initial replay command could not write
+  the default uv cache; the existing source environment completed the run.
+- MEASURED RESULT: 4,071 saved model stages had 7,177/7,564/7,689 ms
+  p50/p95/p99, all above 100 ms. A sampled three-scan process tree peaked at
+  2.44 GB RSS, including the isolated worker; this is no full-sequence memory
+  bound. D-005, weight terms and release timing remain open.
+
 ## 2026-09-28 - Full sequence 08 semantic baseline scored
 
 - RQ-001 / T-003: [experiment 0025](experiments/0025-t003-full-sequence08.md)

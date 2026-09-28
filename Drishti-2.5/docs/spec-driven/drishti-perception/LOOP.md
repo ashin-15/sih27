@@ -22,14 +22,19 @@ Last updated: 2026-09-28
 - Verification: E-050 and experiment 0024 record source and installed-wheel
   one-scan compatibility, accepted receipt, test/lint/type and wheel results.
   E-051 and experiment 0025 record all 4,071 ordered sequence 08 predictions,
-  accepted receipts, official 0.675469 19-class mIoU and range results.
+  accepted receipts, official 0.675469 19-class mIoU and range results. E-052
+  and experiment 0026 recheck 3/3 real prediction files against the saved run,
+  71 passed/3 CUDA skipped, lint/types/build, and CPU timing/memory boundaries.
 - Acceptance matrix: bounded CPU implementation and full held-out semantic
   baseline verified. The continuation reset engine state after frame 792;
   continuous map state is NOT VERIFIED. Numeric D-005 gates, separate weight
   terms, exact public checkpoint bytes and CUDA/complete-path timing are NOT
   VERIFIED. T-003 remains IN PROGRESS.
 - Next action: review class/range results, decide D-005 numeric gates and
-  resolve weight provenance before deciding T-003 closure.
+  resolve weight provenance before deciding T-003 closure. The
+  [D-005 semantic threshold sheet v0.1](../../../../docs/d-005-semantic-thresholds-v0.1.md)
+  is drafted for review; its numbers are not approved and its independent
+  labeled range set is not established.
 
 ## Current loop - LOOP-002: T-002 CPU vertical slice
 
