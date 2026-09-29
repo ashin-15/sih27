@@ -714,3 +714,14 @@ Future sessions append entries with date, question, sources, findings, support/c
   wider-obstacle annotations and gates open. Drafted a bounded association-only
   T-005 contract with unknown velocity and schema-4 proposal. Production T-005
   remains pending owner review of that concrete contract.
+
+## 2026-09-29 - Adaptive versus uniform grid payload (RQ-004)
+
+- Trigger: pitch material needed a measured answer to the SIH26053 memory-reduction
+  requirement; no Drishti comparison existed.
+- Research: experiment 0031 replayed 20 sequence 08 scans through the default
+  adaptive rings and a uniform 5 cm grid to 100 m. MEASURED RESULT: 33.6% fewer
+  observed cells and snapshot array bytes (E-058, C-053). A full-coverage design
+  calculation gives about 31 times fewer cells, but that is not a measurement.
+- Engineering impact: none to runtime. The result supports feasibility claims only
+  for single-frame logical payload, not process memory, 3D voxel baselines or timing.

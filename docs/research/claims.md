@@ -57,5 +57,6 @@ Use category REQUIREMENT, OBSERVATION, HYPOTHESIS, MEASURED RESULT, LITERATURE F
 | C-051 | Saved-class CPU candidate grouping reached 0.601801 mean thing PQ across all 4,071 sequence-08 scans while detector-only p50 was 145.53 ms. | MEASURED RESULT | E-055; experiment 0028; official PanopticEval and stage timings | High for this offline saved-class baseline; scores are placeholders, FRNet inference and product receipts are excluded, and numeric AC-002 gates are open, 2026-09-28 | RQ-006/T-004/T-008 |
 
 | C-052 | The approved bounded CPU tracker emits validated sequence-local tracks, but its 200-frame development baseline has substantial ID errors. | MEASURED RESULT | E-057; experiment 0030 | Verified for bounded AC-016 source/wheel implementation, NOT VERIFIED for full AC-004/005 quality, official LSTQ, calibrated motion or 100 ms release timing, 2026-09-29 | RQ-002/T-005 |
+| C-053 | On 20 sequence 08 scans the default adaptive grid stores 33.6% fewer observed cells and snapshot array bytes than a uniform 5 cm grid over the same 100 m radius. | MEASURED RESULT | E-058 | High for that sample, 2026-09-29; not process memory or a 3D-map comparison | Mapping, pitch material |
 
 The SIH problem statement is a REQUIREMENT source, not evidence that Drishti implements its requested behavior.

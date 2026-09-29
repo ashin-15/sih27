@@ -900,3 +900,107 @@ Detailed test evidence belongs in `testing.md`; active blockers belong in `open-
   implementation is blocked by the still-unapproved frozen tracking contract.
   AC-004/005 metrics, metric velocity and AC-008 remain NOT VERIFIED. No new
   runtime implementation, replay, test or benchmark is claimed by this entry.
+
+## 2026-09-29 - Hackathon impact slide redesign
+
+- FACT: created a one-slide editable impact-and-benefits presentation, PNG preview,
+  outline and speaker script under `.lavish/impact-benefits-output/`, with a local
+  review page at `.lavish/impact-benefits.html`.
+- DESIGN DECISION: focus on terrain awareness, adaptive map detail and a reusable
+  integration core. The proof strip cites E-051's measured 67.55% semantic mIoU
+  across 4,071 sequence 08 scans and 19 classes. Unsupported mine-detection,
+  battery, collision, financial and real-time claims were omitted.
+- STATUS: presentation work only. Runtime tasks and the open-item register retain
+  their existing states; this artifact changes no acceptance gate or approval.
+
+## 2026-09-29 - Feasibility and viability pitch claim review
+
+- FACT: inspected current implementation/evidence and primary Patchwork++, FRNet,
+  SemanticKITTI, ROS 2 and DRDO sources for the requested slide content.
+- FACT: recorded bounded claims and source links in
+  [the slide evidence note](feasibility-viability-slide.md). Local replay and
+  traceable components support feasibility. ROS 2 integration is a proposal;
+  field robustness, deployment costs, permissions and real-time acceptance remain open.
+- STATUS: content research complete. Runtime task states, dependencies and
+  open-item register unchanged. No new execution or performance test claimed.
+
+## 2026-09-29 - Feasibility and viability slide build
+
+- FACT: built a one-slide editable 16:9 deck with PptxGenJS 4.0.1 (pinned) in
+  `presentation/feasibility-viability/` (`npm install && npm run build`). It follows
+  the team design spec (`~/Downloads/design.md`, deck page 4): AstroNex header,
+  Comic Sans MS title, SIH 2026 logo taken from the team deck PDF, four green
+  feasibility steps with a downward flow, stacked blue validation cards and
+  green/blue/orange status chips with text labels. Lucide 1.47.0 icons are
+  rasterised by `render-icons.sh`. Plain-language explanations are on the slide;
+  section B evidence, a glossary and a 30-second script are in the speaker notes.
+- FACT: rendered through LibreOffice to `preview.png` and inspected for overlap.
+  Rendering in Microsoft PowerPoint is NOT VERIFIED.
+- STATUS: presentation work only. No runtime, acceptance or open-item state changed.
+
+## 2026-09-29 - Four-slide Drishti-2.5 pitch deck
+
+- FACT: built `presentation/drishti-deck/` (PptxGenJS 4.0.1, `npm ci && npm run build`):
+  Proposed Solution, Technical Approach, Feasibility & Viability and Impact & Benefits
+  (team deck pages 2-5) in the `~/Downloads/design.md` style, with speaker notes and
+  sources on every slide. Full slide text, visuals, notes, evidence, judge questions and
+  evidence gaps are in `presentation/drishti-deck/slide-content.md`. It supersedes the
+  single-slide `presentation/feasibility-viability/` draft.
+- MEASURED RESULT: new [experiment 0031](research/experiments/0031-adaptive-vs-uniform-grid.md)
+  (E-058, C-053): on 20 sequence 08 scans the default adaptive grid stored 33.6% fewer
+  observed cells and snapshot array bytes than a uniform 5 cm grid to 100 m. Single-frame
+  logical payload only; no process-memory, 3D-voxel or real-time claim.
+- FACT: rechecked primary sources on 2026-09-29: DRDO UGV technology foresight, FRNet
+  repository (TIP 2025, Apache-2.0, 68.7% reported val mIoU), SemanticKITTI dataset page
+  (CC BY-NC-SA) and API split config (sequence 08 = validation), Patchwork++ arXiv page.
+- STATUS: presentation and evidence work only. LibreOffice render inspected; Microsoft
+  PowerPoint rendering NOT VERIFIED. Runtime tasks and open items unchanged.
+- 2026-09-29 follow-up: Impact & Benefits slide redesigned to the user's six-card reference
+  (Economic, Environmental, Strategic/Indigenization, Field Operators, Researchers, Civilian
+  Mobility). Unmeasured power, battery, hardware-cost and vehicle-damage benefits are shown in
+  italics as still to validate; thermal, mine-detection and immobilization claims were omitted.
+
+## 2026-09-29 - Dashboard semantic class visibility planning
+
+- FACT: inspected the Rerun publisher, map aggregation, semantic registry and the 200-frame
+  geometric dashboard run. `world/semantics/cells` already carries canonical SemanticKITTI
+  learning IDs 0..19, annotations and colors, but geometric mode deliberately produces only
+  unknown (ID 0).
+- DESIGN DECISION PROPOSAL: [T-007 semantic dashboard class visibility](t-007-semantic-dashboard-proposal.md)
+  recommends preserving cell-level class rendering and adding explicit legend/count/conflict
+  evidence. It excludes model, oracle, raw-point, filter, tracking and map-contract changes.
+- STATUS: O-012 is TODO pending the product owner's visual-granularity selection and explicit
+  acceptance approval. No runtime, test, machine-output or release-gate behavior changed.
+
+## 2026-09-29 - Dashboard semantic class scope selected
+
+- PRODUCT DECISION: the product owner selected cell-level semantic classes with a legend and
+  accepted-point/cell counts (Option A, SD-D-001). Unknown, tied and mixed-class cell evidence
+  remains explicit; raw class-colored points and interactive filters are out of this bounded scope.
+- STATUS: the [proposal](t-007-semantic-dashboard-proposal.md) is awaiting implementation
+  approval. No runtime, test, machine-output or release-gate behavior changed.
+
+## 2026-09-29 - Dashboard semantic class implementation approved
+
+- APPROVAL: the product owner approved the selected T-007 bounded semantic cell-class
+  dashboard scope. The [approved contract](t-007-semantic-dashboard-proposal.md) freezes
+  SD-FR-001 through SD-FR-004 and SD-AC-001 through SD-AC-004.
+- STATUS: implementation begins in LOOP-006. It may update only the existing Rerun semantic
+  cell presentation and its tests; full T-007, model behavior, raw-point rendering, filtering,
+  machine-output contracts and release criteria remain outside this approval.
+
+## 2026-09-29 - Dashboard semantic class slice accepted
+
+- IMPLEMENTED: `visualization.py` adds a static Semantic class legend tab and a per-frame
+  evidence summary of canonical accepted-point and dominant-cell class counts. It explicitly
+  reports known-class conflicts and ties rendered as unknown; no model, engine, evaluator,
+  raw-point, filter or release-gate behavior changed.
+- VERIFIED: `tests/test_visualization.py` passed 3 tests. Full package validation passed
+  88 tests with 3 unavailable-CUDA skips; Ruff, format, strict mypy and source/wheel build
+  passed. A fresh one-frame learned sequence 08 Rerun recording at
+  `/tmp/drishti-dashboard-classes-20260929` completed and `rerun rrd verify` passed.
+- MEASURED RESULT: the recording's final viewer flush was 10.140105 ms; single-frame CPU
+  processing was 7,957.294079 ms and the release gate remained false. The Rerun view was
+  manually inspected with the new Semantic class legend tab and Semantic evidence panel.
+- JUDGMENT: SD-AC-001 through SD-AC-004 are ACCEPTED. Full T-007/AC-007/010,
+  semantic quality gates and real-time release acceptance remain open.

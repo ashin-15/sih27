@@ -1,16 +1,36 @@
 # Drishti-2.5 perception delivery loop
 
 Current state: accepted
-Current loop: LOOP-005
-Frozen specification: decision 0006, approved bounded T-005 CPU tracking
-contract and AC-016. AC-002 traffic-participant numeric gates approved.
-Current objective: bounded CPU association implemented and judged under AC-016;
-continue full T-005 quality and measured-motion specification separately.
-Blocking issue: none for approved production work; full obstacle/track/motion
-quality, independent labels and CUDA release validation remain open.
+Current loop: LOOP-006
+Frozen specification: [approved T-007 semantic dashboard class contract](../../../../docs/t-007-semantic-dashboard-proposal.md),
+SD-FR-001 through SD-FR-004 and SD-AC-001 through SD-AC-004.
+Current objective: bounded semantic dashboard class slice implemented and
+judged. Full T-007, quality and release validation remain separate.
+Blocking issue: none for the accepted bounded UI slice; full T-007 remains
+blocked by its independent product contracts.
 Last updated: 2026-09-29
 
-## Current loop - LOOP-005: bounded CPU tracking
+## Current loop - LOOP-006: bounded semantic dashboard class view
+
+- Related requirements/criteria: SD-FR-001 through SD-FR-004; SD-AC-001
+  through SD-AC-004. Full AC-007/010 remain separate.
+- Assignment: main agent only.
+- Approval: product owner selected Option A then explicitly approved
+  implementation on 2026-09-29.
+- Outputs: static Semantic class legend tab and per-frame evidence summary of
+  accepted-point and dominant-cell class counts, known-class conflicts and
+  tied cells rendered unknown. Existing cell class IDs/colors remain unchanged.
+- Checks: focused viewer suite passed 3 tests; full suite passed 88 tests with
+  3 CUDA skips; Ruff, format, strict mypy and source/wheel build passed. Fresh
+  one-frame learned Rerun recording verified and manually inspected.
+- Acceptance matrix: SD-AC-001 Pass - learned known/unknown/tie/conflict
+  fixture; SD-AC-002 Pass - learned/geometric/oracle summaries; SD-AC-003 Pass
+  - RRD verify and manifest provenance; SD-AC-004 Pass - separate viewer flush
+  measurement with release gate false.
+- Judgment: ACCEPTED for the bounded SD slice. Full AC-007/010 and T-007
+  remain blocked.
+
+## Prior loop - LOOP-005: bounded CPU tracking
 
 - Related FRs/ACs: FR-004/009, AC-016; full AC-004/005 and AC-008 separate.
 - Assignment: main agent only.

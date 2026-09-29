@@ -1,0 +1,3 @@
+cell_sizes_cm = [5]
+radii_m = [100.0]
+footprint = "radial"
