@@ -16,10 +16,27 @@ semantic receipts, with official 19-class mIoU 0.675469 and labeled accuracy
 0.922835. The evaluation combined a saved 793-frame prefix and a new-engine
 continuation, so continuous map state is unverified. Numeric D-005 thresholds,
 checkpoint weight terms, exact public bytes and CUDA/release latency remain
-UNKNOWN, so T-003 is IN PROGRESS rather than DONE. The original audit below
+UNKNOWN, so T-003 is IN PROGRESS rather than DONE. An approved T-004 CPU
+candidate stage now groups accepted learned points into evidence-only
+frame-local instances, with observed bounds and schema-3 receipts. E-055 and
+[experiment 0028](research/experiments/0028-t004-saved-prediction-eval.md)
+record source/wheel replay and a 4,071-scan panoptic baseline. Full AC-002
+obstacle quality and AC-008 real-time acceptance remain open. The original audit below
 describes the 2026-09-24 baseline and is retained as historical context.
 
-## Current state
+## 2026-09-29 bounded tracking update
+
+FACT: decision 0006 approves known-thing CPU association and AC-002 traffic
+participant numeric targets. The shared engine now emits schema-4 tracking
+evidence with stable sequence IDs and unknown velocity. E-057 and
+[experiment 0030](research/experiments/0030-t005-association-eval.md) record
+source/installed-wheel replay and a 200-frame development association
+baseline. The diagnostic counted 69 ID switches and 39 fragmentations;
+full AC-004/005 quality, independent wider-obstacle AC-002 evaluation and
+AC-008 release timing remain NOT VERIFIED. The sections below preserve the
+original 2026-09-24 audit as historical context.
+
+## Current state at the 2026-09-24 audit
 
 FACT: `Drishti-2.5/src/drishti/pipeline.py` creates one `MapSnapshot` per frame and does not read earlier snapshots. `mapping.py` computes adaptive cell ownership, ground/observed/nonground statistics and oracle semantic histograms. `cli.py` provides demo/replay, run manifests, point accounting, latency and memory reporting. `visualization.py` renders geometry/semantic cells and states limitations. `dataset.py` loads SemanticKITTI with explicit poses. `tests/` covers the present slice.
 
@@ -29,8 +46,8 @@ MEASURED RESULT: On 2026-09-24, 42 tests passed with warnings as errors. A three
 
 FACT for the 2026-09-24 baseline: there was no learned model or training
 workflow. The 2026-09-27 update above supersedes that semantic-inference gap.
-There is still no completed local training run, object instance detector,
-temporal fusion, tracker, motion estimation, ray-based free-space proof, live
+There is still no completed local training run, validated full-scope object
+detector, temporal fusion, full-scope tracker, motion estimation, ray-based free-space proof, live
 input or real-time release guarantee. Oracle labels remain evaluation input.
 See `Drishti-2.5/docs/spec-driven/drishti-perception/CURRENT_STATE.md` for
 the baseline code audit.

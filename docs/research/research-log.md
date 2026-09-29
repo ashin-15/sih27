@@ -1,5 +1,18 @@
 # Research log
 
+## 2026-09-29 - T-005 bounded CPU association implemented and screened
+
+- Trigger: the owner continued after review of the AC-002 traffic thresholds
+  and bounded tracking contract. Decision 0006 records that approval.
+- E-057 and experiment 0030: source and installed-wheel three-scan real replay
+  accepted schema-4 receipts and matched candidate/track/panoptic traces.
+  A 200-frame saved-class diagnostic found 69 ID switches, 39 fragmentations
+  and 39 never-matched predicted tracks. It is a development baseline, not
+  official 4D LSTQ or full quality acceptance.
+- Engineering impact: retain sequence-owned, capacity-bounded association
+  with transactional receipt handoff and unknown velocity. AC-016 bounded
+  implementation can be judged separately from AC-004/005 and AC-008.
+
 ## 2026-09-28 - CPU semantic implementation checked and measured
 
 - RQ-001 / RQ-004: [experiment 0026](experiments/0026-t003-cpu-semantic-verification.md)
@@ -648,3 +661,56 @@ Future sessions append entries with date, question, sources, findings, support/c
   from executor overhead. Review a native release boundary or separate-process design before
   expecting Python-thread overlap; retain one ordered owner per estimator. No runtime or
   dependency change, dataset replay, full-array parity or speedup was performed or claimed.
+## 2026-09-28 - T-004 instance evidence boundary
+
+- Research question/module: RQ-006, R-MODEL. Primary sources: E-053, the official SemanticKITTI task definition, class map and panoptic evaluator, plus the published Panoptic-PolarNet paper.
+- FACT: the panoptic benchmark scores semantic and instance point segments for thing classes; its 0.5 segment-IoU match and configurable minimum instance support do not score observed 3D boxes, poles, curb/overhang clearance or navigation safety.
+- HYPOTHESIS: deterministic class-aware spatial clustering on current accepted points can produce a replaceable CPU candidate baseline. This has not been implemented or measured in Drishti.
+- Engineering impact: draft T4-D1 to T4-D3 and bounded AC-015 in `docs/t-004-obstacle-candidate-proposal.md`; preserve separate full AC-002 quality gates and independent obstacle annotations.
+## 2026-09-28 - User-requested T-004 three-option comparison
+
+- RQ-006 / E-054: [screen 0027](experiments/0027-t004-option-comparison.md) compares semantic/geometry candidates, a learned panoptic model and thing-only candidates against the same intended output. The product owner requested all three in the Lavish review and ended that review session.
+- FACT: Panoptic-PolarNet source and a 55,095,068-byte checkpoint were pinned in `/tmp`. Its supplied inference code hard-codes CUDA; no model inference or held-out three-way benchmark ran. The Hub query failed DNS, though direct GitHub access succeeded.
+- INFERENCE: semantic/geometry candidates have the best immediate CPU integration and coverage fit. The accuracy and latency winner is UNKNOWN until all three run under a common protocol.
+
+## 2026-09-28 - T-004 candidate baseline after approval
+
+- RQ-006 / E-055: decision 0005 records approval of the bounded CPU slice.
+  [Experiment 0028](experiments/0028-t004-saved-prediction-eval.md) records
+  source and unpacked-wheel real one-scan receipts and matching panoptic bytes.
+- MEASURED RESULT: offline full sequence 08 official panoptic PQ was 0.586892
+  across 19 included classes and 0.601801 for thing classes 1 to 8 using
+  prior saved FRNet class predictions. Detector-only CPU p50 was 145.53 ms;
+  the one-scan real learned engine took over 7 seconds. This is a baseline,
+  with no approved quality or 100 ms pass claim.
+- LIMIT: the offline saved-class screen uses placeholder confidence scores
+  and does not repeat model inference or issue a product receipt. Independent
+  held-out curb, overhang and wider obstacle labels are unavailable. Numeric
+  AC-002 gates remain open even if the bounded implementation criteria pass.
+
+## 2026-09-28 - T-004 stratified baseline completed
+
+- RQ-006 / E-055: the second 4,071-scan pass exactly reproduced the official
+  totals and added a separate 50+ point, nonzero-instance thing diagnostic.
+  Range recall was 0.8761 at 0-20 m, 0.8653 at 20-50 m and 0.2667 at 50+ m;
+  the far bin had 30 eligible GT segments. The raw report is saved with
+  experiment 0028.
+- LIMIT: this supplemental matching policy excludes ID-zero and small
+  segments, unlike the official evaluator. Pole and sign point proxies do
+  not score object instances. There is no independent curb/overhang label set.
+- Engineering impact: AC-015 bounded implementation is accepted with caveats;
+  full AC-002 and T-004 quality acceptance remain open pending numeric gates
+  and separate reviewed obstacle annotations. No 100 ms claim follows.
+## 2026-09-28 - AC-002 gate drafting and T-005 contract screen
+
+- Trigger: product owner requested approval of AC-002 gates and a conditional
+  start of T-005. Existing AC-002 had no numeric values and T-005 lacked a
+  frozen implementation/acceptance contract.
+- Research: experiment 0029 checks SemanticKITTI sequence IDs, 4D association
+  scoring and current frame-local candidate/pose interfaces. It makes no
+  tracking or motion benchmark claim.
+- Engineering impact: drafted exact traffic-participant quality targets and
+  denominator/split rules in `docs/ac-002-quality-gates-proposal.md`, leaving
+  wider-obstacle annotations and gates open. Drafted a bounded association-only
+  T-005 contract with unknown velocity and schema-4 proposal. Production T-005
+  remains pending owner review of that concrete contract.

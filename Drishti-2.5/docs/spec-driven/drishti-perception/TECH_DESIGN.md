@@ -1,7 +1,8 @@
 # Drishti-2.5 perception technical design
 
 Status: T-002 interface contract frozen 2026-09-26; T-003 semantic CPU slice
-approved 2026-09-27. Other product stages and full release design stay Draft.
+approved 2026-09-27; bounded T-004 and T-005 CPU slices approved 2026-09-28
+and 2026-09-29. Other product stages and full release design stay Draft.
 
 ## Frozen T-002 result and receipt, version 1
 
@@ -103,6 +104,10 @@ complete-result release producer.
 
 Status: The remaining design below is Draft. Based on the draft PRD.
 
+The [bounded T-005 tracking proposal](../../../../docs/t-005-tracking-proposal.md)
+is approved as of 2026-09-29 for sequence-owned known-thing association and
+schema-4 evidence with unknown velocity; see decision 0006.
+
 ## Current architecture and planned flow
 
 DESIGN DECISION, CPU-first clarification: implement and execute on the current laptop CPU
@@ -110,9 +115,20 @@ now; keep CUDA optional for later NVIDIA access. Missing GPU hardware blocks CUD
 not approved CPU-side implementation. This does not waive the remaining product contract
 or establish the 100 ms deadline on either backend.
 
-Current: `ScanFrame -> MappingEngine.process -> Patchwork++ / projection / aggregate_cells -> MapSnapshot -> CLI and Rerun`. The engine does not use prior snapshots. The intended flow is `ScanFrame -> geometry and timing validation -> semantic inference -> obstacle observations -> ego-motion compensated association and motion -> conservative visibility evidence -> bounded temporal map -> immutable frame result -> audit and viewer`. Keep `MappingEngine.process` as the single public execution path, with explicit stage interfaces and a sequence-owned state object.
+Current: `ScanFrame -> MappingEngine.process -> Patchwork++ / projection / aggregate_cells -> MapSnapshot -> CLI and Rerun`. The bounded tracker uses prior candidate observations; the map engine does not fuse prior snapshots. The intended flow is `ScanFrame -> geometry and timing validation -> semantic inference -> obstacle observations -> ego-motion compensated association and motion -> conservative visibility evidence -> bounded temporal map -> immutable frame result -> audit and viewer`. Keep `MappingEngine.process` as the single public execution path, with explicit stage interfaces and a sequence-owned state object.
 
 ## Module boundaries and contracts
+
+T-004 update, 2026-09-28: [decision 0005](../../../../docs/decisions/0005-obstacle-candidate-cpu-slice.md)
+approves a bounded CPU semantic/geometry stage. `obstacles.py` owns a
+replaceable detector interface and frame-local `InstanceEvidence` records.
+`MappingEngine.process` calls the detector after mapping, using accepted
+point-aligned observations. Schema 3 `stage=candidate` retains schema-2
+semantic evidence and adds candidates and detector time; its evaluator checks
+actual source-point bounds/support and forbids tracks/beams/free-space claims.
+Schema 1 and 2 remain supported. The current component width is 0.45 m and
+the candidate cap is 8,192 per scan; overflow fails explicitly. These are
+development settings, not approved AC-002 quality or AC-008 release limits.
 
 | Boundary | Proposed contract and invariant | FRs |
 | --- | --- | --- |
@@ -189,3 +205,7 @@ while the Intel laptop remains the CPU reference. Host inventory/access, stage p
 parity tolerances and the complete-path acceptance contract remain open. The later handoff
 review selected the evaluator receipt and evidence-only output, not the remaining gates. See
 `docs/decisions/0002-cuda-replay-release-platform.md`.
+
+## Approved T-005 design, 2026-09-29
+
+The [tracking contract](../../../../docs/t-005-tracking-proposal.md) freezes the schema-4 association slice and exact development settings under decision 0006. Tracker updates are prepared during MappingEngine.process and committed only after accepted same-process payload validation. Bounded history, high-water IDs and rejection statistics are required.

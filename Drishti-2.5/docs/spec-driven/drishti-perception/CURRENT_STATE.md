@@ -1,3 +1,12 @@
+## 2026-09-29 bounded tracking update
+
+The shared learned CPU path now prepares schema-4 `stage=tracking` results
+from observed known thing candidates and commits tracker state only after an
+accepted same-process evaluator receipt. Source and installed-wheel replay
+and a 200-frame saved-class association diagnostic are in experiment 0030.
+Velocity, covariance, temporal map fusion and full AC-004/005/008 quality
+remain NOT VERIFIED.
+
 # Drishti-2.5 current-state audit
 
 Checked: 2026-09-24. Status: code inspection plus local synthetic run. This document describes the standalone implementation at this date. It is not a product specification.
@@ -10,6 +19,14 @@ receipt and installed-wheel one-scan replay are recorded in
 The later [experiment 0025](../../../../docs/research/experiments/0025-t003-full-sequence08.md)
 records complete sequence 08 point-semantic quality at 0.675469 official mIoU.
 Numeric quality acceptance and release timing remain unverified.
+
+2026-09-28 update: decision 0005 approves a bounded CPU obstacle candidate
+stage. `obstacles.py` now groups accepted learned points into frame-local
+evidence with original support IDs and observed bounds; schema-3 candidate
+receipts and optional panoptic exports are recorded in
+[experiment 0028](../../../../docs/research/experiments/0028-t004-saved-prediction-eval.md).
+The table below remains the 2026-09-24 historical audit. Full AC-002 quality,
+tracks, motion, free-space proof and AC-008 release timing are not verified.
 
 ## Active path
 

@@ -19,15 +19,19 @@ from drishti.config import load_config
 from drishti.contracts import Mode, PoseSource, ScanFrame, make_frame
 from drishti.dataset import DatasetSource
 from drishti.learned import FRNET_CLASS_MAP_VERSION, FRNET_REVISION, FRNetPredictor
+from drishti.obstacles import ConnectedComponentDetector, panoptic_raw_labels
 from drishti.output import InProcessFrameConsumer
 from drishti.pipeline import FrameResult, MappingEngine
 from drishti.product_result import (
     InProcessProductEvaluator,
     ReceiptStatus,
+    candidate_product_result,
     diagnostic_product_result,
     semantic_product_result,
+    tracking_product_result,
 )
 from drishti.semantics import LEARNING_TO_RAW, decode_semantickitti
+from drishti.tracking import MAX_TRACKS, CandidateTracker
 
 REPLAY_RATE_HZ = 10.0
 REPLAY_DEADLINE_MS = 100.0
@@ -39,7 +43,9 @@ class SnapshotSink(Protocol):
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Drishti-2.5 single-frame mapping")
+    parser = argparse.ArgumentParser(
+        description="Drishti-2.5 LiDAR mapping and optional sequence association"
+    )
     commands = parser.add_subparsers(dest="command", required=True)
     for name in ("replay", "demo"):
         command = commands.add_parser(name)
@@ -60,6 +66,22 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument("--frnet-weights-npz", type=Path)
         command.add_argument("--frnet-weights-sha256")
         command.add_argument(
+            "--detect-obstacles",
+            action="store_true",
+            help="emit evidence-only CPU obstacle candidates in learned mode",
+        )
+        command.add_argument(
+            "--track-obstacles",
+            action="store_true",
+            help="associate observed thing candidates across frames; velocity remains unknown",
+        )
+        command.add_argument("--max-tracks", type=int, default=MAX_TRACKS)
+        command.add_argument(
+            "--write-panoptic-predictions",
+            action="store_true",
+            help="write point-aligned SemanticKITTI candidate predictions for offline scoring",
+        )
+        command.add_argument(
             "--write-predictions",
             action="store_true",
             help="write raw-ID SemanticKITTI .label files under the new run directory",
@@ -67,7 +89,7 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument(
             "--evaluate-product-contract",
             action="store_true",
-            help="validate a version-1 diagnostic product result; not release acceptance",
+            help="validate a versioned product result; not release acceptance",
         )
         if name == "replay":
             command.add_argument(
@@ -215,7 +237,14 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
             "requested_frames": args.frames,
             "pose_source": PoseSource.SYNTHETIC.value,
         }
-    engine = MappingEngine(config, mode=mode, predictor=predictor, device=args.device)
+    engine = MappingEngine(
+        config,
+        mode=mode,
+        predictor=predictor,
+        detector=ConnectedComponentDetector() if args.detect_obstacles else None,
+        device=args.device,
+        tracker=CandidateTracker(args.max_tracks) if args.track_obstacles else None,
+    )
     consumer = InProcessFrameConsumer() if check_deadline else None
     product_evaluator = (
         InProcessProductEvaluator()
@@ -233,12 +262,39 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
         **metadata,
         "mode": mode.value,
         "device": args.device,
-        "report_schema_version": 4 if mode == Mode.LEARNED else (3 if product_evaluator else 2),
+        "report_schema_version": (
+            6
+            if args.track_obstacles
+            else 5
+            if args.detect_obstacles
+            else (4 if mode == Mode.LEARNED else (3 if product_evaluator else 2))
+        ),
         "product_result_schema_version": (
-            2 if mode == Mode.LEARNED else (1 if product_evaluator else None)
+            4
+            if args.track_obstacles
+            else 3
+            if args.detect_obstacles
+            else (2 if mode == Mode.LEARNED else (1 if product_evaluator else None))
         ),
         "product_result_stage": (
-            "semantic" if mode == Mode.LEARNED else ("diagnostic" if product_evaluator else None)
+            "tracking"
+            if args.track_obstacles
+            else "candidate"
+            if args.detect_obstacles
+            else (
+                "semantic"
+                if mode == Mode.LEARNED
+                else ("diagnostic" if product_evaluator else None)
+            )
+        ),
+        "detector": (
+            {
+                "name": "semantic-connected-components",
+                "voxel_width_m": 0.45,
+                "scope": "observed-point-candidates",
+            }
+            if args.detect_obstacles
+            else None
         ),
         "model": (
             {
@@ -253,7 +309,21 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
             if predictor is not None
             else None
         ),
-        "scope": "single-frame",
+        "scope": "single-frame-map-with-sequence-tracks"
+        if args.track_obstacles
+        else "single-frame",
+        "tracker": (
+            {
+                "method": "map-center-prediction-greedy-v1",
+                "capacity": args.max_tracks,
+                "history_frames": 2,
+                "confirmed_misses_before_expiry": 3,
+                "association_confidence": "uncalibrated geometric score",
+                "motion": "unknown",
+            }
+            if args.track_obstacles
+            else None
+        ),
         "ground_method": engine.ground.method,
         "deskew_status": "unavailable",
         "config": asdict(config),
@@ -292,6 +362,11 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
         "prediction_format": (
             "SemanticKITTI uint32 raw semantic IDs, unknown=0" if args.write_predictions else None
         ),
+        "panoptic_prediction_format": (
+            "SemanticKITTI uint32, lower 16 raw semantic, upper 16 frame-local thing instance"
+            if args.write_panoptic_predictions
+            else None
+        ),
     }
     _write_json(output / "manifest.json", manifest)
     status = "failed"
@@ -303,6 +378,7 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
     deadline_check_met = False
     peak_snapshot_bytes = 0
     prediction_files = 0
+    panoptic_prediction_files = 0
     flush_ms = 0.0
     run_start = perf_counter()
     try:
@@ -346,7 +422,14 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
                         else None
                     )
                     if predictor is not None:
-                        product = semantic_product_result(
+                        learned_product = (
+                            tracking_product_result
+                            if args.track_obstacles
+                            else candidate_product_result
+                            if args.detect_obstacles
+                            else semantic_product_result
+                        )
+                        product = learned_product(
                             frame,
                             result,
                             run_id=output.name,
@@ -366,10 +449,33 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
                             cell_sizes_cm=config.cell_sizes_cm,
                             scheduled_arrival_ns=arrival_ns,
                         )
-                    product_receipt = product_evaluator.receive(frame, product)
+                    product_receipt = (
+                        engine.receive_tracking(frame, result, product, product_evaluator)
+                        if args.track_obstacles
+                        else product_evaluator.receive(frame, product)
+                    )
                     if product_receipt.status != ReceiptStatus.ACCEPTED:
                         raise ValueError(f"product result rejected: {product_receipt.error_code}")
                     product_receipts += 1
+                if args.write_panoptic_predictions:
+                    panoptic = panoptic_raw_labels(
+                        frame.point_ids,
+                        result.observations.point_ids,
+                        result.observations.semantic,
+                        result.instances,
+                    )
+                    target = (
+                        output
+                        / "panoptic"
+                        / "sequences"
+                        / frame.sequence
+                        / "predictions"
+                        / f"{frame.frame_id:06d}.label"
+                    )
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    with target.open("xb") as destination:
+                        destination.write(panoptic.tobytes())
+                    panoptic_prediction_files += 1
                 if args.write_predictions:
                     positions = {int(point_id): i for i, point_id in enumerate(frame.point_ids)}
                     raw = np.zeros(len(frame.point_ids), dtype=np.uint32)
@@ -419,6 +525,29 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
                     "semantic_unknown_points": (
                         int(np.count_nonzero(result.observations.semantic == 0))
                         if predictor is not None
+                        else None
+                    ),
+                    "tracks": (
+                        [asdict(track) for track in result.tracking.tracks]
+                        if result.tracking is not None
+                        else None
+                    ),
+                    "tracking_summary": (
+                        asdict(result.tracking.summary) if result.tracking is not None else None
+                    ),
+                    "candidate_instances": (
+                        [
+                            {
+                                "instance_id": item.instance_id,
+                                "semantic_id": item.semantic_id,
+                                "status": item.status,
+                                "bounds_min_m": item.bounds_min_m,
+                                "bounds_max_m": item.bounds_max_m,
+                                "support_points": len(item.point_ids),
+                            }
+                            for item in result.instances
+                        ]
+                        if args.detect_obstacles
                         else None
                     ),
                     "receipt_ms": (
@@ -490,6 +619,7 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
                 "expected_frames": expected_frames,
                 "product_receipts": product_receipts,
                 "prediction_files": prediction_files,
+                "panoptic_prediction_files": panoptic_prediction_files,
                 "cold_processing_ms": processing[0] if processing else None,
                 "processing_ms": _percentiles(processing),
                 "steady_processing_ms": _percentiles(processing[1:]),
@@ -523,7 +653,8 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
                 ),
             }
             _write_json(output / "summary.json", summary)
-    print(f"{status}: {len(processing)} frames; single-frame {mode.value}; reports: {output}")
+    scope = "sequence tracks" if args.track_obstacles else "single-frame map"
+    print(f"{status}: {len(processing)} frames; {scope} {mode.value}; reports: {output}")
     if status == "interrupted":
         return 130
     if check_deadline and not deadline_check_met:
@@ -533,6 +664,14 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
 
 def _run(args: argparse.Namespace) -> int:
     mode = Mode(args.mode)
+    if args.track_obstacles and not args.detect_obstacles:
+        raise ValueError("tracking requires --detect-obstacles")
+    if not 1 <= args.max_tracks <= MAX_TRACKS:
+        raise ValueError(f"--max-tracks must be between 1 and {MAX_TRACKS}")
+    if args.max_tracks != MAX_TRACKS and not args.track_obstacles:
+        raise ValueError("--max-tracks requires --track-obstacles")
+    if args.write_panoptic_predictions and not args.detect_obstacles:
+        raise ValueError("panoptic predictions require --detect-obstacles")
     model_options = (
         args.frnet_python,
         args.frnet_source,
@@ -544,6 +683,8 @@ def _run(args: argparse.Namespace) -> int:
     if mode != Mode.LEARNED:
         if any(value is not None for value in model_options) or args.write_predictions:
             raise ValueError("FRNet options require --mode learned")
+        if args.detect_obstacles:
+            raise ValueError("obstacle candidates require --mode learned")
         return _run_ready(args, None)
     if args.device != "cpu":
         raise ValueError("the FRNet semantic slice supports CPU only")

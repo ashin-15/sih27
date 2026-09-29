@@ -1,7 +1,9 @@
 # Drishti-2.5 perception acceptance contract
 
 Status: T-002 slice approved 2026-09-26; T-003 semantic CPU implementation
-approved 2026-09-27. T-003 quality acceptance and full release remain open.
+approved 2026-09-27; bounded T-004 CPU candidate slice approved 2026-09-28; bounded T-005 CPU
+association and AC-002 traffic-participant targets approved 2026-09-29.
+T-003 quality, full AC-002 and release acceptance remain open.
 The product owner approved the O-001 checklist and staged implementation. The CUDA-backed
 replay gate still requires an identified NVIDIA host, pinned checkpoint, numeric quality and
 resource thresholds, and final evidence. AC-008 is NOT VERIFIED.
@@ -28,8 +30,19 @@ The first CUDA-backed release uses evidence-only dataset replay on an identified
 | AC-012 | 001 to 011 | Existing tests, lint, format, type check and package build pass; a complete-path regression replay finishes from an installed wheel. | Commands, logs and wheel replay artifact. | Yes |
 | AC-013 | 007, 008, 009 | T-002 CPU slice: the actual `MappingEngine.process` result becomes a version-1 immutable diagnostic `ProductFrameResult`. A same-process evaluator validates the array payload, source/pose/point alignment, provenance, cell ownership and conservative proof rules before a versioned receipt. Invalid input yields a rejection receipt without a digest or state advance. Canonical digest repeats for identical field values. CLI replay saves accepted diagnostic receipts and explicitly marks them as non-release. | Unit invalid/boundary fixtures, CLI same-path replay, receipt/artifact inspection, lint/types/build. | Yes for T-002 only |
 | AC-014 | 001, 007, 009 | T-003 CPU slice: a hash-pinned FRNet worker receives accepted sensor points without oracle labels, returns one mapped class and uncalibrated score per accepted original ID, and the shared mapping path yields a schema-2 semantic-only receipt. Invalid hash, source revision, intensity, count, class and score fail explicitly. Prediction files preserve full input order and unknown rejected points. Official full sequence 08 scoring and supplemental class/range/unknown reports must meet frozen D-005 numeric gates before T-003 is DONE. | Source and installed-wheel real replay, access/alignment/error fixtures, official evaluator output, range report, runtime manifest, lint/types/build. | Yes for T-003; implementation verified, quality gate pending |
+| AC-015 | 002, 009 | Bounded T-004 CPU slice: learned shared-path replay emits sealed schema-3 evidence-only instances with deterministic frame-local IDs, accepted original support IDs, observed bounds and class/unknown/ambiguity. No oracle labels enter inference; motion, tracks and free space remain unknown. Curated thin/near/far/overhang and invalid fixtures pass, source/wheel replay agrees, and held-out panoptic and wider obstacle baseline metrics plus CPU cost are reported. | Fixture/evaluator tests, source and wheel receipts/prediction parity, official held-out instance scoring, separate obstacle review, timing/memory report, lint/types/build. | Yes for bounded T-004 implementation; numeric AC-002 quality remains separate |
 
 ## Required threshold decisions
+
+Bounded T-004 AC-015 is approved in the [candidate slice proposal](../../../../docs/t-004-obstacle-candidate-proposal.md). Exact traffic-participant AC-002 recall and false-positive values are [approved](../../../../docs/ac-002-quality-gates-proposal.md) as of 2026-09-29; they have not been met on an independent final set. Wider thin/curb/overhang gates additionally require an independent annotation protocol. AC-015 cannot substitute for full AC-002 acceptance.
+The bounded AC-015 implementation and measurement review is
+ACCEPTED_WITH_CAVEATS on 2026-09-28: source and final wheel replay, authored
+fixtures, official 4,071-scan panoptic scoring, supplemental class/range/size
+counts, sampled CPU memory and package gates are in
+[experiment 0028](../../../../docs/research/experiments/0028-t004-saved-prediction-eval.md).
+This status does not pass AC-002. Motorcyclist PQ was zero, 50+ m eligible
+diagnostic recall was 8/30, and independent curb/overhang obstacle labels
+are unavailable.
 
 Freeze numeric targets for semantic classes and ranges, obstacle classes and sizes, motion/track quality, false-free rate, map freshness and capacity after the pinned baseline. The approved future release workload is complete sequences 08 and 00 at 10 Hz plus the separate sequence 10 frame 206 cold-start fixture, with explicit rejection above 130,000 points. Identify and inventory the NVIDIA release host; freeze bounded audit behavior and CPU/GPU memory and disk ceilings. Rerun is excluded from the 100 ms timing and needs a separate resource/quality check. The 100 ms per-scan deadline, zero-miss policy, same-process evaluator receipt endpoint and evidence-only output scope are selected. Passing AC-013 cannot satisfy AC-001 to AC-012 or the full release contract.
 
@@ -44,3 +57,26 @@ gates have not been approved and the split engine does not establish AC-008.
 The [D-005 semantic threshold sheet v0.1](../../../../docs/d-005-semantic-thresholds-v0.1.md)
 is a draft proposal for AC-001/014 metrics, support and independent final
 evaluation; it is not a frozen pass rule.
+
+
+## Approved bounded T-005 slice (AC-016), 2026-09-29
+
+FR-004/009: the [approved tracking contract](../../../../docs/t-005-tracking-proposal.md)
+freezes lifecycle and development gates. Source and installed-wheel multi-frame
+shared-path replay must emit accepted schema-4 receipts and deterministic
+track IDs. Crossings, short occlusion, expiry, pose change, capacity, sequence
+ownership and evaluator rejection must preserve the stated invariants; no
+oracle labels enter inference and no velocity/covariance is published. Report
+held-out ID switches, fragmentation, false tracks, association score, class
+counts and CPU cost using a pinned or documented evaluator. Full AC-004/005
+numeric quality and AC-008 are separate. Required evidence must be present
+before judging the bounded slice accepted.
+
+AC-002 traffic-participant numbers in the threshold sheet are now approved;
+independent wider-obstacle annotations and gates remain open.
+
+AC-016 bounded implementation and measurement: ACCEPTED_WITH_CAVEATS on
+2026-09-29. [Experiment 0030](../../../../docs/research/experiments/0030-t005-association-eval.md)
+records source/installed-wheel schema-4 receipts, authored lifecycle and
+rejection tests, package checks and a 200-frame saved-class diagnostic. Full
+AC-004/005/008 remain NOT VERIFIED.

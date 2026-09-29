@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from time import perf_counter
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 
@@ -12,7 +12,16 @@ from drishti.geometry import transform_points
 from drishti.ground import GroundClass, GroundSegmenter, PatchworkGround
 from drishti.learned import SemanticPredictor
 from drishti.mapping import MapSnapshot, aggregate_cells
+from drishti.obstacles import InstanceEvidence, ObstacleDetector
 from drishti.projection import RangeImage, project
+from drishti.tracking import CandidateTracker, TrackingUpdate
+
+if TYPE_CHECKING:
+    from drishti.product_result import (
+        InProcessProductEvaluator,
+        ProductFrameResult,
+        ProductReceipt,
+    )
 
 
 @dataclass(frozen=True)
@@ -36,6 +45,8 @@ class StageTimings:
     projection_ms: float
     mapping_ms: float
     total_ms: float
+    detector_ms: float | None = None
+    association_ms: float | None = None
 
 
 @dataclass(frozen=True)
@@ -45,6 +56,8 @@ class FrameResult:
     range_image: RangeImage
     accounting: Accounting
     timings: StageTimings
+    instances: tuple[InstanceEvidence, ...] = ()
+    tracking: TrackingUpdate | None = None
 
 
 class MappingEngine:
@@ -55,6 +68,8 @@ class MappingEngine:
         mode: Mode = Mode.GEOMETRIC,
         ground: GroundSegmenter | None = None,
         predictor: SemanticPredictor | None = None,
+        detector: ObstacleDetector | None = None,
+        tracker: CandidateTracker | None = None,
         device: Literal["cpu", "cuda"] = "cpu",
     ) -> None:
         if mode not in (Mode.GEOMETRIC, Mode.ORACLE, Mode.LEARNED):
@@ -63,17 +78,29 @@ class MappingEngine:
             raise ValueError("learned mode requires a predictor; other modes forbid it")
         if device not in ("cpu", "cuda"):
             raise ValueError("mapping device must be cpu or cuda")
+        if detector is not None and (mode != Mode.LEARNED or device != "cpu"):
+            raise ValueError("obstacle candidates require learned CPU mode")
+        if tracker is not None and detector is None:
+            raise ValueError("tracking requires the learned CPU candidate stage")
+        self.tracker = tracker
+        self._pending_tracking: FrameResult | None = None
+        self._tracking_failed = False
         self.config = config
         self.mode = mode
         self.device = device
         self._cuda = CudaFramePath() if device == "cuda" else None
         self.ground = PatchworkGround(config) if ground is None else ground
         self.predictor = predictor
+        self.detector = detector
         self._stream: str | None = None
         self._last_frame = -1
         self._last_timestamp = -1.0
 
     def process(self, frame: ScanFrame) -> FrameResult:
+        if self._tracking_failed:
+            raise ValueError("tracking result rejected; restart sequence with a new engine")
+        if self._pending_tracking is not None:
+            raise ValueError("evaluate pending tracking result before processing another frame")
         start = perf_counter()
         config = self.config
         if self._stream is not None and frame.sequence != self._stream:
@@ -177,6 +204,13 @@ class MappingEngine:
             immutable(motion),
             cell_indices,
         )
+        detector_started = perf_counter()
+        instances = (
+            self.detector.detect(observations, round(frame.timestamp_s * 1_000_000_000))
+            if self.detector is not None
+            else ()
+        )
+        detector_completed = perf_counter()
         accounting = Accounting(
             input_points=len(xyz),
             invalid_geometry=int(np.count_nonzero(~valid)),
@@ -188,6 +222,15 @@ class MappingEngine:
             projection_collisions=image.collisions,
             outside_projection=image.outside_fov,
         )
+        association_started = perf_counter()
+        tracking = (
+            self.tracker.prepare(
+                frame.sequence, frame.frame_id, round(frame.timestamp_s * 1e9), instances
+            )
+            if self.tracker is not None
+            else None
+        )
+        association_completed = perf_counter()
         self._stream = frame.sequence
         self._last_frame = frame.frame_id
         self._last_timestamp = frame.timestamp_s
@@ -197,7 +240,49 @@ class MappingEngine:
             (model_completed - preprocessed) * 1000 if self.mode == Mode.LEARNED else None,
             (segmented - model_completed) * 1000,
             (projected - segmented) * 1000,
-            (end - projected) * 1000,
+            (detector_started - projected) * 1000,
             (end - start) * 1000,
+            (detector_completed - detector_started) * 1000 if self.detector is not None else None,
+            (association_completed - association_started) * 1000
+            if self.tracker is not None
+            else None,
         )
-        return FrameResult(snapshot, observations, image, accounting, timings)
+        result = FrameResult(
+            snapshot, observations, image, accounting, timings, instances, tracking
+        )
+        if tracking is not None:
+            self._pending_tracking = result
+        return result
+
+    def receive_tracking(
+        self,
+        frame: ScanFrame,
+        result: FrameResult,
+        product: "ProductFrameResult",
+        evaluator: "InProcessProductEvaluator",
+    ) -> "ProductReceipt":
+        """Validate the prepared evidence before committing sequence association state."""
+        from drishti.product_result import ReceiptStatus
+
+        if self.tracker is None or result is not self._pending_tracking or result.tracking is None:
+            raise ValueError("no matching prepared tracking result")
+        update = result.tracking
+        if (
+            product.stage != "tracking"
+            or product.tracks != update.tracks
+            or product.tracking_summary != update.summary
+            or product.instances != result.instances
+            or product.frame_id != update.frame_id
+            or product.sequence_id != update.sequence
+            or product.scan_timestamp_ns != update.timestamp_ns
+        ):
+            raise ValueError("product differs from prepared tracking evidence")
+        receipt = evaluator.receive(frame, product)
+        if receipt.status == ReceiptStatus.ACCEPTED:
+            self.tracker.commit(update)
+        else:
+            self.tracker.discard(update)
+            # Native ground preprocessing cannot be rolled back. Fail closed and replay.
+            self._tracking_failed = True
+        self._pending_tracking = None
+        return receipt

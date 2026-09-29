@@ -31,7 +31,22 @@ requires a version bump and matching acceptance update; current single-frame con
   physical CUDA machine becomes necessary for T-002. Later tasks stay dependent on their own
   evidence; no subagent assignments were made.
 
+## T-004 - bounded CPU candidate slice
+
+- Approval: product owner, 2026-09-28, after the [three-option comparison](../../../../docs/research/experiments/0027-t004-option-comparison.md); see decision 0005.
+- Related requirements/criteria: FR-002/009, AC-015. Full AC-002 and AC-008 remain separate.
+- Inputs: shared `MappingEngine.process`, accepted original IDs, FRNet point semantics and ground evidence.
+- Allowed: `src/drishti/obstacles.py`, `pipeline.py`, `product_result.py`, `cli.py`, focused tests and relevant docs. Forbidden: source dataset edits, model/checkpoint redistribution, tracker/free-space production claims and release-gate changes.
+- Outputs: replaceable deterministic detector, sealed schema-3 candidate receipt, point-order panoptic export, source and wheel replay, fixture and held-out reports.
+- Checks: focused/full pytest, Ruff, strict mypy, source/wheel build, real one-scan source/wheel parity and held-out scoring with explicit data/timing limits.
+- Stop and report: no numeric AC-002 gates or independent non-panoptic obstacle annotation set exists, so the bounded implementation may pass AC-015 while full T-004 quality remains open.
+
 ## Dependency order after T-002
+
+T-005 research and its [bounded tracking proposal](../../../../docs/t-005-tracking-proposal.md)
+began 2026-09-28 after the request to start if unblocked. Production work is
+approved as of 2026-09-29 under decision 0006; full AC-004/005 quality gates
+remain open. The main agent owns implementation and validation.
 
 1. T-003: pin exact licensed SemanticKITTI-compatible checkpoint, class map and milestone.
 2. Obtain CPU quality baselines and reviewed detector/track/motion/free-space references;
@@ -39,3 +54,10 @@ requires a version bump and matching acceptance update; current single-frame con
 3. T-004 to T-007: instances, temporal motion, ray proof, map and bounded audit in order.
 4. Identify/inventory a physical NVIDIA host, pin resource limits and validate CUDA parity.
 5. T-008: run the complete release protocol and judge all blocking ACs, including AC-008.
+
+## T-005 approved execution, 2026-09-29
+
+Main agent owns `src/drishti/tracking.py`, `pipeline.py`, `product_result.py`, `cli.py`, `tests/test_tracking.py`, association evaluation and linked docs. No delegated work. AC-016 requires frozen fixture checks, full package gates, source/wheel multi-frame replay, offline held-out metrics and an acceptance matrix. Source data and prior artifacts stay read-only.
+
+Result: bounded AC-016 accepted with caveats on 2026-09-29 under E-057 and
+experiment 0030. Full T-005 quality/motion validation stays IN PROGRESS.

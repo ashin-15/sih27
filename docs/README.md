@@ -10,7 +10,7 @@ and append a short entry to the [work log](work-log.md) after meaningful changes
 | `testing.md` | Commands, scope, and latest verified results |
 | `decisions/` | Accepted architecture decisions and their evidence |
 | `research/` | Questions, sources, claims, experiments, and engineering impact |
-| `../Drishti-2.5/docs/spec-driven/drishti-perception/` | T-002 and bounded T-003 CPU implementation approved; later stages and full-release acceptance remain draft |
+| `../Drishti-2.5/docs/spec-driven/drishti-perception/` | T-002 and bounded T-003/T-004/T-005 CPU implementation approved; full quality and release acceptance remain open |
 
 Status words in plans are TODO, IN PROGRESS, BLOCKED, VALIDATION, and DONE. A proposed
 architecture is not an implemented feature. Historical research under `../research/sih26053/`

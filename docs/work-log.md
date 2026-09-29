@@ -1,5 +1,47 @@
 # Work log
 
+## 2026-09-29 - Approved T-005 bounded CPU association verified
+
+- DESIGN DECISION: the owner's "continue" after the explicit approval
+  request freezes decision 0006, the traffic-participant AC-002 target sheet
+  and bounded T-005/AC-016 association contract. Independent wider-obstacle
+  annotations and gates, full AC-004/005 quality and AC-008 remain open.
+- IMPLEMENTED: sequence-owned `CandidateTracker` with stable monotonic IDs,
+  two-observation confirmation, bounded two-frame history, occlusion/expiry,
+  512 live-track default cap and recorded rejected births. Schema-4 results
+  and the same-process evaluator validate lifecycle, one-to-one assignment,
+  unknown metric motion and transactional state commit. CLI replay records
+  track traces and capacity outcomes. An offline evaluator reports
+  object-observation association and explicit class support counts.
+- MEASURED RESULT: fixed sequence-08 scans 0..199 from saved FRNet classes
+  recorded 1,433 matched observations, 170 unmatched predictions, 141 misses,
+  69 ID switches, 39 fragmentations, 39 never-matched track IDs and 0.723003
+  association Jaccard. Tracker-only p50 was 3.654 ms, without model or
+  receipt cost; parent peak RSS was 249,417,728 bytes. See E-057 and
+  [experiment 0030](research/experiments/0030-t005-association-eval.md).
+- VERIFIED: source and separately installed wheel each accepted 3/3 schema-4
+  real replay receipts; all candidate/track traces, input/map digests and
+  panoptic prediction bytes matched. Final source digest was
+  `0502866f9bedd39f807945785b07a6749a96110260c18ab4f529db9397bb9f4d`;
+  replayed installed-wheel SHA-256 was
+  `c66318d34365aea9971717a70d8336959a9e0ab8254c01572a7e7b59d07e6e27`.
+  A later documentation-inclusive build produced wheel SHA-256
+  `771f87b7dc494fd3a458282b67f4e2bfa3359495b42a50c6d2695bcacfadf0b2`;
+  its 23 Python modules match the replayed wheel and current source byte for
+  byte. Ignored verification JSON records per-scan hashes and code parity.
+  Authored focused
+  tests passed 10/10; full suite passed 87 with 3 CUDA skips; Ruff lint/format,
+  strict mypy, source/wheel build and installed replay passed.
+- ENVIRONMENT: a full test run lacking the venv on `PATH` failed its Rerun
+  executable lookup after 82 passes/3 skips; the intended venv `PATH` run
+  passed without modifying tests. The first offline build lacked cached
+  setuptools; using the populated local uv cache built source and wheel.
+- JUDGMENT: AC-016 bounded implementation and measurement is
+  ACCEPTED_WITH_CAVEATS. Full T-005 remains IN PROGRESS because the 200-frame
+  development baseline has substantial ID errors, no GT for two thing classes
+  and no independent final 4D quality gate. AC-005 quantitative velocity,
+  complete AC-002 and the 100 ms AC-008 gate remain NOT VERIFIED.
+
 ## 2026-09-28 - Draft D-005 semantic threshold sheet v0.1
 
 - DONE: Wrote [the versioned semantic gate proposal](d-005-semantic-thresholds-v0.1.md)
@@ -786,3 +828,75 @@ Detailed test evidence belongs in `testing.md`; active blockers belong in `open-
 - VERIFIED: `git diff --check` passed. A local-link check across the proposal, task records
   and draft specification found no missing relative targets. Runtime tests were not rerun for
   these documentation-only edits.
+## 2026-09-28 - T-004 research and draft slice
+
+- FACT: inspected the current engine and product-result contracts. Learned semantics, accepted point IDs and map coordinates are available; no instance producer exists, and the schema-2 semantic stage forbids instances.
+- RESEARCH: E-053 and RQ-006 establish what the official panoptic task measures and where T-004 needs separate obstacle evidence. The proposed semantic/geometry candidate slice, AC-015 and owner decisions T4-D1 to T4-D3 are in `t-004-obstacle-candidate-proposal.md`.
+- STATUS: T-004 is IN PROGRESS for research/specification only. Production detector implementation, AC-002 quality, T-003 closure and AC-008 remain unverified. This entry does not claim a new replay or model result.
+## 2026-09-28 - T-004 three-option comparison requested
+
+- Product-owner Lavish feedback requested comparison of all three T-004 options. [Screen 0027](research/experiments/0027-t004-option-comparison.md) records the common evaluation target, readiness/coverage comparison and fair benchmark protocol.
+- FACT: official Panoptic-PolarNet source and checkpoint were pinned in `/tmp`; its inference path is CUDA-specific and was not run. E-054 records the exact revision/hash and limit. Quality/latency winners remain UNKNOWN; candidate option A is only the provisional immediate development recommendation.
+- STATUS: T-004 production contract still needs owner approval after this comparison. No runtime detector code, held-out detection metric or AC-002 pass is claimed.
+- VERIFIED: `git diff --check` passed and all relative links in the proposal, comparison and staged specification resolved. Runtime tests were not rerun because no runtime or test source changed.
+
+## 2026-09-28 - Approved T-004 bounded CPU implementation
+
+- APPROVAL: product owner approved the proposed bounded CPU candidate and
+  requested T-004 completion. [Decision 0005](decisions/0005-obstacle-candidate-cpu-slice.md)
+  records the exact staged boundary. This does not freeze full AC-002 quality
+  gates or approve a release claim.
+- IMPLEMENTED: `ConnectedComponentDetector` groups accepted point evidence into
+  deterministic frame-local candidates. Each has original support IDs,
+  observed bounds, class or unknown and ambiguity. The learned CPU engine,
+  schema-3 product result/evaluator and CLI share one path. Optional panoptic
+  predictions retain full input point order. The candidate stage makes no
+  track, motion, filled occupancy, clearance or free-space claim.
+- VERIFIED: authored separated/touching/thin/curb/overhang/near/far/invalid
+  fixtures and evaluator rejection checks pass. A real sequence-08 source
+  replay and an unpacked-wheel replay each accepted one schema-3 receipt and
+  wrote byte-identical panoptic predictions. The full 4,071-scan saved-class
+  official panoptic baseline is recorded in [experiment 0028](research/experiments/0028-t004-saved-prediction-eval.md).
+  Its mean PQ is 0.586892 across 19 classes and 0.601801 for eight thing
+  classes; detector p50/max is 145.53/216.60 ms without FRNet inference.
+- CHECKS: 77 tests passed, 3 CUDA skipped; Ruff lint/format, strict mypy on
+  38 source files and source/wheel build passed. The fresh one-scan learned
+  run's sampled process-tree RSS peak was 2,434,707,456 bytes, including the
+  isolated worker, while a separate saved-class evaluator ran concurrently.
+- OPEN: a full-sequence class/range/point-size diagnostic is running. Wider
+  held-out obstacle annotations and numeric AC-002 thresholds are absent;
+  AC-008 CUDA complete-path timing remains NOT VERIFIED. The staged T-004
+  judgment follows the stratified report.
+
+## 2026-09-28 - T-004 bounded slice validation judgment
+
+- MEASURED RESULT: the second 4,071-scan offline pass reproduced the first
+  pass's official PQ and per-class official TP/FP/FN exactly. Its separate
+  50+ point, nonzero-instance diagnostic found 31,859 TP, 3,936 FP and 4,690
+  FN thing segments. Eligible 0-20/20-50/50+ m GT recall was 0.8761/0.8653/
+  0.2667; the far bin has only 30 eligible GT segments. Pole and traffic-sign
+  point-semantic proxies are in experiment 0028. These counts use a narrower
+  matching policy than the official evaluator.
+- VERIFIED: final source and rebuilt-wheel one-scan predictions remain
+  byte-identical with accepted schema-3 receipts. The complete tests now
+  report 77 passed and 3 CUDA skipped; Ruff lint/format, strict mypy, build,
+  `git diff --check` and changed-document relative links pass.
+- JUDGMENT: AC-015 bounded CPU implementation and measurement is
+  ACCEPTED_WITH_CAVEATS. Full T-004 remains IN PROGRESS under AC-002 because
+  product-owner numeric quality gates and independently labeled wider
+  obstacle data are absent. Motorcyclist official PQ was zero and far recall
+  is weak. No AC-008 100 ms or full-product acceptance is claimed.
+## 2026-09-28 - AC-002 gates proposed and T-005 research started
+
+- FACT: the owner's request to approve AC-002 arrived before any numeric
+  AC-002 values existed. A reviewable threshold sheet now defines proposed
+  thing-class/range/size recall, false positives, evaluator population and
+  support minima. The independent thin/curb/overhang annotation protocol is
+  still absent. No threshold or full T-004 quality pass is recorded yet.
+- FACT: experiment 0029 researched SemanticKITTI sequence IDs and 4D
+  association evaluation, and inspected current candidate/pose interfaces.
+  A bounded T-005 association-only CPU contract is drafted for owner review.
+- STATUS: T-005 is IN PROGRESS for research/specification; its production
+  implementation is blocked by the still-unapproved frozen tracking contract.
+  AC-004/005 metrics, metric velocity and AC-008 remain NOT VERIFIED. No new
+  runtime implementation, replay, test or benchmark is claimed by this entry.

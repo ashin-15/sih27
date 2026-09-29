@@ -1,15 +1,64 @@
 # Drishti-2.5 perception delivery loop
 
-Current state: implementing
-Current loop: LOOP-003
-Frozen specification: staged T-002 version-1 result/evaluator and the approved T-003
-semantic-only CPU slice under PRD, TECH_DESIGN, AC-013/014, AGENT_PLAN and decisions 0003/0004.
-Current objective: review the completed T-003 held-out baseline and decide numeric acceptance.
-Blocking issue: separate weight terms, exact public checkpoint bytes, D-005 numeric gates,
-physical CUDA host and full release validation remain open. AC-008 is NOT VERIFIED.
-Last updated: 2026-09-28
+Current state: accepted
+Current loop: LOOP-005
+Frozen specification: decision 0006, approved bounded T-005 CPU tracking
+contract and AC-016. AC-002 traffic-participant numeric gates approved.
+Current objective: bounded CPU association implemented and judged under AC-016;
+continue full T-005 quality and measured-motion specification separately.
+Blocking issue: none for approved production work; full obstacle/track/motion
+quality, independent labels and CUDA release validation remain open.
+Last updated: 2026-09-29
 
-## Current loop - LOOP-003: T-003 semantic CPU slice
+## Current loop - LOOP-005: bounded CPU tracking
+
+- Related FRs/ACs: FR-004/009, AC-016; full AC-004/005 and AC-008 separate.
+- Assignment: main agent only.
+- Approval: owner's "continue" after reviewable contracts and explicit request.
+- Plan: freeze engineering gates/fixtures; implement tracker and schema-4
+  transactional handoff; integrate CLI/export; verify fixtures, source/wheel
+  replay and held-out association metrics; inspect evidence and update status.
+- Outputs: sequence-owned `CandidateTracker`, transactional engine handoff,
+  schema-4 result/evaluator, CLI lifecycle audit and offline association
+  diagnostic. Source/wheel three-scan traces and predictions match.
+- Checks: 10 focused tests passed; 87 full passed and 3 CUDA skipped; Ruff,
+  strict mypy, source/wheel build and installed-wheel replay passed.
+- Acceptance matrix: AC-016 Pass, experiment 0030 and E-057;
+  AC-002 Blocked for independent final/wider data; AC-004 Blocked for numeric
+  quality gates and independent final score; AC-005 Blocked for calibrated
+  velocity evidence; AC-008 Blocked for complete CUDA release path.
+- Judgment: AC-016 bounded slice ACCEPTED_WITH_CAVEATS. Full T-005 remains
+  IN PROGRESS. The 200-frame diagnostic observed 69 ID switches and 39
+  fragmentations; it is not official 4D LSTQ or full tracking acceptance.
+- Next action: freeze AC-004/005 numeric targets, independently evaluate
+  association and develop a separately approved quantitative motion contract.
+
+## Prior loop - LOOP-004: T-004 bounded CPU candidates
+
+- Related FRs/ACs: FR-002/009, AC-015. Full AC-002 and AC-008 remain separate.
+- Assignment: main agent only; no delegated edits.
+- Dependency: explicit product-owner approval on 2026-09-28 and existing
+  point-aligned FRNet semantic shared path.
+- Outputs: replaceable connected-component detector, frame-local original-ID
+  support, observed bounds, class/unknown and ambiguity; schema-3 candidate
+  result/evaluator receipt and optional full-order panoptic export.
+- Verification: source and unpacked-wheel one-scan real replay agree
+  byte for byte on their panoptic prediction; accepted candidate receipts;
+  authored obstacle/evaluator fixtures; first official 4,071-scan panoptic
+  baseline, supplemental class/range/size counts and CPU timing/memory in
+  experiment 0028. Full checks: 77 passed, 3 CUDA skipped; Ruff, mypy and
+  source/wheel build passed.
+- Acceptance matrix: AC-015 bounded implementation and measurement slice is
+  ACCEPTED_WITH_CAVEATS. It has no numeric detector quality threshold; the
+  far 50+ m eligible subset recalled 8/30 segments and motorcyclist official
+  PQ was zero. AC-002 wider held-out obstacle quality and numeric thresholds
+  remain NOT VERIFIED, so the full T-004 task remains IN PROGRESS. AC-008 is
+  also NOT VERIFIED.
+- Next action: obtain independent thin/curb/overhang instance and geometry
+  annotations, freeze class/size/range recall and false-positive limits, then
+  compare and improve candidates against those full AC-002 gates.
+
+## Prior loop - LOOP-003: T-003 semantic CPU slice
 
 - Related FRs/ACs: FR-001/007/008/009, AC-013/014. AC-008 remains a separate
   full-release gate.
@@ -36,7 +85,7 @@ Last updated: 2026-09-28
   is drafted for review; its numbers are not approved and its independent
   labeled range set is not established.
 
-## Current loop - LOOP-002: T-002 CPU vertical slice
+## Prior loop - LOOP-002: T-002 CPU vertical slice
 
 - Related FRs/ACs: FR-007/008/009, AC-013. AC-001/008/009/012 remain full-release gates.
 - Assignment: main agent only; no delegated edits.

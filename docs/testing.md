@@ -2,6 +2,43 @@
 
 Run package commands from `Drishti-2.5/`. Use a new output directory for each run and do not alter source scans or existing run evidence.
 
+## 2026-09-29 bounded T-005 verification
+
+The approved known-thing CPU tracking stage uses `--mode learned
+--detect-obstacles --track-obstacles` with the pinned FRNet options from the
+semantic workflow. [Experiment 0030](research/experiments/0030-t005-association-eval.md)
+records a 200-frame saved-class association diagnostic and final real
+three-scan source/installed-wheel replay. Both replay paths accepted 3/3
+schema-4 receipts and emitted identical candidate/track traces and panoptic
+prediction bytes. `artifacts/t005-verification-20260929.json` contains the
+ignored per-run hashes and wheel provenance. The offline diagnostic observed
+69 ID switches and 39 fragmentations; it is not an official 4D LSTQ result.
+
+From `Drishti-2.5/`, `PATH="$PWD/.venv/bin:$PATH" .venv/bin/pytest -q -W error`
+passed 87 tests and skipped 3 CUDA tests. Ruff check/format, strict mypy on
+41 source files, and `uv build --no-sources --offline` using the populated
+local uv cache passed. The initial full suite invocation without the venv
+`PATH` had 82 passed, 3 skipped and one viewer test failing because its
+`rerun` subprocess could not locate the executable; rerunning with the
+package venv on `PATH` passed. A fresh temporary uv build cache lacked the
+pinned setuptools wheel; the populated local cache completed the build.
+These environment failures did not require changing tests or source behavior.
+
+
+For the approved T-004 CPU candidate slice, use `--mode learned
+--detect-obstacles --write-panoptic-predictions` with the pinned FRNet options
+from [the semantic workflow](../Drishti-2.5/docs/frnet-semantic-workflow.md).
+Source and unpacked-wheel one-scan real replays both accepted schema-3
+receipts and wrote byte-identical panoptic prediction files on 2026-09-28.
+[Experiment 0028](research/experiments/0028-t004-saved-prediction-eval.md)
+records the complete offline sequence-08 instance baseline, timing and its
+limits. The offline screen reuses saved semantic classes; it is not a
+complete learned timing or AC-002/AC-008 acceptance run.
+After the T-004 change, the full suite passed 77 tests with 3 CUDA skips;
+Ruff lint/format, strict mypy on 38 source files, and source/wheel build
+passed on 2026-09-28. The detailed table below retains dates for earlier
+historical checks.
+
 | Layer | Command or method | Verified 2026-09-24 | What it establishes | What it does not establish |
 | --- | --- | --- | --- | --- |
 | Install | `uv sync --frozen --extra viz` | NOT VERIFIED this session; existing environment was usable. | Locked dependency resolution when run successfully. | Runtime correctness or model availability. |

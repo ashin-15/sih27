@@ -17,10 +17,23 @@ import numpy as np
 from drishti.arrays import BoolArray, ByteArray, FloatArray, IntArray, immutable
 from drishti.contracts import Accounting, ScanFrame
 from drishti.learned import FRNET_CLASS_MAP_VERSION, FRNET_REVISION
+from drishti.obstacles import InstanceEvidence
 from drishti.pipeline import FrameResult
+from drishti.tracking import (
+    ASSOCIATION_METHOD,
+    MAX_TRACK_ID,
+    MAX_TRACKS,
+    TrackingSummary,
+    eligible,
+)
+from drishti.tracking import (
+    TrackEvidence as TrackEvidence,
+)
 
 SCHEMA_VERSION = 1
 SEMANTIC_SCHEMA_VERSION = 2
+CANDIDATE_SCHEMA_VERSION = 3
+TRACKING_SCHEMA_VERSION = 4
 RELEASE_POINT_CAP = 130_000
 COORDINATE_FRAME = "map-x-forward-y-left-z-up"
 UNITS = "metre-nanosecond"
@@ -49,33 +62,6 @@ class UnknownReason(IntEnum):
 class ReceiptStatus(StrEnum):
     ACCEPTED = "accepted"
     REJECTED = "rejected"
-
-
-@dataclass(frozen=True)
-class InstanceEvidence:
-    instance_id: int
-    semantic_id: int
-    semantic_confidence: float
-    center_m: tuple[float, float, float]
-    bounds_min_m: tuple[float, float, float]
-    bounds_max_m: tuple[float, float, float]
-    point_ids: tuple[int, ...]
-    observed_ns: int
-    uncertainty_m: float | None
-    status: Literal["observed", "ambiguous"]
-
-
-@dataclass(frozen=True)
-class TrackEvidence:
-    track_id: int
-    instance_id: int | None
-    birth_ns: int
-    last_observed_ns: int
-    lifecycle: Literal["tentative", "confirmed", "occluded", "expired"]
-    velocity_world_mps: tuple[float, float, float] | None
-    velocity_covariance: tuple[float, ...] | None
-    association_confidence: float
-    supporting_frame_ids: tuple[int, ...]
 
 
 @dataclass(frozen=True)
@@ -127,7 +113,7 @@ class ProductDiagnostics:
 @dataclass(frozen=True)
 class ProductFrameResult:
     schema_version: int
-    stage: Literal["diagnostic", "semantic", "complete"]
+    stage: Literal["diagnostic", "semantic", "candidate", "tracking", "complete"]
     run_id: str
     sequence_id: str
     frame_id: int
@@ -162,6 +148,7 @@ class ProductFrameResult:
     model_source_revision: str | None = None
     model_weights_sha256: str | None = None
     model_class_map_version: str | None = None
+    tracking_summary: TrackingSummary | None = None
 
 
 @dataclass(frozen=True)
@@ -175,7 +162,7 @@ class ProductReceipt:
     validation_duration_ns: int
     status: ReceiptStatus
     error_code: str | None
-    stage: Literal["diagnostic", "semantic", "complete"]
+    stage: Literal["diagnostic", "semantic", "candidate", "tracking", "complete"]
 
 
 def source_scan_digest(frame: ScanFrame) -> str:
@@ -201,12 +188,16 @@ def _canonical(value: object) -> object:
             "shape": list(value.shape),
             "hex": value.tobytes(order="C").hex(),
         }
-    if isinstance(value, ProductFrameResult) and value.schema_version == SCHEMA_VERSION:
+    if isinstance(value, ProductFrameResult) and value.schema_version < TRACKING_SCHEMA_VERSION:
         return {
             field.name: _canonical(getattr(value, field.name))
             for field in fields(value)
-            if field.name
-            not in ("model_source_revision", "model_weights_sha256", "model_class_map_version")
+            if field.name != "tracking_summary"
+            and (
+                value.schema_version != SCHEMA_VERSION
+                or field.name
+                not in ("model_source_revision", "model_weights_sha256", "model_class_map_version")
+            )
         }
     if is_dataclass(value) and not isinstance(value, type):
         return {field.name: _canonical(getattr(value, field.name)) for field in fields(value)}
@@ -378,6 +369,77 @@ def semantic_product_result(
     )
 
 
+def candidate_product_result(
+    frame: ScanFrame,
+    result: FrameResult,
+    *,
+    run_id: str,
+    code_revision: str,
+    checkpoint_sha256: str,
+    weights_sha256: str,
+    cell_sizes_cm: tuple[int, ...],
+    scheduled_arrival_ns: int | None = None,
+) -> ProductFrameResult:
+    """Publish observed candidate support without tracks or occupancy claims."""
+    if result.timings.detector_ms is None:
+        raise ValueError("candidate product result requires detector timing")
+    semantic = semantic_product_result(
+        frame,
+        result,
+        run_id=run_id,
+        code_revision=code_revision,
+        checkpoint_sha256=checkpoint_sha256,
+        weights_sha256=weights_sha256,
+        cell_sizes_cm=cell_sizes_cm,
+        scheduled_arrival_ns=scheduled_arrival_ns,
+    )
+    return replace(
+        semantic,
+        schema_version=CANDIDATE_SCHEMA_VERSION,
+        stage="candidate",
+        instances=result.instances,
+        diagnostics=replace(semantic.diagnostics, detector_ms=result.timings.detector_ms),
+    )
+
+
+def tracking_product_result(
+    frame: ScanFrame,
+    result: FrameResult,
+    *,
+    run_id: str,
+    code_revision: str,
+    checkpoint_sha256: str,
+    weights_sha256: str,
+    cell_sizes_cm: tuple[int, ...],
+    scheduled_arrival_ns: int | None = None,
+) -> ProductFrameResult:
+    """Publish bounded association evidence with explicitly unknown metric motion."""
+    if result.tracking is None or result.timings.association_ms is None:
+        raise ValueError("tracking product result requires a prepared tracker transition")
+    baseline = candidate_product_result(
+        frame,
+        result,
+        run_id=run_id,
+        code_revision=code_revision,
+        checkpoint_sha256=checkpoint_sha256,
+        weights_sha256=weights_sha256,
+        cell_sizes_cm=cell_sizes_cm,
+        scheduled_arrival_ns=scheduled_arrival_ns,
+    )
+    return replace(
+        baseline,
+        schema_version=TRACKING_SCHEMA_VERSION,
+        stage="tracking",
+        tracks=result.tracking.tracks,
+        tracking_summary=result.tracking.summary,
+        diagnostics=replace(
+            baseline.diagnostics,
+            association_ms=result.timings.association_ms,
+            track_count=len(result.tracking.tracks),
+        ),
+    )
+
+
 class InProcessProductEvaluator:
     """Validate actual buffers and return an ordered receipt after all checks."""
 
@@ -386,6 +448,12 @@ class InProcessProductEvaluator:
         self._last_frame = -1
         self._last_timestamp = -1
         self._track_births: dict[int, int] = {}
+        self._tracking_previous: dict[int, TrackEvidence] = {}
+        self._tracking_misses: dict[int, int] = {}
+        self._tracking_classes: dict[int, int] = {}
+        self._tracking_high_id = 0
+        self._tracking_capacity: int | None = None
+        self._last_stage: str | None = None
 
     def receive(self, frame: ScanFrame, result: ProductFrameResult) -> ProductReceipt:
         started_ns = monotonic_ns()
@@ -406,10 +474,43 @@ class InProcessProductEvaluator:
                 str(exc),
                 result.stage,
             )
+        if result.stage == "tracking":
+            instance_classes = {item.instance_id: item.semantic_id for item in result.instances}
+            self._tracking_classes = {
+                track.track_id: (
+                    instance_classes[track.instance_id]
+                    if track.instance_id is not None
+                    else self._tracking_classes[track.track_id]
+                )
+                for track in result.tracks
+                if track.lifecycle != "expired"
+            }
+            self._tracking_misses = {
+                track.track_id: (
+                    self._tracking_misses.get(track.track_id, 0) + 1
+                    if track.lifecycle == "occluded"
+                    else 0
+                )
+                for track in result.tracks
+                if track.lifecycle != "expired"
+            }
+            self._tracking_previous = {
+                track.track_id: track for track in result.tracks if track.lifecycle != "expired"
+            }
+            self._tracking_high_id = max(
+                self._tracking_high_id, max((t.track_id for t in result.tracks), default=0)
+            )
+            assert result.tracking_summary is not None
+            self._tracking_capacity = result.tracking_summary.capacity
+            self._track_births = {
+                track.track_id: track.birth_ns for track in self._tracking_previous.values()
+            }
+        self._last_stage = result.stage
         self._sequence = result.sequence_id
         self._last_frame = result.frame_id
         self._last_timestamp = result.scan_timestamp_ns
-        self._track_births.update({track.track_id: track.birth_ns for track in result.tracks})
+        if result.stage != "tracking":
+            self._track_births.update({track.track_id: track.birth_ns for track in result.tracks})
         completed_ns = monotonic_ns()
         return ProductReceipt(
             result.schema_version,
@@ -428,13 +529,20 @@ class InProcessProductEvaluator:
         if type(result.schema_version) is not int or result.schema_version not in (
             SCHEMA_VERSION,
             SEMANTIC_SCHEMA_VERSION,
+            CANDIDATE_SCHEMA_VERSION,
+            TRACKING_SCHEMA_VERSION,
         ):
             raise ValueError("unsupported-schema")
-        if result.stage not in ("diagnostic", "semantic", "complete"):
+        if result.stage not in ("diagnostic", "semantic", "candidate", "tracking", "complete"):
             raise ValueError("invalid-stage")
-        if result.stage == "semantic" and result.schema_version != SEMANTIC_SCHEMA_VERSION:
-            raise ValueError("unsupported-schema")
-        if result.stage != "semantic" and result.schema_version != SCHEMA_VERSION:
+        stage_schemas = {
+            "diagnostic": SCHEMA_VERSION,
+            "semantic": SEMANTIC_SCHEMA_VERSION,
+            "candidate": CANDIDATE_SCHEMA_VERSION,
+            "tracking": TRACKING_SCHEMA_VERSION,
+            "complete": SCHEMA_VERSION,
+        }
+        if result.schema_version != stage_schemas[result.stage]:
             raise ValueError("unsupported-schema")
         if (
             not isinstance(result.run_id, str)
@@ -491,7 +599,7 @@ class InProcessProductEvaluator:
             raise ValueError("incomplete-provenance")
         if result.stage == "diagnostic" and result.checkpoint_sha256 is not None:
             raise ValueError("diagnostic-checkpoint")
-        if result.stage == "semantic" and (
+        if result.stage in ("semantic", "candidate", "tracking") and (
             not _is_sha256(result.checkpoint_sha256)
             or not _is_sha256(result.model_weights_sha256)
             or result.model_source_revision != FRNET_REVISION
@@ -499,7 +607,7 @@ class InProcessProductEvaluator:
             or result.diagnostics.model_ms is None
         ):
             raise ValueError("semantic-provenance")
-        if result.stage != "semantic" and any(
+        if result.stage not in ("semantic", "candidate", "tracking") and any(
             value is not None
             for value in (
                 result.model_source_revision,
@@ -510,9 +618,130 @@ class InProcessProductEvaluator:
             raise ValueError("unexpected-model-provenance")
         _validate_arrays(result)
         _validate_points(frame, result)
-        _validate_objects(result, self._track_births)
+        _validate_objects(frame, result, self._track_births)
         _validate_cells(frame, result)
         _validate_diagnostics(result.diagnostics, result)
+        if (self._last_stage == "tracking") != (result.stage == "tracking") and self._last_stage:
+            raise ValueError("tracking-stage-change")
+        if result.stage == "tracking":
+            self._validate_tracking(result)
+        elif result.tracking_summary is not None:
+            raise ValueError("unexpected-tracking-summary")
+
+    def _validate_tracking(self, result: ProductFrameResult) -> None:
+        summary = result.tracking_summary
+        if (
+            summary is None
+            or summary.method != ASSOCIATION_METHOD
+            or type(summary.capacity) is not int
+            or not 1 <= summary.capacity <= MAX_TRACKS
+            or (self._tracking_capacity is not None and summary.capacity != self._tracking_capacity)
+            or result.diagnostics.association_ms is None
+            or result.backend != "cpu"
+            or result.beams
+            or result.allow_overlapping_instance_support
+        ):
+            raise ValueError("tracking-contract")
+        instances = {item.instance_id: item for item in result.instances if eligible(item)}
+        if (
+            type(summary.eligible_candidates) is not int
+            or type(summary.frame_gap) is not int
+            or not isinstance(summary.rejected_instance_ids, tuple)
+            or any(type(value) is not int for value in summary.rejected_instance_ids)
+            or summary.eligible_candidates != len(instances)
+            or summary.frame_gap
+            != (result.frame_id - self._last_frame - 1 if self._last_frame >= 0 else 0)
+            or summary.rejected_instance_ids != tuple(sorted(set(summary.rejected_instance_ids)))
+        ):
+            raise ValueError("tracking-summary")
+        current = {track.track_id: track for track in result.tracks}
+        if (
+            tuple(current) != tuple(sorted(current))
+            or not self._tracking_previous.keys() <= current.keys()
+        ):
+            raise ValueError("tracking-id-order-or-disappearance")
+        assigned: set[int] = set()
+        next_id = self._tracking_high_id + 1
+        live = 0
+        for track in result.tracks:
+            if (
+                type(track.track_id) is not int
+                or type(track.birth_ns) is not int
+                or type(track.last_observed_ns) is not int
+                or (track.instance_id is not None and type(track.instance_id) is not int)
+                or not isinstance(track.supporting_frame_ids, tuple)
+                or any(type(value) is not int for value in track.supporting_frame_ids)
+                or not 1 <= track.track_id <= MAX_TRACK_ID
+                or track.velocity_world_mps is not None
+                or track.velocity_covariance is not None
+                or not 1 <= len(track.supporting_frame_ids) <= 2
+                or tuple(sorted(set(track.supporting_frame_ids))) != track.supporting_frame_ids
+            ):
+                raise ValueError("tracking-evidence")
+            previous = self._tracking_previous.get(track.track_id)
+            observed = track.instance_id is not None
+            if observed:
+                if track.instance_id not in instances or track.instance_id in assigned:
+                    raise ValueError("tracking-instance-assignment")
+                assigned.add(track.instance_id)
+                if (
+                    track.last_observed_ns != result.scan_timestamp_ns
+                    or instances[track.instance_id].observed_ns != result.scan_timestamp_ns
+                    or track.supporting_frame_ids[-1] != result.frame_id
+                ):
+                    raise ValueError("tracking-observation-time")
+            elif track.association_confidence != 0:
+                raise ValueError("tracking-missing-confidence")
+            if previous is None:
+                if (
+                    track.track_id != next_id
+                    or not observed
+                    or track.lifecycle != "tentative"
+                    or track.birth_ns != result.scan_timestamp_ns
+                    or track.supporting_frame_ids != (result.frame_id,)
+                    or track.association_confidence != 0
+                ):
+                    raise ValueError("tracking-birth-or-reused-id")
+                next_id += 1
+            else:
+                if track.birth_ns != previous.birth_ns:
+                    raise ValueError("tracking-birth-changed")
+                if observed:
+                    assert track.instance_id is not None
+                    if (
+                        instances[track.instance_id].semantic_id
+                        != self._tracking_classes[track.track_id]
+                        or result.scan_timestamp_ns - previous.last_observed_ns > 1_000_000_000
+                    ):
+                        raise ValueError("tracking-class-or-time-gate")
+                    if track.lifecycle != "confirmed" or track.supporting_frame_ids != (
+                        *previous.supporting_frame_ids[-1:],
+                        result.frame_id,
+                    ):
+                        raise ValueError("tracking-confirmation")
+                else:
+                    misses = self._tracking_misses[track.track_id] + 1
+                    expected = (
+                        "expired"
+                        if previous.lifecycle == "tentative" or misses >= 3
+                        else "occluded"
+                    )
+                    if (
+                        track.lifecycle != expected
+                        or track.supporting_frame_ids != previous.supporting_frame_ids
+                        or track.last_observed_ns != previous.last_observed_ns
+                    ):
+                        raise ValueError("tracking-expiry")
+            live += track.lifecycle != "expired"
+        rejected = set(summary.rejected_instance_ids)
+        if (
+            live > summary.capacity
+            or len(result.tracks) > 2 * summary.capacity
+            or rejected & assigned
+            or rejected | assigned != instances.keys()
+            or (rejected and live != summary.capacity)
+        ):
+            raise ValueError("tracking-capacity-accounting")
 
 
 def _validate_arrays(value: object) -> None:
@@ -568,7 +797,7 @@ def _validate_points(frame: ScanFrame, result: ProductFrameResult) -> None:
         np.any(result.semantic_id) or np.any(result.motion_state) or np.any(result.semantic_support)
     ):
         raise ValueError("diagnostic-claims")
-    if result.stage == "semantic" and (
+    if result.stage in ("semantic", "candidate", "tracking") and (
         np.any(result.motion_state)
         or np.any(result.motion_confidence)
         or np.any(result.semantic_support != (result.semantic_id != 0))
@@ -576,8 +805,12 @@ def _validate_points(frame: ScanFrame, result: ProductFrameResult) -> None:
         raise ValueError("semantic-only-claims")
 
 
-def _validate_objects(result: ProductFrameResult, track_births: dict[int, int]) -> None:
+def _validate_objects(
+    frame: ScanFrame, result: ProductFrameResult, track_births: dict[int, int]
+) -> None:
     accepted = set(result.point_ids.tolist())
+    input_positions = {int(point_id): index for index, point_id in enumerate(frame.point_ids)}
+    accepted_positions = {int(point_id): index for index, point_id in enumerate(result.point_ids)}
     instance_ids: set[int] = set()
     used_support: set[int] = set()
     for instance in result.instances:
@@ -616,6 +849,28 @@ def _validate_objects(result: ProductFrameResult, track_births: dict[int, int]) 
             )
         ):
             raise ValueError("instance-geometry")
+        if result.stage in ("candidate", "tracking"):
+            if not instance.point_ids or instance.point_ids != tuple(sorted(instance.point_ids)):
+                raise ValueError("candidate-support-order")
+            if instance.instance_id != len(instance_ids) - 1:
+                raise ValueError("candidate-id-order")
+            if instance.uncertainty_m is not None or (
+                instance.status == "observed"
+                and (instance.semantic_id == 0 or len(instance.point_ids) < 3)
+            ):
+                raise ValueError("candidate-ambiguity")
+            source_positions = [input_positions[point_id] for point_id in instance.point_ids]
+            source = frame.points_sensor[source_positions, :3].astype(np.float64)
+            mapped = source @ frame.map_from_sensor[:3, :3].T + frame.map_from_sensor[:3, 3]
+            if not np.allclose(
+                mapped.min(axis=0), instance.bounds_min_m, rtol=0, atol=1e-6
+            ) or not np.allclose(mapped.max(axis=0), instance.bounds_max_m, rtol=0, atol=1e-6):
+                raise ValueError("candidate-bounds")
+            positions = [accepted_positions[point_id] for point_id in instance.point_ids]
+            if instance.semantic_id and np.any(
+                result.semantic_id[positions] != instance.semantic_id
+            ):
+                raise ValueError("candidate-class-support")
     track_ids: set[int] = set()
     for track in result.tracks:
         if track.track_id < 0 or track.track_id in track_ids:
@@ -655,6 +910,8 @@ def _validate_objects(result: ProductFrameResult, track_births: dict[int, int]) 
         result.instances or result.tracks or result.beams
     ):
         raise ValueError("partial-result-claims")
+    if result.stage == "candidate" and (result.tracks or result.beams):
+        raise ValueError("candidate-temporal-claims")
 
 
 def _validate_cells(frame: ScanFrame, result: ProductFrameResult) -> None:
@@ -765,7 +1022,7 @@ def _validate_cells(frame: ScanFrame, result: ProductFrameResult) -> None:
                 raise ValueError("unsupported-free")
         elif beam_id != -1:
             raise ValueError("unexpected-free-proof")
-    if result.stage in ("diagnostic", "semantic") and np.any(
+    if result.stage in ("diagnostic", "semantic", "candidate", "tracking") and np.any(
         (cells.occupancy != Occupancy.UNKNOWN) & (cells.occupancy != Occupancy.AMBIGUOUS)
     ):
         raise ValueError("diagnostic-occupancy")
@@ -802,6 +1059,8 @@ def _validate_diagnostics(value: ProductDiagnostics, result: ProductFrameResult)
         raise ValueError("invalid-counter")
     if value.map_cells != len(result.cells.level) or value.track_count != len(result.tracks):
         raise ValueError("state-size-mismatch")
+    if result.stage in ("candidate", "tracking") and value.detector_ms is None:
+        raise ValueError("missing-detector-time")
     if value.process_rss_bytes is not None and value.process_rss_bytes < 0:
         raise ValueError("invalid-memory")
     if value.device_memory_status not in ("unavailable", "sampled") or (

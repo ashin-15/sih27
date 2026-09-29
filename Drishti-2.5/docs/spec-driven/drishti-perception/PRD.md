@@ -1,7 +1,9 @@
 # Drishti-2.5 perception product requirements
 
-Status: Staged approval for T-002 on 2026-09-26 and semantic-only T-003 on
-2026-09-27; full release contract remains Draft.
+Status: Staged approval for T-002 on 2026-09-26, semantic-only T-003 on
+2026-09-27, bounded T-004 CPU candidates on 2026-09-28 and bounded T-005
+CPU association on 2026-09-29; full release
+contract remains Draft.
 Approval: product owner said "I approve the checklist. Move forward." after reviewing
 `docs/o-001-contract-proposal.md`. This authorizes the staged implementation beginning with
 T-002. The owner separately approved T-003 implementation on 2026-09-27;
@@ -11,7 +13,7 @@ neither approval is an AC-008 or full-release pass.
 
 The standalone application maps one LiDAR scan at a time and now infers point
 semantics in the approved FRNet CPU slice without reading ground-truth labels.
-It still lacks object instances, measured motion, persistent map state and
+It now emits frame-local candidates and bounded known-thing tracks, while measured motion, persistent map state and
 observed free space. It records a budget but cannot claim a deadline guarantee.
 The goal is a versioned, testable perception-to-map pipeline for repeated
 LiDAR frames, with unknown and unsupported evidence explicit.
@@ -25,9 +27,9 @@ The immediate users are developers evaluating SemanticKITTI replay and operators
 | ID | Requirement | Status |
 | --- | --- | --- |
 | FR-001 | In learned mode, predict a semantic learning ID and model score or unknown for every accepted original point, without reading evaluation labels. Geometric mode remains all unknown. | T-003 CPU slice implemented; held-out acceptance pending |
-| FR-002 | Detect obstacle instances with stable object type, bounded geometry and evidence provenance; preserve small/thin objects and ambiguous height cases. | Draft |
+| FR-002 | Detect obstacle instances with stable object type, bounded geometry and evidence provenance; preserve small/thin objects and ambiguous height cases. | Bounded T-004 candidate slice approved; full quality acceptance draft |
 | FR-003 | Fuse ordered frames in a bounded local map using poses and timestamps; distinguish observed, stale and unknown evidence and reset on a new sequence. | Draft |
-| FR-004 | Assign and maintain object track IDs across visible frames, occlusion and reappearance, with explicit confidence and expiry. | Draft |
+| FR-004 | Assign and maintain object track IDs across visible frames, occlusion and reappearance, with explicit confidence and expiry. | Bounded CPU association slice approved 2026-09-29; full quality remains open |
 | FR-005 | Estimate motion relative to the world from sequential observations; publish velocity/uncertainty or unknown. Semantic class and oracle motion labels may not substitute for measured motion. | Draft |
 | FR-006 | Publish conservative occupied, observed-free and unknown evidence. Missing returns, occluded areas and out-of-FOV cells remain unknown; a free-space claim requires valid ray evidence. | Draft |
 | FR-007 | Publish clear per-frame provenance: model and checkpoint, pose source, point attrition, dropped frames, stage timing, evidence age, state memory, viewer costs and release-gate result. | Draft |
@@ -38,12 +40,14 @@ The immediate users are developers evaluating SemanticKITTI replay and operators
 
 ## Success measures
 
-Baseline: one sequence 08 validation scan has a diagnostic official-evaluator
-score, but no complete held-out learned accuracy, tracking, free-space quality,
-or full-pipeline release latency is measured. The first-release deadline is
+Baseline: E-051 scores all 4,071 held-out sequence 08 scans at 0.675469
+official semantic mIoU and 0.922835 labeled accuracy. Numeric semantic
+acceptance remains draft; obstacle full quality, tracking full quality, free-space quality and
+full-pipeline release latency remain unverified. The first-release deadline is
 100 ms for every scheduled scan with zero misses in the accepted window.
-Targets for semantic mIoU, obstacle recall by size/range, moving IoU, track ID
-switches, false-free rate, peak memory and disk are TBD. They must be frozen
+AC-002 traffic-participant recall targets are approved in the threshold sheet.
+Targets for semantic mIoU, wider obstacle recall, moving IoU, track ID switches,
+false-free rate, peak memory and disk remain TBD. They must be frozen
 before T-003 quality or release acceptance. Synthetic demo and oracle scores
 are not substitutes.
 
@@ -76,6 +80,8 @@ In scope for the first release: the existing Python package, its CLI, determinis
 | D-003 | Free-space output for evidence only or navigation consumption in the first release. | Evidence-only selected. No navigation-safe or drivable-space verdict; unknown/stale states remain explicit. Evidence-quality and recovery thresholds still require D-005 approval. | FR-006, FR-010 |
 | D-004 | Dataset replay only or live LiDAR and planner integration in the first release. | Dataset replay selected; live LiDAR and planner-facing output deferred beyond the first release. | FR-008, FR-011 |
 | D-005 | Numeric release thresholds for every success measure. | Set thresholds after a baseline on held-out data and target hardware; do not infer them from the synthetic demo. | FR-001 to FR-010 |
+| T4-D1 to T4-D3 | T-004 first-slice output scope, separate implementation acceptance and ambiguous obstacle behavior. | Approved bounded CPU candidate slice; see [decision 0005](../../../../docs/decisions/0005-obstacle-candidate-cpu-slice.md). Numeric AC-002 gates remain open. | FR-002, FR-009 |
+| T5-D1 to T5-D3 | First T-005 scope, lifecycle/ID policy and schema-4 evidence boundary. | [Association-only CPU slice proposed](../../../../docs/t-005-tracking-proposal.md); approved 2026-09-29 after the owner said "continue". Metric velocity remains separate. | FR-004, FR-005 |
 
 ## Decision log
 
@@ -158,3 +164,5 @@ record all 4,071 held-out sequence 08 semantic predictions and receipts, with
 0.675469 official 19-class mIoU. This establishes the held-out baseline sought
 by the 2026-09-27 approval; numeric D-005 gates, exact public checkpoint bytes,
 separate weight terms and complete-path release evidence remain open.
+
+2026-09-29: T5-D1 to T5-D3 and the AC-002 traffic-participant threshold sheet are approved under decision 0006; full quality and motion acceptance remain open.
