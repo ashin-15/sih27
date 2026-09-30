@@ -4,11 +4,11 @@
 
 Run from this directory:
 
-- `uv sync --frozen --extra viz`
+- `uv sync --frozen --extra viz` (add `--extra cuda --extra model` for CuPy and PyTorch FRNet on the NVIDIA release host)
 - `uv run --frozen --extra viz pytest -q -W error`
 - `uv run --frozen ruff check .`
 - `uv run --frozen ruff format --check .`
-- `uv run --frozen --extra viz mypy`
+- `uv run --frozen --extra viz mypy` (on Windows with Smart App Control, run `python -m mypy`; the `mypy.exe` launcher is blocked)
 - `uv build --no-sources`
 
 The viewer extra is needed for full type checking and viewer tests. Headless runtime needs only NumPy and pypatchworkpp. A wheel was installed into a separate Python 3.12 environment and exercised from /tmp without Rerun installed.
@@ -18,7 +18,7 @@ The viewer extra is needed for full type checking and viewer tests. Headless run
 ## Current scope and contracts
 
 - Independent project: do not modify the source dataset. Historical prototype evidence is not an implementation dependency.
-- Single-frame map aggregation, a bounded CPU FRNet point-semantic slice , an optional bounded CPU obstacle candidate stage and an optional bounded CPU thing-tracking stage are implemented. Candidate bounds describe observed returns, not solid occupancy or full AC-002 quality. Patchwork++ retains adaptive preprocessing state per engine; use a new engine for a new sequence or replay. Frames must have increasing IDs and timestamps.
+- Single-frame map aggregation, a bounded CPU FRNet point-semantic slice , an optional bounded CPU obstacle candidate stage, an optional bounded CPU thing-tracking stage and an optional current-scan visibility stage (schema 5; fixture-verified, no real-data verification) are implemented. The candidate and visibility stages also have an optional CUDA path that must match the CPU reference exactly (decision 0008). Candidate bounds describe observed returns, not solid occupancy or full AC-002 quality. Patchwork++ retains adaptive preprocessing state per engine; use a new engine for a new sequence or replay. Frames must have increasing IDs and timestamps.
 - CLI, Rerun and headless consumers share MappingEngine.process and immutable MapSnapshot arrays. Do not create a second candidate mapping implementation for evaluation.
 - Semantic IDs are explicitly SemanticKITTI learning IDs: 0 unknown/ignored, 1 car, through 19 traffic-sign. Do not import a different class-ID convention.
 - Geometric and learned modes never use annotations for ground, semantics, or motion. Geometric mode tolerates missing intensity as unclassified ground input; learned FRNet mode rejects nonfinite accepted intensity.

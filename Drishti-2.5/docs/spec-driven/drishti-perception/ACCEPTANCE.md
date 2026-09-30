@@ -80,3 +80,28 @@ AC-016 bounded implementation and measurement: ACCEPTED_WITH_CAVEATS on
 records source/installed-wheel schema-4 receipts, authored lifecycle and
 rejection tests, package checks and a 200-frame saved-class diagnostic. Full
 AC-004/005/008 remain NOT VERIFIED.
+
+## Approved bounded T-006 slice (AC-017), 2026-09-29
+
+FR-006/009/010: the [approved visibility contract](../../../../docs/t-006-visibility-proposal.md)
+and [decision 0007](../../../../docs/decisions/0007-visibility-cpu-slice.md)
+freeze a current-scan-only schema-5 slice. Authored fixtures must show rays
+ending before, at and beyond candidates, no-return, occlusion, low curb, thin
+pole margin, ambiguous/unknown/non-ground endpoints, corridor cap, capacity,
+pose equivalence and no carry-over, with no invalid case becoming free and the
+evaluator rejecting forged claims. Source and installed-wheel sequence-08
+replay must emit accepted schema-5 receipts without oracle access, and an
+offline SSC-voxel report must give false-free cells/area, occluded-GT free
+cells, coverage, range/speed strata and CPU cost. The numeric false-free gate
+(O-003/D-005), AC-003 temporal state, AC-008 and AC-010 remain separate.
+
+AC-017 state on 2026-09-29: IN PROGRESS. Fixture tests (19), full suite (105 passed,
+1 pre-existing Windows symlink failure), Ruff, strict mypy and build pass on the
+Windows workstation. Real replay, installed-wheel replay and SSC scoring are NOT VERIFIED.
+
+AC-017 update 2026-09-30 ([experiment 0035](../../../../docs/research/experiments/0035-t006-gpu-sequence08.md)):
+full sequence-08 learned CUDA replay accepted every frame; the SSC false-free report
+gives 0.549% static false-free cells (0.722% by area) over 815 voxel frames, with
+moving traces reported separately; real-data CPU/CUDA payload parity 30/30 frames.
+Installed-wheel replay and the owner's numeric false-free gate remain open, so
+AC-017 stays IN PROGRESS. AC-008 is not met (about 0.7-1 s per frame).

@@ -66,7 +66,7 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _checked_digest(path: Path, expected: str, name: str) -> str:
+def checked_digest(path: Path, expected: str, name: str) -> str:
     if len(expected) != 64 or any(char not in "0123456789abcdef" for char in expected):
         raise ValueError(f"{name} SHA-256 must be 64 lowercase hex characters")
     actual = sha256_file(path)
@@ -107,8 +107,8 @@ class FRNetPredictor:
         if not math.isfinite(timeout_s) or timeout_s <= 0:
             raise ValueError("FRNet worker timeout must be positive and finite")
         self.timeout_s = timeout_s
-        self.checkpoint_sha256 = _checked_digest(checkpoint, checkpoint_sha256, "checkpoint")
-        self.weights_sha256 = _checked_digest(weights_npz, weights_sha256, "tensor export")
+        self.checkpoint_sha256 = checked_digest(checkpoint, checkpoint_sha256, "checkpoint")
+        self.weights_sha256 = checked_digest(weights_npz, weights_sha256, "tensor export")
         source_revision = subprocess.run(
             ["git", "-C", str(source_root), "rev-parse", "HEAD"],
             check=False,

@@ -2,6 +2,62 @@
 
 Run package commands from `Drishti-2.5/`. Use a new output directory for each run and do not alter source scans or existing run evidence.
 
+## 2026-09-30 release host: in-process FRNet, voxels and light receipt
+
+Environment: `uv sync --frozen --extra viz --extra cuda --extra model` (PyTorch
+2.14.0+cu126, CuPy 14.2.0) on the release host of decision 0009; Smart App Control Off.
+Run tests with `uv run --no-sync pytest -q -W error`, and mypy with `python -m mypy`.
+Checkpoint and real-scan tests need `DRISHTI_FRNET_CHECKPOINT=../data/frnet-semantickitti_seg.pth`
+and `DRISHTI_TEST_SCAN=../data/semantickitti/sequences/08/velodyne/000000.bin`.
+
+- Full suite: 128 passed, 1 skipped (no-CUDA error path), 1 failed (pre-existing Windows
+  symlink privilege). `tests/test_frnet_model.py` 9/9 including CPU/CUDA, fp16 and GPU
+  interpolation agreement on scan 000000. Ruff, format and strict mypy (win32 and linux)
+  pass.
+- CPU torch FRNet prediction of scan 000000 has SHA-256 `66cd44a7...0b0bf4`, byte-identical
+  to the authors' runtime (experiment 0024), before and after the explicit tie rule.
+- Voxel grid layout self-check IoU 0.967-0.9999 on five real scans (experiment 0034).
+- 2026-09-30 later: full sequence-08 GPU replay accepted; official score 0.675 (supplemental
+  0.675473); false-free report 0.549% static; real CPU/CUDA parity 30/30 (experiment 0035).
+- NOT VERIFIED yet: installed-wheel replay of the release pipeline, paced 100 ms learned check,
+  and a clean full test run after the memory caps (non-GPU suite passed: 126 + known symlink).
+
+## 2026-09-29 CUDA backend and learned-stage parity (RTX 4050)
+
+Environment: `uv sync --frozen --extra viz --extra cuda` (CuPy 14.2.0 with pip
+CUDA 12.9 libraries) on an RTX 4050 Laptop GPU, driver 561.00. See
+[experiment 0032](research/experiments/0032-cuda-stage-parity.md).
+
+- Full suite with CUDA: 115 passed, 1 skipped (the no-CUDA error path), 1
+  failed (pre-existing Windows symlink privilege). `tests/test_cuda_backend.py`
+  7/7 and `tests/test_cuda_stages.py` 5/5 ran on the GPU.
+- CuPy-free environment (`--extra viz` only): 111 passed, 5 CUDA skipped, same
+  symlink failure.
+- Ruff lint/format, strict mypy (`python -m mypy`, win32 and `--platform linux`),
+  `uv build --no-sources` and `uv lock --check` pass.
+- NOT VERIFIED: real-data CPU/CUDA parity, replay timing, FRNet on GPU.
+
+## 2026-09-29 bounded T-006 fixture and package verification (Windows)
+
+Active workstation: Windows 11, `uv` 0.12.20, CPython 3.12.14, locked deps
+(`uv sync --frozen --extra viz`; `pypatchworkpp` 1.4.1 installs as a cp312
+win_amd64 wheel). Smart App Control is On: it blocked `pypatchworkpp`,
+`rerun.exe` and the `mypy.exe` launcher on first use; the first two loaded on
+later attempts, and mypy runs as `python -m mypy`. Results on 2026-09-29:
+
+- `pytest -q -W error`: 105 passed, 3 CUDA skipped, 1 failed. The failure is
+  pre-existing `test_output_cannot_be_written_into_the_dataset`, which needs
+  symlink privilege (WinError 1314; Developer Mode or admin). Both Patchwork++
+  `native` tests and the Rerun recording test pass. `tests/test_visibility.py`:
+  19 passed, after correcting one expectation (unknown-ground is OCCUPIED via
+  candidate support; see the contract clarification).
+- Ruff lint and format check pass; strict mypy passes for 43 files with both
+  the native and `--platform linux` targets; `uv build --no-sources` builds the
+  sdist and a wheel containing `visibility.py`; a 3-frame synthetic demo completed.
+- NOT VERIFIED: learned `--visibility` CLI replay (needs the FRNet checkpoint and
+  worker), installed-wheel replay, sequence-08 replay and the SSC false-free
+  report (no SemanticKITTI data or voxel labels on this workstation).
+
 ## 2026-09-29 bounded T-005 verification
 
 The approved known-thing CPU tracking stage uses `--mode learned

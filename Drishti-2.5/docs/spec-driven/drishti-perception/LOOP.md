@@ -537,3 +537,47 @@ Last updated: 2026-09-25
   Forbidden scope: learned/temporal features, CUDA changes, source dataset or old run edits.
 - Slice state: implementing. Full-product state remains grilling; NVIDIA tests and real-data
   acceptance remain separate, deferred evidence.
+
+## T-006 visibility contract draft - 2026-09-29
+
+- Related FRs/ACs: FR-006/010, AC-003/006/010. Research in experiment 0031.
+- DRAFT: `docs/t-006-visibility-proposal.md` proposes a current-scan-only
+  schema-5 visibility slice; temporal fusion and stale state are deferred.
+- Not verified: no code, fixtures or replay (no dataset or toolchain on this
+  workstation). Judgment: awaiting owner approval before implementation.
+
+## T-006 approved and implemented, unverified - 2026-09-29
+
+- Approval: owner approved all four contract points (decision 0007). Frozen
+  rules/fixtures recorded in `docs/t-006-visibility-proposal.md` before code.
+- Implementation: `visibility.py`, schema-5 builder/evaluator, engine and CLI
+  `--visibility`, `tests/test_visibility.py`, Windows-safe RSS reporting.
+- Not verified: no toolchain or dataset on the active workstation. Next: run
+  the full verification commands, then sequence-08 replay and SSC scoring.
+
+## Windows toolchain and AC-017 fixture checks - 2026-09-29
+
+- `uv`/CPython 3.12 installed; Patchwork++ wheel works under Smart App Control.
+- Visibility fixtures 19 passed; full suite 105 passed/3 skipped/1 pre-existing
+  symlink-privilege failure; Ruff, mypy, build, synthetic demo pass.
+- Judgment: AC-017 IN PROGRESS; real replay and SSC false-free scoring pending data.
+
+## CUDA option for learned stages - 2026-09-29
+
+- Decision 0008: CUDA optional, CPU reference, exact parity required; laptop
+  RTX 4050 is a development host only.
+- First GPU run fixed three CuPy defects; CUDA backend 7/7 and CUDA stage
+  parity 5/5 pass; synthetic timing in experiment 0032.
+- Judgment: T-008 CUDA path IN PROGRESS; real-data parity and AC-008 pending data.
+
+## Release host and in-process FRNet - 2026-09-30
+
+- Decisions 0009 (laptop release host, torch FRNet runtime) and 0010 (light receipt).
+- Verified: byte-identical scan-0 CPU FRNet; voxel layout; receipt 6x faster.
+- In progress: full sequence-08 GPU replay; then score, false-free, parity, paced check.
+
+## Full sequence-08 GPU results - 2026-09-30
+
+- mIoU 0.675473 (reference 0.675469); T-006 static false-free 0.549%; CPU/CUDA 30/30.
+- GPU memory caps fixed the out-of-memory stops. fp16 and GPU interpolation measured.
+- Judgment: AC-017 IN PROGRESS (wheel replay, numeric gate); AC-008 not met.

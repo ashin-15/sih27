@@ -900,3 +900,157 @@ Detailed test evidence belongs in `testing.md`; active blockers belong in `open-
   implementation is blocked by the still-unapproved frozen tracking contract.
   AC-004/005 metrics, metric velocity and AC-008 remain NOT VERIFIED. No new
   runtime implementation, replay, test or benchmark is claimed by this entry.
+
+## 2026-09-29 - T-006 visibility research and draft contract
+
+- FACT: T-006 was BLOCKED with no research, contract or code. The owner asked
+  to continue there. This workstation has no `data/` tree, `uv` or Python 3.12
+  environment, so no test, replay or benchmark ran in this session.
+- RESEARCH: [experiment 0031](research/experiments/0031-t006-visibility-screen.md)
+  (E-058) checks SemanticKITTI completion voxels with invalid/occluded masks as
+  a held-out false-free route and the 2.5D limits of ground-terminated rays.
+- DRAFT: [T-006 contract](t-006-visibility-proposal.md) proposes a
+  current-scan-only schema-5 `stage=visibility` slice: OCCUPIED/AMBIGUOUS from
+  current returns and candidates, OBSERVED_FREE only on low corridors of
+  ground-terminated beams outside a conflict margin, everything else UNKNOWN.
+  Temporal fusion, STALE, AC-003 and the numeric false-free gate stay open.
+- STATUS: T-006 is IN PROGRESS for research/specification; production code is
+  blocked pending owner approval. AC-003/006/008/010 remain NOT VERIFIED.
+- NOTE: this log has no entry for the 2026-09-29 T-005 implementation;
+  decision 0006 and experiment 0030 hold that evidence.
+
+## 2026-09-29 - T-006 approved and bounded slice implemented (NOT VERIFIED)
+
+- APPROVAL: owner said "approve all four and continue". [Decision 0007](decisions/0007-visibility-cpu-slice.md)
+  records current-scan-only scope, schema 5 on the tracking path, ground-only
+  cells UNKNOWN and the development settings. Exact rules and fixture
+  expectations were frozen in the contract before production edits.
+- FACT: this laptop has no SemanticKITTI scans, labels, voxel files or saved
+  `runs/` directories (searched the user profile), and no Python 3.12/uv.
+- IMPLEMENTED: `visibility.py` (`CurrentScanVisibility`), engine/timing/result
+  wiring, `visibility_product_result`, schema-5 evaluator checks (summary,
+  temporal claims, return-backed occupancy, candidate cells, ground-semantic
+  proofs, corridor geometry, Euclidean conflict margin), CLI `--visibility`
+  with report schema 7, and `tests/test_visibility.py`. Schema 1-4 digests
+  exclude the new summary field. The CLI now skips the Unix-only `resource`
+  import on Windows (peak RSS null there).
+- CHECKED: fixture 1/3/4/7 expected cells agree with a separate Perl
+  re-implementation of the frozen rules; float32 floor/ceil values for pole and
+  curb margins were checked the same way. `git diff --check` and the line-length
+  scan passed.
+- NOT VERIFIED: pytest, Ruff, mypy, build, installed wheel, real replay and the
+  SSC false-free report. AC-017 is not accepted. AC-003/008/010 remain open.
+
+## 2026-09-29 - Windows toolchain and T-006 fixture/package verification
+
+- SETUP (owner-requested): installed `uv` 0.12.20 to the user profile with the
+  official installer; `uv sync --frozen --extra viz` created `.venv` with
+  CPython 3.12.14. `pypatchworkpp` 1.4.1 installed from its win_amd64 wheel; no
+  source build was needed.
+- FACT: Smart App Control is On. Code Integrity blocked the Patchwork++ `.pyd`
+  and `rerun.exe` on first load, then allowed both; it still blocks the
+  `mypy.exe` launcher, so mypy runs as `python -m mypy`. No security setting was
+  changed.
+- MEASURED RESULT: `tests/test_visibility.py` 19 passed after one expectation
+  fix (unknown-ground returns are candidate support, so OCCUPIED; recorded as a
+  contract clarification). Full suite 105 passed, 3 CUDA skipped, 1 failed:
+  pre-existing symlink test needs Developer Mode/admin (WinError 1314). Ruff,
+  format, strict mypy (win32 and linux targets), build and a 3-frame synthetic
+  demo pass. Typing fixes: renamed a shadowed variable, platform-branched RSS.
+- NOT VERIFIED: learned `--visibility` replay (FRNet assets absent), installed
+  wheel replay, sequence-08 replay and the SSC false-free report.
+
+## 2026-09-29 - T-015 anisotropic resolution schema added to plan
+
+- REQUEST: owner asked to plan an anisotropic resolution schema of the form
+  `R(p) = w_d D(p) + w_dir Q_dir(p) + w_speed S(p) + w_sem C(p)`.
+- PLAN: added T-015 as TODO with dependencies, open design questions and
+  acceptance evidence. No research, contract, weights or code exist yet; the
+  current distance-ring lattice and all schema 1-5 contracts are unchanged.
+- CLARIFIED (same day): the owner means anisotropic speed-scaled foveation.
+  No separate output schema: foveation changes per-frame ownership for the
+  current pose inside the existing multiresolution cells; rising speed must
+  refine obstacle cells. T-015 row updated; still TODO.
+- FACT: this workstation has an NVIDIA GeForce RTX 4050 Laptop GPU (6 GB,
+  driver 561.00, CUDA 12.6 per `nvidia-smi`). CuPy is not installed, so the
+  three CUDA tests still skip.
+
+## 2026-09-29 - CuPy on the RTX 4050 and optional CUDA learned stages
+
+- APPROVAL: owner said "yes install cupy, add cuda option keeping cpu
+  reference". [Decision 0008](decisions/0008-cuda-learned-stages.md). The laptop
+  is treated as a development CUDA host, not the release host (owner did not
+  answer that question).
+- SETUP: optional `cuda` extra `cupy-cuda12x[ctk]>=14,<15` added and locked
+  (CuPy 14.2.0, pip CUDA 12.9 libraries; no system toolkit).
+- FIXED: first real-GPU run of the existing CUDA backend failed 3/3 device
+  tests: stacked `lexsort` keys, `IntEnum` scalars, and inexact float64
+  `minimum.at` in projection (now an exact lexsort winner). CuPy's advisory
+  CUDA_PATH warning is suppressed only at import.
+- IMPLEMENTED: CUDA option for the candidate detector (sparse min-label
+  components) and visibility (device corridor sampling and per-chunk reduction);
+  exact summed-area margin check and per-cell merge also speed up the CPU path.
+  Learned CLI accepts `--device cuda`; `backend` is truthful; FRNet stays CPU.
+- VERIFIED: GPU parity tests exact; full suite 115 passed/1 skipped/1
+  pre-existing symlink failure; CuPy-free suite 111 passed/5 skipped; Ruff,
+  mypy (win32/linux), build and lock check pass. Synthetic timing in
+  [experiment 0032](research/experiments/0032-cuda-stage-parity.md).
+- NOT VERIFIED: real-data parity/timing (no scans here), FRNet on GPU, AC-008.
+
+## 2026-09-30 - Release host, in-process FRNet, voxels and light receipt
+
+- OWNER: made this laptop the release host (decision 0009), supplied sequence 08
+  and the FRNet checkpoint, turned Smart App Control off, approved a raised
+  free-cell cap and the light receipt (decision 0010).
+- IMPLEMENTED: `frnet_model.py` in-process FRNet (CPU/CUDA; opt-in fp16 and GPU
+  interpolation); `--frnet-runtime`; FRNet Apache-2.0 notice in
+  THIRD_PARTY_NOTICES; `visibility_evaluation.py` and `--write-visibility-every`;
+  cap 262,144; vectorized evaluator checks; `--audit-every`, `deep_audit`,
+  schema-5 `BeamTable` and raw digest; faster prediction writing.
+- DATA: `data/semantickitti/sequences/08` junction to `data/dataset/08`; only the
+  sequence-08 voxels extracted from `data_odometry_voxels.zip` (CC BY-NC-SA).
+  Run outputs moved to `C:\Users\Robin Joe\drishti-local\` (outside OneDrive).
+- MEASURED: scan-000000 CPU prediction byte-identical to the authors' runtime;
+  CPU/CUDA 1 class difference in 123,389 points; voxel layout IoU 0.967-0.9999;
+  receipt 3.0 s -> 0.47 s on 8 frames. Full suite 128 passed/1 skipped/1 known
+  symlink failure; Ruff, mypy pass.
+- INTERRUPTED: three earlier full-sequence runs were stopped deliberately (old
+  receipt, then old cap, then heavy receipt); partial outputs are kept under
+  `artifacts/`. The light-receipt full run is in progress.
+- NOT VERIFIED: full-sequence score, false-free report, real CPU/CUDA stage
+  parity, paced 100 ms check, fp16/GPU-interpolation full-sequence accuracy.
+
+## 2026-09-30 - GPU memory caps, full sequence-08 results and speed options
+
+- FIXED: unbounded CuPy and PyTorch caches oversubscribed the 6 GB GPU and spilled
+  into system RAM on Windows (13.3 GiB private after 201 frames); both capped and
+  the pinned pool released each frame. Private memory now flat at about 6 GiB.
+- RUN: full sequence 08 on the learned CUDA path in three segments (two background
+  runs were stopped by Claude Code for low memory; the owner asked to retry).
+- MEASURED (experiment 0035): mIoU 0.675473 vs reference 0.675469; T-006 static
+  false-free 0.549% (0.722% by area) over 815 voxel frames, moving traces 1.676%;
+  real CPU/CUDA parity 30/30; fp16 -0.00055 mIoU for 18% faster FRNet, GPU
+  interpolation accuracy-neutral and 7% faster.
+- SCORER: occluded hits now count only empty voxels and moving IDs are separated;
+  the band still includes subsurface voxels, so "occluded empty" is not usable.
+- NOT DONE: paced 100 ms learned check (checker is geometric-only; laptop on
+  battery), installed-wheel release replay, commit.
+
+## 2026-09-30 - Map memory comparison (experiment 0036)
+
+- MEASURED: adaptive snapshot median 12.56 MB (44,375 cells) over 51 sequence-08 scans;
+  30.8x fewer cells than a uniform 5 cm grid when both are fully allocated; 160x
+  smaller than a 1-byte uniform 5 cm 3D grid. Per-cell layout (283 B) not yet optimised.
+
+## 2026-09-30 - Target layered map representation and future tasks
+
+- REQUEST: owner asked for a data representation that covers every SIH26053
+  requirement and for it to be added to future tasks.
+- DRAFT: `docs/t-016-layered-foveated-map-proposal.md` defines a fixed-capacity
+  rolling multi-level store with elevation, semantic, terrain, occupancy/visibility,
+  motion and provenance layers; exact merge/split across moving rings; about
+  36 B per cell and a design estimate of about 20.5 MB fixed versus about 576 MB
+  (uniform 5 cm 2.5D) and about 2 GB (uniform 5 cm 3D).
+- PLAN: added T-016 (map store and memory benchmark), T-017 (terrain and
+  drivability), T-018 (motion layer) and T-019 (dashboard layers), all TODO and
+  needing approval. Nothing implemented; memory figures are arithmetic estimates.

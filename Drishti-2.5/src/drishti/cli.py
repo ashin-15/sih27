@@ -4,14 +4,13 @@ import importlib.metadata
 import json
 import os
 import platform
-import resource
 import sys
 from collections.abc import Iterator, Sequence
 from contextlib import ExitStack
 from dataclasses import asdict
 from pathlib import Path
 from time import perf_counter, sleep
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 import numpy as np
 
@@ -24,14 +23,24 @@ from drishti.output import InProcessFrameConsumer
 from drishti.pipeline import FrameResult, MappingEngine
 from drishti.product_result import (
     InProcessProductEvaluator,
+    Occupancy,
+    ProductFrameResult,
     ReceiptStatus,
     candidate_product_result,
     diagnostic_product_result,
     semantic_product_result,
     tracking_product_result,
+    visibility_product_result,
 )
 from drishti.semantics import LEARNING_TO_RAW, decode_semantickitti
 from drishti.tracking import MAX_TRACKS, CandidateTracker
+from drishti.visibility import VISIBILITY_METHOD, CurrentScanVisibility, VisibilitySettings
+
+if TYPE_CHECKING:
+    from drishti.frnet_model import TorchFRNetPredictor
+
+if sys.platform != "win32":
+    import resource
 
 REPLAY_RATE_HZ = 10.0
 REPLAY_DEADLINE_MS = 100.0
@@ -59,6 +68,24 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument("--mode", choices=list(Mode), default=Mode.GEOMETRIC, type=Mode)
         command.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
         command.add_argument("--view", choices=("none", "record", "spawn"), default="none")
+        command.add_argument(
+            "--frnet-runtime",
+            choices=("torch", "authors"),
+            default="torch",
+            help="torch: in-process FRNet on --device (needs --extra model); "
+            "authors: pinned mmdet3d CPU worker (Linux reference)",
+        )
+        command.add_argument(
+            "--frnet-precision",
+            choices=("fp32", "fp16"),
+            default="fp32",
+            help="torch runtime only; fp16 autocast needs --device cuda (measured speed option)",
+        )
+        command.add_argument(
+            "--frnet-gpu-interpolation",
+            action="store_true",
+            help="torch runtime only; run FRNet's range interpolation on the GPU",
+        )
         command.add_argument("--frnet-python", type=Path)
         command.add_argument("--frnet-source", type=Path)
         command.add_argument("--frnet-checkpoint", type=Path)
@@ -76,6 +103,24 @@ def _parser() -> argparse.ArgumentParser:
             help="associate observed thing candidates across frames; velocity remains unknown",
         )
         command.add_argument("--max-tracks", type=int, default=MAX_TRACKS)
+        command.add_argument(
+            "--audit-every",
+            type=int,
+            default=100,
+            help="deep-audit every N-th accepted product result (1 = every frame, 0 = never); "
+            "light contract checks run on every receipt",
+        )
+        command.add_argument(
+            "--write-visibility-every",
+            type=int,
+            default=0,
+            help="save observed-free cells of every N-th frame for false-free scoring",
+        )
+        command.add_argument(
+            "--visibility",
+            action="store_true",
+            help="emit current-scan occupied/observed-free/unknown cell evidence; not clearance",
+        )
         command.add_argument(
             "--write-panoptic-predictions",
             action="store_true",
@@ -185,7 +230,9 @@ def _percentiles(values: list[float]) -> dict[str, float] | None:
     return dict(zip(("p50", "p95", "p99"), map(float, result), strict=True))
 
 
-def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> int:
+def _run_ready(
+    args: argparse.Namespace, predictor: "FRNetPredictor | TorchFRNetPredictor | None"
+) -> int:
     config = load_config(args.config)
     mode = Mode(args.mode)
     check_deadline = bool(args.command == "replay" and args.check_100ms)
@@ -241,13 +288,14 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
         config,
         mode=mode,
         predictor=predictor,
-        detector=ConnectedComponentDetector() if args.detect_obstacles else None,
+        detector=ConnectedComponentDetector(device=args.device) if args.detect_obstacles else None,
         device=args.device,
         tracker=CandidateTracker(args.max_tracks) if args.track_obstacles else None,
+        visibility=CurrentScanVisibility(device=args.device) if args.visibility else None,
     )
     consumer = InProcessFrameConsumer() if check_deadline else None
     product_evaluator = (
-        InProcessProductEvaluator()
+        InProcessProductEvaluator(audit_every=args.audit_every)
         if args.evaluate_product_contract or mode == Mode.LEARNED
         else None
     )
@@ -263,21 +311,27 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
         "mode": mode.value,
         "device": args.device,
         "report_schema_version": (
-            6
+            7
+            if args.visibility
+            else 6
             if args.track_obstacles
             else 5
             if args.detect_obstacles
             else (4 if mode == Mode.LEARNED else (3 if product_evaluator else 2))
         ),
         "product_result_schema_version": (
-            4
+            5
+            if args.visibility
+            else 4
             if args.track_obstacles
             else 3
             if args.detect_obstacles
             else (2 if mode == Mode.LEARNED else (1 if product_evaluator else None))
         ),
         "product_result_stage": (
-            "tracking"
+            "visibility"
+            if args.visibility
+            else "tracking"
             if args.track_obstacles
             else "candidate"
             if args.detect_obstacles
@@ -303,15 +357,34 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
                 "weights_sha256": predictor.weights_sha256,
                 "source_revision": FRNET_REVISION,
                 "class_map_version": FRNET_CLASS_MAP_VERSION,
+                "runtime": args.frnet_runtime,
                 "worker_environment": predictor.environment,
                 "score_meaning": "uncalibrated maximum softmax score",
+                "inference_device": getattr(predictor, "device", "cpu"),
             }
             if predictor is not None
             else None
         ),
-        "scope": "single-frame-map-with-sequence-tracks"
+        "scope": "single-frame-map-with-sequence-tracks-and-current-scan-visibility"
+        if args.visibility
+        else "single-frame-map-with-sequence-tracks"
         if args.track_obstacles
         else "single-frame",
+        "visibility": (
+            {
+                "method": VISIBILITY_METHOD,
+                **asdict(VisibilitySettings()),
+                "evidence_source": "current-scan",
+                "free_meaning": (
+                    "a ground-terminated current beam crossed the cell at or below tau_free "
+                    "above its return with no conflicting return nearby; not clearance, "
+                    "drivability or navigation proof"
+                ),
+                "ground_only_cells": "unknown",
+            }
+            if args.visibility
+            else None
+        ),
         "tracker": (
             {
                 "method": "map-center-prediction-greedy-v1",
@@ -379,6 +452,7 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
     peak_snapshot_bytes = 0
     prediction_files = 0
     panoptic_prediction_files = 0
+    visibility_files = 0
     flush_ms = 0.0
     run_start = perf_counter()
     try:
@@ -423,7 +497,9 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
                     )
                     if predictor is not None:
                         learned_product = (
-                            tracking_product_result
+                            visibility_product_result
+                            if args.visibility
+                            else tracking_product_result
                             if args.track_obstacles
                             else candidate_product_result
                             if args.detect_obstacles
@@ -438,6 +514,7 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
                             weights_sha256=predictor.weights_sha256,
                             cell_sizes_cm=config.cell_sizes_cm,
                             scheduled_arrival_ns=arrival_ns,
+                            backend=engine.device,
                         )
                     else:
                         product = diagnostic_product_result(
@@ -476,15 +553,21 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
                     with target.open("xb") as destination:
                         destination.write(panoptic.tobytes())
                     panoptic_prediction_files += 1
+                if (
+                    args.write_visibility_every
+                    and frame.frame_id % args.write_visibility_every == 0
+                ):
+                    assert product_receipt is not None
+                    _write_free_cells(output, frame, product)
+                    visibility_files += 1
                 if args.write_predictions:
-                    positions = {int(point_id): i for i, point_id in enumerate(frame.point_ids)}
+                    # Accepted IDs are validated input IDs; scatter by sorted lookup.
+                    order = np.argsort(frame.point_ids, kind="stable")
+                    positions = order[
+                        np.searchsorted(frame.point_ids[order], result.observations.point_ids)
+                    ]
                     raw = np.zeros(len(frame.point_ids), dtype=np.uint32)
-                    for point_id, semantic_id in zip(
-                        result.observations.point_ids,
-                        result.observations.semantic,
-                        strict=True,
-                    ):
-                        raw[positions[int(point_id)]] = LEARNING_TO_RAW[int(semantic_id)]
+                    raw[positions] = LEARNING_TO_RAW[result.observations.semantic]
                     prediction_path = (
                         output
                         / "predictions"
@@ -534,6 +617,9 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
                     ),
                     "tracking_summary": (
                         asdict(result.tracking.summary) if result.tracking is not None else None
+                    ),
+                    "visibility_summary": (
+                        asdict(result.visibility.summary) if result.visibility is not None else None
                     ),
                     "candidate_instances": (
                         [
@@ -620,6 +706,7 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
                 "product_receipts": product_receipts,
                 "prediction_files": prediction_files,
                 "panoptic_prediction_files": panoptic_prediction_files,
+                "visibility_files": visibility_files,
                 "cold_processing_ms": processing[0] if processing else None,
                 "processing_ms": _percentiles(processing),
                 "steady_processing_ms": _percentiles(processing[1:]),
@@ -643,8 +730,7 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
                 "wall_seconds": perf_counter() - run_start,
                 "rendering_fps": None,
                 "peak_snapshot_array_bytes": peak_snapshot_bytes,
-                "worker_peak_rss_bytes": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-                * (1 if sys.platform == "darwin" else 1024),
+                "worker_peak_rss_bytes": _peak_rss_bytes(),
                 "viewer_rss_bytes": None,
                 "scratch_bytes": None,
                 "realtime_release_gate_met": False,
@@ -653,7 +739,13 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
                 ),
             }
             _write_json(output / "summary.json", summary)
-    scope = "sequence tracks" if args.track_obstacles else "single-frame map"
+    scope = (
+        "sequence tracks and current-scan visibility"
+        if args.visibility
+        else "sequence tracks"
+        if args.track_obstacles
+        else "single-frame map"
+    )
     print(f"{status}: {len(processing)} frames; {scope} {mode.value}; reports: {output}")
     if status == "interrupted":
         return 130
@@ -662,10 +754,47 @@ def _run_ready(args: argparse.Namespace, predictor: FRNetPredictor | None) -> in
     return 0
 
 
+def _write_free_cells(output: Path, frame: ScanFrame, product: ProductFrameResult) -> None:
+    """Save one frame's accepted observed-free cells for offline false-free scoring."""
+    cells = product.cells
+    free = np.flatnonzero(cells.occupancy == Occupancy.OBSERVED_FREE)
+    table = product.beam_table
+    if table is None:
+        raise ValueError("visibility product result has no beam table")
+    returns = dict(zip(table.beam_id.tolist(), table.return_map_m.tolist(), strict=True))
+    target = output / "visibility" / "sequences" / frame.sequence / f"{frame.frame_id:06d}.npz"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("xb") as stream:
+        np.savez(
+            stream,
+            cell_sizes_cm=np.asarray(cells.cell_sizes_cm, dtype=np.int32),
+            level=cells.level[free].astype(np.uint8),
+            indices=cells.indices[free].astype(np.int32),
+            ray_support=cells.ray_support[free].astype(np.int32),
+            free_beam_id=cells.free_beam_id[free].astype(np.int64),
+            return_z_m=np.array(
+                [returns[int(beam)][2] for beam in cells.free_beam_id[free]], dtype=np.float64
+            ),
+            map_from_sensor=frame.map_from_sensor,
+        )
+
+
+def _peak_rss_bytes() -> int | None:
+    """Peak worker RSS where the platform exposes it; Windows reports it as unmeasured."""
+    if sys.platform != "win32":
+        scale = 1 if sys.platform == "darwin" else 1024
+        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * scale
+    return None
+
+
 def _run(args: argparse.Namespace) -> int:
     mode = Mode(args.mode)
     if args.track_obstacles and not args.detect_obstacles:
         raise ValueError("tracking requires --detect-obstacles")
+    if args.visibility and not args.track_obstacles:
+        raise ValueError("visibility requires --track-obstacles")
+    if args.write_visibility_every < 0 or (args.write_visibility_every and not args.visibility):
+        raise ValueError("--write-visibility-every needs --visibility and a positive N")
     if not 1 <= args.max_tracks <= MAX_TRACKS:
         raise ValueError(f"--max-tracks must be between 1 and {MAX_TRACKS}")
     if args.max_tracks != MAX_TRACKS and not args.track_obstacles:
@@ -686,10 +815,39 @@ def _run(args: argparse.Namespace) -> int:
         if args.detect_obstacles:
             raise ValueError("obstacle candidates require --mode learned")
         return _run_ready(args, None)
+    if args.frnet_runtime == "torch":
+        if args.frnet_checkpoint is None or args.frnet_checkpoint_sha256 is None:
+            raise ValueError(
+                "torch FRNet requires --frnet-checkpoint and --frnet-checkpoint-sha256"
+            )
+        if any(
+            value is not None
+            for value in (
+                args.frnet_python,
+                args.frnet_source,
+                args.frnet_weights_npz,
+                args.frnet_weights_sha256,
+            )
+        ):
+            raise ValueError("--frnet-python/-source/-weights-* need --frnet-runtime authors")
+        try:
+            from drishti.frnet_model import TorchFRNetPredictor
+        except ModuleNotFoundError as exc:
+            raise RuntimeError("torch FRNet needs PyTorch; install with --extra model") from exc
+        with TorchFRNetPredictor(
+            checkpoint=args.frnet_checkpoint,
+            checkpoint_sha256=args.frnet_checkpoint_sha256,
+            device=args.device,
+            precision=args.frnet_precision,
+            gpu_interpolation=args.frnet_gpu_interpolation,
+        ) as torch_predictor:
+            return _run_ready(args, torch_predictor)
     if args.device != "cpu":
-        raise ValueError("the FRNet semantic slice supports CPU only")
+        raise ValueError("the authors' FRNet worker runtime supports CPU only")
+    if args.frnet_precision != "fp32" or args.frnet_gpu_interpolation:
+        raise ValueError("fp16 and GPU interpolation need --frnet-runtime torch")
     if any(value is None for value in model_options):
-        raise ValueError("learned mode requires all six --frnet-* options")
+        raise ValueError("the authors' FRNet runtime requires all six --frnet-* options")
     with FRNetPredictor(
         python=args.frnet_python,
         source_root=args.frnet_source,

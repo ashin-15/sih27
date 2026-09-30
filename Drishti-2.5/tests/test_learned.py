@@ -9,7 +9,7 @@ from drishti.config import MappingConfig
 from drishti.contracts import Mode, ScanFrame, make_frame
 from drishti.dataset import DatasetSource
 from drishti.ground import GroundClass
-from drishti.learned import SemanticPrediction, _checked_digest, remap_frnet_output, sha256_file
+from drishti.learned import SemanticPrediction, checked_digest, remap_frnet_output, sha256_file
 from drishti.pipeline import MappingEngine
 from drishti.product_result import (
     InProcessProductEvaluator,
@@ -67,11 +67,11 @@ def test_checkpoint_digest_guard_rejects_wrong_or_malformed_hash(tmp_path: Path)
     checkpoint = tmp_path / "weights.npz"
     checkpoint.write_bytes(b"tensor-only-fixture")
     digest = sha256_file(checkpoint)
-    assert _checked_digest(checkpoint, digest, "tensor export") == digest
+    assert checked_digest(checkpoint, digest, "tensor export") == digest
     with pytest.raises(ValueError, match="SHA-256 mismatch"):
-        _checked_digest(checkpoint, "0" * 64, "tensor export")
+        checked_digest(checkpoint, "0" * 64, "tensor export")
     with pytest.raises(ValueError, match="64 lowercase hex"):
-        _checked_digest(checkpoint, digest.upper(), "tensor export")
+        checked_digest(checkpoint, digest.upper(), "tensor export")
 
 
 def test_learned_mapping_preserves_accepted_ids_and_never_reads_oracle() -> None:

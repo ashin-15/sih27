@@ -10,9 +10,10 @@ import math
 from dataclasses import dataclass, fields, is_dataclass, replace
 from enum import IntEnum, StrEnum
 from time import monotonic_ns
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
+from numpy.typing import NDArray
 
 from drishti.arrays import BoolArray, ByteArray, FloatArray, IntArray, immutable
 from drishti.contracts import Accounting, ScanFrame
@@ -29,22 +30,30 @@ from drishti.tracking import (
 from drishti.tracking import (
     TrackEvidence as TrackEvidence,
 )
+from drishti.visibility import (
+    GROUND_SEMANTIC_IDS,
+    MAX_FREE_CELLS,
+    VISIBILITY_METHOD,
+    VisibilitySettings,
+    VisibilitySummary,
+    corridor_start_fraction,
+    pack_cells,
+)
+from drishti.visibility import (
+    Occupancy as Occupancy,
+)
 
 SCHEMA_VERSION = 1
 SEMANTIC_SCHEMA_VERSION = 2
 CANDIDATE_SCHEMA_VERSION = 3
 TRACKING_SCHEMA_VERSION = 4
+VISIBILITY_SCHEMA_VERSION = 5
 RELEASE_POINT_CAP = 130_000
 COORDINATE_FRAME = "map-x-forward-y-left-z-up"
 UNITS = "metre-nanosecond"
-
-
-class Occupancy(IntEnum):
-    UNKNOWN = 0
-    OCCUPIED = 1
-    OBSERVED_FREE = 2
-    STALE = 3
-    AMBIGUOUS = 4
+TRACKED_STAGES = ("tracking", "visibility")
+LEARNED_STAGES = ("semantic", "candidate", "tracking", "visibility")
+type Stage = Literal["diagnostic", "semantic", "candidate", "tracking", "visibility", "complete"]
 
 
 class EvidenceSource(IntEnum):
@@ -70,6 +79,16 @@ class BeamProof:
     point_id: int
     origin_map_m: tuple[float, float, float]
     return_map_m: tuple[float, float, float]
+
+
+@dataclass(frozen=True)
+class BeamTable:
+    """Schema-5 columnar beam proofs; every beam starts at the one frame sensor origin."""
+
+    beam_id: IntArray
+    point_id: IntArray
+    origin_map_m: FloatArray
+    return_map_m: FloatArray
 
 
 @dataclass(frozen=True)
@@ -113,7 +132,7 @@ class ProductDiagnostics:
 @dataclass(frozen=True)
 class ProductFrameResult:
     schema_version: int
-    stage: Literal["diagnostic", "semantic", "candidate", "tracking", "complete"]
+    stage: Stage
     run_id: str
     sequence_id: str
     frame_id: int
@@ -149,6 +168,8 @@ class ProductFrameResult:
     model_weights_sha256: str | None = None
     model_class_map_version: str | None = None
     tracking_summary: TrackingSummary | None = None
+    visibility_summary: VisibilitySummary | None = None
+    beam_table: BeamTable | None = None
 
 
 @dataclass(frozen=True)
@@ -162,7 +183,8 @@ class ProductReceipt:
     validation_duration_ns: int
     status: ReceiptStatus
     error_code: str | None
-    stage: Literal["diagnostic", "semantic", "candidate", "tracking", "complete"]
+    stage: Stage
+    deep_audit: bool = True
 
 
 def source_scan_digest(frame: ScanFrame) -> str:
@@ -188,20 +210,28 @@ def _canonical(value: object) -> object:
             "shape": list(value.shape),
             "hex": value.tobytes(order="C").hex(),
         }
-    if isinstance(value, ProductFrameResult) and value.schema_version < TRACKING_SCHEMA_VERSION:
+    if isinstance(value, ProductFrameResult):
+        # Fields added by later schemas stay out of earlier digests, preserving them exactly.
+        excluded: set[str] = set()
+        if value.schema_version < VISIBILITY_SCHEMA_VERSION:
+            excluded.update(("visibility_summary", "beam_table"))
+        if value.schema_version < TRACKING_SCHEMA_VERSION:
+            excluded.add("tracking_summary")
+        if value.schema_version == SCHEMA_VERSION:
+            excluded.update(
+                ("model_source_revision", "model_weights_sha256", "model_class_map_version")
+            )
         return {
             field.name: _canonical(getattr(value, field.name))
             for field in fields(value)
-            if field.name != "tracking_summary"
-            and (
-                value.schema_version != SCHEMA_VERSION
-                or field.name
-                not in ("model_source_revision", "model_weights_sha256", "model_class_map_version")
-            )
+            if field.name not in excluded
         }
     if is_dataclass(value) and not isinstance(value, type):
         return {field.name: _canonical(getattr(value, field.name)) for field in fields(value)}
     if isinstance(value, tuple):
+        # Fast path for flat int/str tuples (support IDs); canonical JSON is identical.
+        if all(type(item) is int or type(item) is str for item in value):
+            return list(value)
         return [_canonical(item) for item in value]
     if isinstance(value, IntEnum):
         return int(value)
@@ -212,8 +242,50 @@ def _canonical(value: object) -> object:
     return value
 
 
+def _feed_raw(digest: Any, value: object) -> None:
+    """Typed, length-prefixed stream: array headers then raw bytes, no hex or JSON bodies."""
+    if isinstance(value, np.ndarray):
+        if value.dtype.byteorder not in ("<", "=", "|"):
+            raise ValueError("array byte order must be native little endian")
+        if not value.flags.c_contiguous:
+            raise ValueError("arrays must be C contiguous")
+        header = f"A{value.dtype.str.replace('=', '<')}{list(value.shape)}:{value.nbytes};"
+        digest.update(header.encode())
+        if value.size:
+            digest.update(memoryview(value.reshape(-1)).cast("B"))
+    elif is_dataclass(value) and not isinstance(value, type):
+        digest.update(f"D{type(value).__name__}{{".encode())
+        for field in fields(value):
+            digest.update(f"{field.name}=".encode())
+            _feed_raw(digest, getattr(value, field.name))
+        digest.update(b"}")
+    elif isinstance(value, tuple):
+        digest.update(f"T{len(value)}[".encode())
+        if value and all(type(item) is int for item in value):
+            digest.update(b"i")
+            digest.update(np.asarray(value, dtype=np.int64).tobytes())
+        else:
+            for item in value:
+                _feed_raw(digest, item)
+        digest.update(b"]")
+    else:
+        scalar = value if type(value) in (int, str, bool) or value is None else _canonical(value)
+        digest.update(b"S")
+        digest.update(json.dumps(scalar, allow_nan=False, sort_keys=True).encode())
+        digest.update(b";")
+
+
 def canonical_result_digest(result: ProductFrameResult) -> str:
-    """SHA-256 of canonical UTF-8 JSON, sorted keys, compact separators, array bytes as hex."""
+    """SHA-256 identifying a result.
+
+    Schemas 1 to 4 keep the frozen canonical form: UTF-8 JSON, sorted keys, compact
+    separators, array bytes as hex. Schema 5 hashes a typed, length-prefixed stream of the
+    raw array bytes in field order (``drishti-raw-digest-v1``), which is much cheaper.
+    """
+    if result.schema_version >= VISIBILITY_SCHEMA_VERSION:
+        raw = hashlib.sha256(b"drishti-raw-digest-v1\n")
+        _feed_raw(raw, result)
+        return raw.hexdigest()
     encoded = json.dumps(
         _canonical(result),
         sort_keys=True,
@@ -327,6 +399,7 @@ def semantic_product_result(
     checkpoint_sha256: str,
     weights_sha256: str,
     cell_sizes_cm: tuple[int, ...],
+    backend: Literal["cpu", "cuda"] = "cpu",
     scheduled_arrival_ns: int | None = None,
 ) -> ProductFrameResult:
     """Publish semantic evidence without temporal, object or free-space claims."""
@@ -337,7 +410,7 @@ def semantic_product_result(
         result,
         run_id=run_id,
         code_revision=code_revision,
-        backend="cpu",
+        backend=backend,
         cell_sizes_cm=cell_sizes_cm,
         scheduled_arrival_ns=scheduled_arrival_ns,
     )
@@ -378,6 +451,7 @@ def candidate_product_result(
     checkpoint_sha256: str,
     weights_sha256: str,
     cell_sizes_cm: tuple[int, ...],
+    backend: Literal["cpu", "cuda"] = "cpu",
     scheduled_arrival_ns: int | None = None,
 ) -> ProductFrameResult:
     """Publish observed candidate support without tracks or occupancy claims."""
@@ -391,6 +465,7 @@ def candidate_product_result(
         checkpoint_sha256=checkpoint_sha256,
         weights_sha256=weights_sha256,
         cell_sizes_cm=cell_sizes_cm,
+        backend=backend,
         scheduled_arrival_ns=scheduled_arrival_ns,
     )
     return replace(
@@ -411,6 +486,7 @@ def tracking_product_result(
     checkpoint_sha256: str,
     weights_sha256: str,
     cell_sizes_cm: tuple[int, ...],
+    backend: Literal["cpu", "cuda"] = "cpu",
     scheduled_arrival_ns: int | None = None,
 ) -> ProductFrameResult:
     """Publish bounded association evidence with explicitly unknown metric motion."""
@@ -424,6 +500,7 @@ def tracking_product_result(
         checkpoint_sha256=checkpoint_sha256,
         weights_sha256=weights_sha256,
         cell_sizes_cm=cell_sizes_cm,
+        backend=backend,
         scheduled_arrival_ns=scheduled_arrival_ns,
     )
     return replace(
@@ -440,10 +517,100 @@ def tracking_product_result(
     )
 
 
-class InProcessProductEvaluator:
-    """Validate actual buffers and return an ordered receipt after all checks."""
+def visibility_product_result(
+    frame: ScanFrame,
+    result: FrameResult,
+    *,
+    run_id: str,
+    code_revision: str,
+    checkpoint_sha256: str,
+    weights_sha256: str,
+    cell_sizes_cm: tuple[int, ...],
+    backend: Literal["cpu", "cuda"] = "cpu",
+    scheduled_arrival_ns: int | None = None,
+) -> ProductFrameResult:
+    """Publish current-scan occupied, observed-free and unknown evidence with tracks."""
+    visibility = result.visibility
+    if visibility is None or result.timings.visibility_ms is None:
+        raise ValueError("visibility product result requires current-scan visibility evidence")
+    baseline = tracking_product_result(
+        frame,
+        result,
+        run_id=run_id,
+        code_revision=code_revision,
+        checkpoint_sha256=checkpoint_sha256,
+        weights_sha256=weights_sha256,
+        cell_sizes_cm=cell_sizes_cm,
+        backend=backend,
+        scheduled_arrival_ns=scheduled_arrival_ns,
+    )
+    cells = baseline.cells
+    free = len(visibility.free_level)
+    total = len(cells.level) + free
+    observed = result.observations
+    beam_ids = np.unique(visibility.free_beam_point_id)
+    by_id = np.argsort(observed.point_ids, kind="stable")
+    rows = by_id[np.searchsorted(observed.point_ids[by_id], beam_ids)]
+    table = BeamTable(
+        beam_id=immutable(beam_ids.astype(np.int64)),
+        point_id=immutable(beam_ids.astype(np.int64)),
+        origin_map_m=immutable(np.asarray(frame.map_from_sensor[:3, 3], dtype=np.float64)),
+        return_map_m=immutable(np.ascontiguousarray(observed.points_map_m[rows])),
+    )
+    timestamp_ns = baseline.scan_timestamp_ns
+    return replace(
+        baseline,
+        schema_version=VISIBILITY_SCHEMA_VERSION,
+        stage="visibility",
+        beam_table=table,
+        cells=replace(
+            cells,
+            level=_extend(cells.level, visibility.free_level),
+            indices=immutable(np.concatenate((cells.indices, visibility.free_indices))),
+            occupancy=_extend(
+                visibility.occupancy, np.full(free, Occupancy.OBSERVED_FREE, dtype=np.uint8)
+            ),
+            semantic_id=_extend(cells.semantic_id, np.zeros(free, dtype=np.uint8)),
+            semantic_support=_extend(cells.semantic_support, np.zeros(free, dtype=np.int64)),
+            last_observed_ns=immutable(np.full(total, timestamp_ns, dtype=np.int64)),
+            source=immutable(np.full(total, EvidenceSource.CURRENT_SCAN, dtype=np.uint8)),
+            ray_support=_extend(cells.ray_support, visibility.free_ray_support),
+            obstacle_support=_extend(visibility.obstacle_support, np.zeros(free, dtype=np.int64)),
+            uncertainty=immutable(np.full(total, -1.0, dtype=np.float64)),
+            conflict=_extend(cells.conflict, np.zeros(free, dtype=np.bool_)),
+            free_beam_id=_extend(cells.free_beam_id, visibility.free_beam_point_id),
+        ),
+        diagnostics=replace(
+            baseline.diagnostics,
+            visibility_ms=result.timings.visibility_ms,
+            map_cells=total,
+        ),
+        visibility_summary=visibility.summary,
+    )
 
-    def __init__(self) -> None:
+
+def _extend[Scalar: np.generic](
+    current: NDArray[Scalar], added: NDArray[np.generic]
+) -> NDArray[Scalar]:
+    return immutable(np.concatenate((current, added.astype(current.dtype))))
+
+
+class InProcessProductEvaluator:
+    """Validate actual buffers and return an ordered receipt after all checks.
+
+    Every receipt runs the light contract checks: provenance, sealed arrays, shapes and
+    ranges, point alignment, cell nonoverlap, tracking lifecycle, visibility summary and
+    proof references. ``audit_every`` sets how often the deep geometric re-verification
+    also runs (candidate bounds from raw points, beam and corridor geometry, conflict
+    margin, point-to-cell reconstruction): 1 audits every accepted frame, N every N-th
+    starting with the first, 0 never. Receipts record whether they were deeply audited.
+    """
+
+    def __init__(self, *, audit_every: int = 1) -> None:
+        if type(audit_every) is not int or audit_every < 0:
+            raise ValueError("audit_every must be a nonnegative integer")
+        self.audit_every = audit_every
+        self._accepted = 0
         self._sequence: str | None = None
         self._last_frame = -1
         self._last_timestamp = -1
@@ -457,8 +624,9 @@ class InProcessProductEvaluator:
 
     def receive(self, frame: ScanFrame, result: ProductFrameResult) -> ProductReceipt:
         started_ns = monotonic_ns()
+        deep = self.audit_every > 0 and self._accepted % self.audit_every == 0
         try:
-            self._validate(frame, result)
+            self._validate(frame, result, deep)
             digest = canonical_result_digest(result)
         except ValueError as exc:
             completed_ns = monotonic_ns()
@@ -473,8 +641,9 @@ class InProcessProductEvaluator:
                 ReceiptStatus.REJECTED,
                 str(exc),
                 result.stage,
+                deep,
             )
-        if result.stage == "tracking":
+        if result.stage in TRACKED_STAGES:
             instance_classes = {item.instance_id: item.semantic_id for item in result.instances}
             self._tracking_classes = {
                 track.track_id: (
@@ -509,8 +678,9 @@ class InProcessProductEvaluator:
         self._sequence = result.sequence_id
         self._last_frame = result.frame_id
         self._last_timestamp = result.scan_timestamp_ns
-        if result.stage != "tracking":
+        if result.stage not in TRACKED_STAGES:
             self._track_births.update({track.track_id: track.birth_ns for track in result.tracks})
+        self._accepted += 1
         completed_ns = monotonic_ns()
         return ProductReceipt(
             result.schema_version,
@@ -523,23 +693,26 @@ class InProcessProductEvaluator:
             ReceiptStatus.ACCEPTED,
             None,
             result.stage,
+            deep,
         )
 
-    def _validate(self, frame: ScanFrame, result: ProductFrameResult) -> None:
+    def _validate(self, frame: ScanFrame, result: ProductFrameResult, deep: bool = True) -> None:
         if type(result.schema_version) is not int or result.schema_version not in (
             SCHEMA_VERSION,
             SEMANTIC_SCHEMA_VERSION,
             CANDIDATE_SCHEMA_VERSION,
             TRACKING_SCHEMA_VERSION,
+            VISIBILITY_SCHEMA_VERSION,
         ):
             raise ValueError("unsupported-schema")
-        if result.stage not in ("diagnostic", "semantic", "candidate", "tracking", "complete"):
+        if result.stage not in (*LEARNED_STAGES, "diagnostic", "complete"):
             raise ValueError("invalid-stage")
         stage_schemas = {
             "diagnostic": SCHEMA_VERSION,
             "semantic": SEMANTIC_SCHEMA_VERSION,
             "candidate": CANDIDATE_SCHEMA_VERSION,
             "tracking": TRACKING_SCHEMA_VERSION,
+            "visibility": VISIBILITY_SCHEMA_VERSION,
             "complete": SCHEMA_VERSION,
         }
         if result.schema_version != stage_schemas[result.stage]:
@@ -599,7 +772,7 @@ class InProcessProductEvaluator:
             raise ValueError("incomplete-provenance")
         if result.stage == "diagnostic" and result.checkpoint_sha256 is not None:
             raise ValueError("diagnostic-checkpoint")
-        if result.stage in ("semantic", "candidate", "tracking") and (
+        if result.stage in LEARNED_STAGES and (
             not _is_sha256(result.checkpoint_sha256)
             or not _is_sha256(result.model_weights_sha256)
             or result.model_source_revision != FRNET_REVISION
@@ -607,7 +780,7 @@ class InProcessProductEvaluator:
             or result.diagnostics.model_ms is None
         ):
             raise ValueError("semantic-provenance")
-        if result.stage not in ("semantic", "candidate", "tracking") and any(
+        if result.stage not in LEARNED_STAGES and any(
             value is not None
             for value in (
                 result.model_source_revision,
@@ -618,15 +791,23 @@ class InProcessProductEvaluator:
             raise ValueError("unexpected-model-provenance")
         _validate_arrays(result)
         _validate_points(frame, result)
-        _validate_objects(frame, result, self._track_births)
-        _validate_cells(frame, result)
+        _validate_objects(frame, result, self._track_births, deep)
+        _validate_cells(frame, result, deep)
         _validate_diagnostics(result.diagnostics, result)
-        if (self._last_stage == "tracking") != (result.stage == "tracking") and self._last_stage:
+        if (
+            self._last_stage
+            and self._last_stage != result.stage
+            and (self._last_stage in TRACKED_STAGES or result.stage in TRACKED_STAGES)
+        ):
             raise ValueError("tracking-stage-change")
-        if result.stage == "tracking":
+        if result.stage in TRACKED_STAGES:
             self._validate_tracking(result)
         elif result.tracking_summary is not None:
             raise ValueError("unexpected-tracking-summary")
+        if result.stage == "visibility":
+            _validate_visibility(frame, result, deep)
+        elif result.visibility_summary is not None or result.beam_table is not None:
+            raise ValueError("unexpected-visibility-summary")
 
     def _validate_tracking(self, result: ProductFrameResult) -> None:
         summary = result.tracking_summary
@@ -637,8 +818,7 @@ class InProcessProductEvaluator:
             or not 1 <= summary.capacity <= MAX_TRACKS
             or (self._tracking_capacity is not None and summary.capacity != self._tracking_capacity)
             or result.diagnostics.association_ms is None
-            or result.backend != "cpu"
-            or result.beams
+            or (result.beams and result.stage != "visibility")
             or result.allow_overlapping_instance_support
         ):
             raise ValueError("tracking-contract")
@@ -760,7 +940,9 @@ def _validate_arrays(value: object) -> None:
             _validate_arrays(getattr(value, field.name))
     elif isinstance(value, tuple):
         for item in value:
-            _validate_arrays(item)
+            # Plain scalars and beam proofs (ints and float triples) cannot hold arrays.
+            if type(item) not in (int, float, str, bool, BeamProof) and item is not None:
+                _validate_arrays(item)
 
 
 def _validate_points(frame: ScanFrame, result: ProductFrameResult) -> None:
@@ -776,10 +958,15 @@ def _validate_points(frame: ScanFrame, result: ProductFrameResult) -> None:
     )
     if any(values.shape != (count,) or values.dtype != dtype for values, dtype in specs):
         raise ValueError("point-shape-dtype")
-    input_positions = {int(point_id): index for index, point_id in enumerate(frame.point_ids)}
-    positions = [input_positions.get(int(point_id), -1) for point_id in result.point_ids]
-    if any(index < 0 for index in positions) or any(
-        later <= earlier for earlier, later in zip(positions, positions[1:], strict=False)
+    # Every accepted ID must exist in the input and keep strictly increasing input order.
+    order = np.argsort(frame.point_ids, kind="stable")
+    sorted_ids = frame.point_ids[order]
+    found = np.searchsorted(sorted_ids, result.point_ids)
+    clipped = np.minimum(found, max(len(sorted_ids) - 1, 0))
+    if len(result.point_ids) and (
+        not len(sorted_ids)
+        or np.any(sorted_ids[clipped] != result.point_ids)
+        or np.any(np.diff(order[clipped]) <= 0)
     ):
         raise ValueError("point-id-alignment")
     if np.any(result.semantic_id > 19) or np.any(result.motion_state > 2):
@@ -797,7 +984,7 @@ def _validate_points(frame: ScanFrame, result: ProductFrameResult) -> None:
         np.any(result.semantic_id) or np.any(result.motion_state) or np.any(result.semantic_support)
     ):
         raise ValueError("diagnostic-claims")
-    if result.stage in ("semantic", "candidate", "tracking") and (
+    if result.stage in LEARNED_STAGES and (
         np.any(result.motion_state)
         or np.any(result.motion_confidence)
         or np.any(result.semantic_support != (result.semantic_id != 0))
@@ -806,11 +993,14 @@ def _validate_points(frame: ScanFrame, result: ProductFrameResult) -> None:
 
 
 def _validate_objects(
-    frame: ScanFrame, result: ProductFrameResult, track_births: dict[int, int]
+    frame: ScanFrame, result: ProductFrameResult, track_births: dict[int, int], deep: bool = True
 ) -> None:
     accepted = set(result.point_ids.tolist())
-    input_positions = {int(point_id): index for index, point_id in enumerate(frame.point_ids)}
-    accepted_positions = {int(point_id): index for index, point_id in enumerate(result.point_ids)}
+    input_positions: dict[int, int] = {}
+    accepted_positions: dict[int, int] = {}
+    if deep and result.stage in ("candidate", *TRACKED_STAGES):
+        input_positions = {int(p): index for index, p in enumerate(frame.point_ids)}
+        accepted_positions = {int(p): index for index, p in enumerate(result.point_ids)}
     instance_ids: set[int] = set()
     used_support: set[int] = set()
     for instance in result.instances:
@@ -849,7 +1039,7 @@ def _validate_objects(
             )
         ):
             raise ValueError("instance-geometry")
-        if result.stage in ("candidate", "tracking"):
+        if result.stage in ("candidate", *TRACKED_STAGES):
             if not instance.point_ids or instance.point_ids != tuple(sorted(instance.point_ids)):
                 raise ValueError("candidate-support-order")
             if instance.instance_id != len(instance_ids) - 1:
@@ -859,6 +1049,8 @@ def _validate_objects(
                 and (instance.semantic_id == 0 or len(instance.point_ids) < 3)
             ):
                 raise ValueError("candidate-ambiguity")
+            if not deep:
+                continue
             source_positions = [input_positions[point_id] for point_id in instance.point_ids]
             source = frame.points_sensor[source_positions, :3].astype(np.float64)
             mapped = source @ frame.map_from_sensor[:3, :3].T + frame.map_from_sensor[:3, 3]
@@ -914,7 +1106,7 @@ def _validate_objects(
         raise ValueError("candidate-temporal-claims")
 
 
-def _validate_cells(frame: ScanFrame, result: ProductFrameResult) -> None:
+def _validate_cells(frame: ScanFrame, result: ProductFrameResult, deep: bool = True) -> None:
     cells = result.cells
     n = len(cells.level)
     specs = (
@@ -956,76 +1148,131 @@ def _validate_cells(frame: ScanFrame, result: ProductFrameResult) -> None:
         cells.last_observed_ns > result.scan_timestamp_ns
     ):
         raise ValueError("cell-time")
-    keys: set[tuple[int, int, int]] = set()
-    for level, xy in zip(cells.level.tolist(), cells.indices.tolist(), strict=True):
-        key = (level, xy[0], xy[1])
-        if key in keys:
-            raise ValueError("cell-overlap")
-        keys.add(key)
-    for level, x, y in keys:
+    if n and int(np.abs(cells.indices).max()) >= 1 << 25:
+        raise ValueError("cell-index")
+    packed = pack_cells(cells.level, cells.indices)
+    if len(np.unique(packed)) != n:
+        raise ValueError("cell-overlap")
+    for level in range(len(sizes)):
+        finer = cells.indices[cells.level == level]
         for coarser in range(level + 1, len(sizes)):
             ratio = sizes[coarser] // sizes[level]
-            if (coarser, x // ratio, y // ratio) in keys:
+            parents = pack_cells(np.full(len(finer), coarser, dtype=np.int64), finer // ratio)
+            if np.any(np.isin(parents, packed)):
                 raise ValueError("cell-overlap")
-    proof_ids = {beam.beam_id for beam in result.beams}
-    if len(proof_ids) != len(result.beams):
+    beam_ids, beam_points, origins, returns = _beam_columns(result)
+    if len(np.unique(beam_ids)) != len(beam_ids):
         raise ValueError("beam-id")
-    accepted = set(result.point_ids.tolist())
-    point_positions = {int(point_id): index for index, point_id in enumerate(frame.point_ids)}
-    for beam in result.beams:
+    if len(beam_ids):
         if (
-            beam.beam_id < 0
-            or beam.point_id not in accepted
-            or not all(math.isfinite(value) for value in (*beam.origin_map_m, *beam.return_map_m))
+            np.any(beam_ids < 0)
+            or origins.shape != (len(beam_ids), 3)
+            or returns.shape != (len(beam_ids), 3)
+            or not np.isin(beam_points, result.point_ids).all()
+            or not np.isfinite(origins).all()
+            or not np.isfinite(returns).all()
         ):
             raise ValueError("beam-support")
-        if not np.allclose(beam.origin_map_m, frame.map_from_sensor[:3, 3], rtol=0, atol=1e-6):
+        if not np.allclose(origins, frame.map_from_sensor[:3, 3], rtol=0, atol=1e-6):
             raise ValueError("beam-origin-mismatch")
-        source_point = frame.points_sensor[point_positions[beam.point_id], :3].astype(np.float64)
-        expected_return = (
-            frame.map_from_sensor[:3, :3] @ source_point + frame.map_from_sensor[:3, 3]
+    point_positions = {int(p): index for index, p in enumerate(frame.point_ids)} if deep else {}
+    if len(beam_ids) and deep:
+        source = frame.points_sensor[[point_positions[int(p)] for p in beam_points], :3]
+        expected = (
+            source.astype(np.float64) @ frame.map_from_sensor[:3, :3].T
+            + frame.map_from_sensor[:3, 3]
         )
-        if not np.allclose(expected_return, beam.return_map_m, rtol=0, atol=1e-6):
+        if not np.allclose(expected, returns, rtol=0, atol=1e-6):
             raise ValueError("beam-return-mismatch")
-    beams = {beam.beam_id: beam for beam in result.beams}
-    occupied_keys: dict[int, set[tuple[int, int]]] = {}
-    if np.any(cells.occupancy == Occupancy.OBSERVED_FREE):
+    free = cells.occupancy == Occupancy.OBSERVED_FREE
+    if np.any(~free & (cells.free_beam_id != -1)):
+        raise ValueError("unexpected-free-proof")
+    if np.any(free):
+        rows = np.flatnonzero(free)
+        proof = cells.free_beam_id[rows]
+        if np.any(cells.ray_support[rows] < 1) or not np.isin(proof, beam_ids).all():
+            raise ValueError("unsupported-free")
+    if np.any(free) and deep:
+        rows = np.flatnonzero(free)
+        proof = cells.free_beam_id[rows]
         selected = [point_positions[int(point_id)] for point_id in result.point_ids]
         xyz_sensor = frame.points_sensor[selected, :3].astype(np.float64)
         xyz_map = xyz_sensor @ frame.map_from_sensor[:3, :3].T + frame.map_from_sensor[:3, 3]
-        for level, width_cm in enumerate(sizes):
+        free_level = cells.level[rows]
+        indices = cells.indices[rows]
+        for current, width_cm in enumerate(sizes):
             xy_index = np.floor(xyz_map[:, :2] / (width_cm / 100)).astype(np.int64)
-            occupied_keys[level] = set(map(tuple, xy_index.tolist()))
-    for level, xy, occupancy, ray_count, beam_id in zip(
-        cells.level,
-        cells.indices,
-        cells.occupancy,
-        cells.ray_support,
-        cells.free_beam_id,
-        strict=True,
-    ):
-        if occupancy == Occupancy.OBSERVED_FREE:
-            if ray_count < 1 or int(beam_id) not in proof_ids:
+            at_level = free_level == current
+            occupied = pack_cells(np.full(len(xy_index), current, dtype=np.int64), xy_index)
+            if np.any(np.isin(pack_cells(free_level[at_level], indices[at_level]), occupied)):
                 raise ValueError("unsupported-free")
-            beam = beams[int(beam_id)]
-            width_m = sizes[int(level)] / 100
-            low = xy.astype(np.float64) * width_m
-            high = low + width_m
-            if tuple(xy.tolist()) in occupied_keys[int(level)]:
-                raise ValueError("unsupported-free")
-            start = np.asarray(beam.origin_map_m[:2])
-            return_xy = np.asarray(beam.return_map_m[:2])
-            if np.all((return_xy >= low) & (return_xy < high)):
-                raise ValueError("unsupported-free")
-            delta = return_xy - start
-            if not _segment_crosses_open_cell(start, delta, low, high):
-                raise ValueError("unsupported-free")
-        elif beam_id != -1:
-            raise ValueError("unexpected-free-proof")
+        order = np.argsort(beam_ids)
+        beam_rows = order[np.searchsorted(beam_ids[order], proof)]
+        width_m = np.asarray(sizes, dtype=np.float64)[free_level] / 100
+        low = indices.astype(np.float64) * width_m[:, None]
+        high = low + width_m[:, None]
+        start = origins[beam_rows, :2]
+        return_xy = returns[beam_rows, :2]
+        if np.any(np.all((return_xy >= low) & (return_xy < high), axis=1)):
+            raise ValueError("unsupported-free")
+        if not np.all(_segments_cross_open_cells(start, return_xy - start, low, high)):
+            raise ValueError("unsupported-free")
     if result.stage in ("diagnostic", "semantic", "candidate", "tracking") and np.any(
         (cells.occupancy != Occupancy.UNKNOWN) & (cells.occupancy != Occupancy.AMBIGUOUS)
     ):
         raise ValueError("diagnostic-occupancy")
+
+
+def _beam_columns(
+    result: ProductFrameResult,
+) -> tuple[IntArray, IntArray, FloatArray, FloatArray]:
+    """Beam IDs, point IDs, origins (B, 3) and returns (B, 3) from either representation."""
+    table = result.beam_table
+    if table is None:
+        if not result.beams:
+            empty = np.empty(0, dtype=np.int64)
+            return empty, empty, np.empty((0, 3)), np.empty((0, 3))
+        origins = np.array([beam.origin_map_m for beam in result.beams], dtype=np.float64)
+        returns = np.array([beam.return_map_m for beam in result.beams], dtype=np.float64)
+        return (
+            np.array([beam.beam_id for beam in result.beams], dtype=np.int64),
+            np.array([beam.point_id for beam in result.beams], dtype=np.int64),
+            origins.reshape(len(result.beams), -1),
+            returns.reshape(len(result.beams), -1),
+        )
+    count = len(table.beam_id)
+    if (
+        table.beam_id.shape != (count,)
+        or table.beam_id.dtype != np.int64
+        or table.point_id.shape != (count,)
+        or table.point_id.dtype != np.int64
+        or table.origin_map_m.shape != (3,)
+        or table.origin_map_m.dtype != np.float64
+        or table.return_map_m.shape != (count, 3)
+        or table.return_map_m.dtype != np.float64
+    ):
+        raise ValueError("beam-table-shape")
+    origins = np.broadcast_to(table.origin_map_m, (count, 3))
+    return table.beam_id, table.point_id, origins, table.return_map_m
+
+
+def _segments_cross_open_cells(
+    start: FloatArray, delta: FloatArray, low: FloatArray, high: FloatArray
+) -> BoolArray:
+    """Row-wise ``_segment_crosses_open_cell`` for (M, 2) arrays, with identical arithmetic."""
+    enter = np.zeros(len(start), dtype=np.float64)
+    exit_ = np.ones(len(start), dtype=np.float64)
+    valid = np.ones(len(start), dtype=np.bool_)
+    for axis in range(2):
+        still = delta[:, axis] == 0
+        inside = (low[:, axis] < start[:, axis]) & (start[:, axis] < high[:, axis])
+        valid &= ~still | inside
+        step = np.where(still, 1.0, delta[:, axis])
+        first = (low[:, axis] - start[:, axis]) / step
+        second = (high[:, axis] - start[:, axis]) / step
+        enter = np.where(still, enter, np.maximum(enter, np.minimum(first, second)))
+        exit_ = np.where(still, exit_, np.minimum(exit_, np.maximum(first, second)))
+    return np.asarray(valid & (enter < exit_) & (enter < 1) & (exit_ > 0), dtype=np.bool_)
 
 
 def _segment_crosses_open_cell(
@@ -1046,6 +1293,156 @@ def _segment_crosses_open_cell(
     return enter < exit_ and enter < 1 and exit_ > 0
 
 
+def _validate_visibility(frame: ScanFrame, result: ProductFrameResult, deep: bool = True) -> None:
+    """Check current-scan occupancy against the payload's own returns, proofs and candidates."""
+    summary = result.visibility_summary
+    cells = result.cells
+    if (
+        summary is None
+        or result.beam_table is None
+        or result.beams
+        or summary.method != VISIBILITY_METHOD
+        or type(summary.max_free_cells) is not int
+        or not 1 <= summary.max_free_cells <= MAX_FREE_CELLS
+        or any(
+            type(value) is not float or not math.isfinite(value) or value <= 0
+            for value in (summary.tau_free_m, summary.corridor_max_m, summary.conflict_margin_m)
+        )
+        or summary.deskew_status != frame.deskew_status
+    ):
+        raise ValueError("visibility-contract")
+    occupancy = cells.occupancy
+    free = occupancy == Occupancy.OBSERVED_FREE
+    counters = (
+        summary.qualifying_beams,
+        summary.free_cells,
+        summary.occupied_cells,
+        summary.ambiguous_cells,
+        summary.unknown_cells,
+        summary.rejected_free_cells,
+    )
+    if (
+        any(type(value) is not int or value < 0 for value in counters)
+        or summary.free_cells != np.count_nonzero(free)
+        or summary.occupied_cells != np.count_nonzero(occupancy == Occupancy.OCCUPIED)
+        or summary.ambiguous_cells != np.count_nonzero(occupancy == Occupancy.AMBIGUOUS)
+        or summary.unknown_cells != np.count_nonzero(occupancy == Occupancy.UNKNOWN)
+        or summary.free_cells > summary.max_free_cells
+        or (summary.rejected_free_cells > 0 and summary.free_cells != summary.max_free_cells)
+        or len(_beam_columns(result)[0]) > summary.qualifying_beams
+    ):
+        raise ValueError("visibility-summary")
+    if (
+        np.any(occupancy == Occupancy.STALE)
+        or np.any(cells.source != EvidenceSource.CURRENT_SCAN)
+        or np.any(cells.last_observed_ns != result.scan_timestamp_ns)
+        or np.any(cells.uncertainty != -1)
+    ):
+        raise ValueError("visibility-temporal-claims")
+    if (
+        np.any((occupancy == Occupancy.OCCUPIED) & (cells.obstacle_support < 1))
+        or np.any((occupancy == Occupancy.UNKNOWN) & (cells.obstacle_support != 0))
+        or np.any(free & ((cells.obstacle_support != 0) | cells.conflict))
+        or np.any(free & ((cells.semantic_id != 0) | (cells.semantic_support != 0)))
+        or np.any(~free & (cells.ray_support != 0))
+    ):
+        raise ValueError("visibility-occupancy-support")
+    if not deep:
+        return
+
+    # Deep audit: recompute each accepted return's owning listed cell with the mapping rule.
+    input_positions = {int(point_id): index for index, point_id in enumerate(frame.point_ids)}
+    selected = [input_positions[int(point_id)] for point_id in result.point_ids]
+    xyz = (
+        frame.points_sensor[selected, :3].astype(np.float64) @ frame.map_from_sensor[:3, :3].T
+        + frame.map_from_sensor[:3, 3]
+    )
+    n = len(selected)
+    base = np.floor(xyz[:, :2] / 0.05).astype(np.int64)
+    listed = pack_cells(cells.level, cells.indices)
+    order = np.argsort(listed)
+    ordered = listed[order]
+    point_cell = np.full(n, -1, dtype=np.int64)
+    sizes = cells.cell_sizes_cm
+    for level, size in enumerate(sizes):
+        if not len(ordered):
+            break
+        keys = pack_cells(np.full(n, level, dtype=np.int64), base // (size // sizes[0]))
+        where = np.minimum(np.searchsorted(ordered, keys), len(ordered) - 1)
+        hit = (ordered[where] == keys) & (point_cell < 0)
+        point_cell[hit] = order[where[hit]]
+    if np.any(point_cell < 0) or np.any(free[point_cell]):
+        raise ValueError("visibility-point-cell")
+    returns = np.bincount(point_cell, minlength=len(listed))
+    if np.any(~free & (returns == 0)) or np.any(cells.obstacle_support > returns):
+        raise ValueError("visibility-unsupported-cell")
+    accepted_positions = {int(point_id): index for index, point_id in enumerate(result.point_ids)}
+    support = [accepted_positions[p] for item in result.instances for p in item.point_ids]
+    supported = occupancy[point_cell[support]]
+    if np.any((supported != Occupancy.OCCUPIED) & (supported != Occupancy.AMBIGUOUS)):
+        raise ValueError("visibility-candidate-cell")
+
+    if not np.any(free):
+        return
+    settings = VisibilitySettings(
+        summary.tau_free_m, summary.corridor_max_m, summary.conflict_margin_m
+    )
+    origin = frame.map_from_sensor[:3, 3]
+    rows = np.flatnonzero(free)
+    beam_ids, beam_points, _, beam_returns = _beam_columns(result)
+    order = np.argsort(beam_ids)
+    used = order[np.searchsorted(beam_ids[order], cells.free_beam_id[rows])]
+    proof_semantic = result.semantic_id[[accepted_positions[int(p)] for p in beam_points[used]]]
+    if (
+        np.any(beam_ids[used] != beam_points[used])
+        or not np.isin(proof_semantic, GROUND_SEMANTIC_IDS).all()
+    ):
+        raise ValueError("visibility-beam")
+    returned = beam_returns[used]
+    fraction = corridor_start_fraction(origin, returned, settings)
+    width_m = np.asarray(sizes, dtype=np.float64)[cells.level[rows]] / 100
+    low = cells.indices[rows].astype(np.float64) * width_m[:, None]
+    high = low + width_m[:, None]
+    start = origin[:2] + fraction[:, None] * (returned[:, :2] - origin[:2])
+    if not np.isfinite(fraction).all() or not np.all(
+        _segments_cross_open_cells(start, returned[:, :2] - start, low, high)
+    ):
+        raise ValueError("visibility-corridor")
+
+    # Any non-ground-semantic or candidate-supporting return inside the margin forbids free.
+    margin = summary.conflict_margin_m
+    conflict = ~np.isin(result.semantic_id, GROUND_SEMANTIC_IDS)
+    conflict[support] = True
+    conflict_xy = xyz[conflict, :2]
+    if not len(conflict_xy):
+        return
+    buckets = np.floor(conflict_xy / margin).astype(np.int64)
+    first = np.floor((low - margin) / margin).astype(np.int64)
+    last = np.floor((high + margin) / margin).astype(np.int64)
+    if max(np.abs(buckets).max(), np.abs(first).max(), np.abs(last).max()) >= 1 << 24:
+        raise ValueError("visibility-contract")
+    packed = pack_cells(np.zeros(len(buckets), dtype=np.int64), buckets)
+    by_bucket = np.argsort(packed)
+    sorted_keys = packed[by_bucket]
+    span = int((last - first).max()) + 1
+    for dx in range(span):
+        for dy in range(span):
+            bucket = first + (dx, dy)
+            valid = np.all(bucket <= last, axis=1)
+            key = pack_cells(np.zeros(len(bucket), dtype=np.int64), bucket)
+            lower = np.searchsorted(sorted_keys, key, side="left")
+            counts = np.where(valid, np.searchsorted(sorted_keys, key, side="right") - lower, 0)
+            total = int(counts.sum())
+            if not total:
+                continue
+            cell = np.repeat(np.arange(len(bucket)), counts)
+            offset = np.arange(total) - np.repeat(np.cumsum(counts) - counts, counts)
+            points = conflict_xy[by_bucket[np.repeat(lower, counts) + offset]]
+            gap = np.maximum(np.maximum(low[cell] - points, points - high[cell]), 0)
+            if np.any(np.hypot(gap[:, 0], gap[:, 1]) < margin):
+                raise ValueError("visibility-margin")
+
+
 def _validate_diagnostics(value: ProductDiagnostics, result: ProductFrameResult) -> None:
     for field in fields(value):
         item = getattr(value, field.name)
@@ -1059,8 +1456,10 @@ def _validate_diagnostics(value: ProductDiagnostics, result: ProductFrameResult)
         raise ValueError("invalid-counter")
     if value.map_cells != len(result.cells.level) or value.track_count != len(result.tracks):
         raise ValueError("state-size-mismatch")
-    if result.stage in ("candidate", "tracking") and value.detector_ms is None:
+    if result.stage in ("candidate", *TRACKED_STAGES) and value.detector_ms is None:
         raise ValueError("missing-detector-time")
+    if (result.stage == "visibility") != (value.visibility_ms is not None):
+        raise ValueError("visibility-time")
     if value.process_rss_bytes is not None and value.process_rss_bytes < 0:
         raise ValueError("invalid-memory")
     if value.device_memory_status not in ("unavailable", "sampled") or (

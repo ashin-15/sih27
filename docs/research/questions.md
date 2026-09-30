@@ -40,7 +40,7 @@ Status vocabulary: TODO, IN PROGRESS, BLOCKED, VALIDATION, DONE. A DONE question
 - Hypothesis: HYPOTHESIS, only calibrated valid returns can support traversed free cells; no-return areas stay unknown.
 - Evidence required: ray and occlusion fixtures, pose perturbations, held-out false-free metrics and bounded compute cost.
 - Falsifier: Any unsupported or occluded cell is declared free under the selected policy.
-- Status: IN PROGRESS for sensor-model literature; policy selection BLOCKED by D-003 and map output contract. Conclusion: UNKNOWN. Engineering impact: T-006.
+- Status: IN PROGRESS. Experiment 0035 measures 0.549% static false-free cells on sequence 08 with the approved rule (E-063). D-003 selects evidence-only output. Experiment 0031 screens SemanticKITTI completion voxels as a held-out false-free route and drafts a current-scan ground-terminated-beam policy in the [T-006 contract](../t-006-visibility-proposal.md), pending owner approval. Voxel availability on the data host is UNKNOWN; no policy is measured. Conclusion: UNKNOWN. Engineering impact: T-006.
 
 ## RQ-004 - Real-time feasibility
 

@@ -5,6 +5,7 @@ headless package continues to run on machines without an NVIDIA device.
 """
 
 import importlib
+import warnings
 from typing import Any
 
 import numpy as np
@@ -17,6 +18,53 @@ from drishti.mapping import MapSnapshot, aggregate_cells
 from drishti.projection import RangeImage
 from drishti.semantics import CLASS_NAMES, Motion
 
+# Bounded device memory: CuPy caches freed blocks indefinitely, and on Windows (WDDM) a
+# pool that outgrows VRAM spills into system RAM as process private memory. With a limit,
+# CuPy releases cached blocks and retries before failing.
+CUPY_POOL_LIMIT_BYTES = 1536 * 2**20
+
+
+def import_cupy() -> Any:
+    """Import CuPy, silencing only its advisory CUDA_PATH warning.
+
+    Pip-packaged CUDA libraries (``cupy-cuda12x[ctk]``) have no single toolkit directory, so
+    CuPy warns before locating them itself. A genuine load failure still raises ImportError.
+    """
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message="CUDA path could not be detected", category=UserWarning
+        )
+        return importlib.import_module("cupy")
+
+
+def owner_keys(xp: Any, xy: Any, sensor: Any, config: MappingConfig) -> Any:
+    """Array-module form of ``mapping.resolve_owners``; returns (level, x, y) rows.
+
+    ``xy`` and ``sensor`` must already be validated and live on ``xp``'s device.
+    """
+    base = xp.floor(xy / 0.05).astype(xp.int64)
+    level = xp.full(len(base), len(config.ratios) - 1, dtype=xp.int64)
+    for current in range(len(config.ratios) - 1, 0, -1):
+        width_m = config.cell_sizes_cm[current] / 100
+        lower_m = (base // config.ratios[current]) * width_m
+        dx_m = xp.maximum(
+            xp.maximum(lower_m[:, 0] - sensor[0], sensor[0] - (lower_m[:, 0] + width_m)),
+            0,
+        )
+        dy_m = xp.maximum(
+            xp.maximum(lower_m[:, 1] - sensor[1], sensor[1] - (lower_m[:, 1] + width_m)),
+            0,
+        )
+        closest_m = (
+            xp.sqrt(dx_m * dx_m + dy_m * dy_m)
+            if config.footprint == "radial"
+            else xp.maximum(dx_m, dy_m)
+        )
+        promote = (level == current) & (closest_m < config.radii_m[current - 1])
+        level[promote] -= 1
+    ratios = xp.asarray(config.ratios, dtype=xp.int64)[level]
+    return xp.column_stack((level, base // ratios[:, None]))
+
 
 class CudaFramePath:
     """Run range projection and cell reductions on a CUDA device.
@@ -27,12 +75,15 @@ class CudaFramePath:
 
     def __init__(self) -> None:
         try:
-            self.cp = importlib.import_module("cupy")
+            self.cp = import_cupy()
             if self.cp.cuda.runtime.getDeviceCount() < 1:
                 raise RuntimeError("no NVIDIA CUDA device is available")
             # An import and device count do not prove kernels can launch.
             if int((self.cp.arange(4, dtype=self.cp.int32) * 2).sum()) != 12:
                 raise RuntimeError("CUDA kernel launch returned an unexpected result")
+            pool = self.cp.get_default_memory_pool()
+            if pool.get_limit() == 0 or pool.get_limit() > CUPY_POOL_LIMIT_BYTES:
+                pool.set_limit(size=CUPY_POOL_LIMIT_BYTES)
         except (ImportError, OSError, RuntimeError) as exc:
             raise RuntimeError(
                 "CUDA requires a working NVIDIA device and a matching CuPy installation"
@@ -41,10 +92,14 @@ class CudaFramePath:
     @staticmethod
     def available() -> bool:
         try:
-            cp = importlib.import_module("cupy")
+            cp = import_cupy()
             return bool(cp.cuda.runtime.getDeviceCount() > 0)
         except (ImportError, OSError, RuntimeError):
             return False
+
+    def release_host_cache(self) -> None:
+        """Return cached page-locked host blocks; they would otherwise accumulate per frame."""
+        self.cp.get_default_pinned_memory_pool().free_all_blocks()
 
     def _host(self, values: Any) -> np.ndarray[Any, Any]:
         return np.asarray(self.cp.asnumpy(values))
@@ -61,30 +116,7 @@ class CudaFramePath:
             raise ValueError("ownership coordinates exceed the configured lattice bound")
 
         cp = self.cp
-        xy = cp.asarray(xy_map_m)
-        sensor = cp.asarray(sensor_xy_m)
-        base = cp.floor(xy / 0.05).astype(cp.int64)
-        level = cp.full(len(base), len(config.ratios) - 1, dtype=cp.int64)
-        for current in range(len(config.ratios) - 1, 0, -1):
-            width_m = config.cell_sizes_cm[current] / 100
-            lower_m = (base // config.ratios[current]) * width_m
-            dx_m = cp.maximum(
-                cp.maximum(lower_m[:, 0] - sensor[0], sensor[0] - (lower_m[:, 0] + width_m)),
-                0,
-            )
-            dy_m = cp.maximum(
-                cp.maximum(lower_m[:, 1] - sensor[1], sensor[1] - (lower_m[:, 1] + width_m)),
-                0,
-            )
-            closest_m = (
-                cp.sqrt(dx_m * dx_m + dy_m * dy_m)
-                if config.footprint == "radial"
-                else cp.maximum(dx_m, dy_m)
-            )
-            promote = (level == current) & (closest_m < config.radii_m[current - 1])
-            level[promote] -= 1
-        ratios = cp.asarray(config.ratios, dtype=cp.int64)[level]
-        return cp.column_stack((level, base // ratios[:, None]))
+        return owner_keys(cp, cp.asarray(xy_map_m), cp.asarray(sensor_xy_m), config)
 
     def project(self, points: PointArray, point_ids: IntArray, config: MappingConfig) -> RangeImage:
         if points.ndim != 2 or points.shape[1] != 4 or point_ids.shape != (len(points),):
@@ -108,14 +140,24 @@ class CudaFramePath:
         columns = columns.astype(cp.int64) % config.projection_columns
         pixels = rows * config.projection_columns + columns
         shape = (config.projection_rows, config.projection_columns)
-        image = cp.full(shape, cp.inf, dtype=cp.float64)
-        cp.minimum.at(image.ravel(), pixels, ranges[indices])
-        nearest = ranges[indices] == image.ravel()[pixels]
-        owners = cp.full(shape, np.iinfo(np.int64).max, dtype=cp.int64)
-        cp.minimum.at(owners.ravel(), pixels[nearest], ids[indices][nearest])
-        valid = cp.isfinite(image)
-        image[~valid] = cp.nan
-        owners[~valid] = -1
+        # Exact winner per pixel: nearest range, then lowest original ID, as on the CPU.
+        # Sorting avoids float64 minimum.at, which returned float32-rounded ranges on
+        # CuPy 14.2 (experiment 0032).
+        eligible_ranges = ranges[indices]
+        eligible_ids = ids[indices]
+        flat_image = cp.full(shape[0] * shape[1], cp.nan, dtype=cp.float64)
+        flat_owners = cp.full(shape[0] * shape[1], -1, dtype=cp.int64)
+        if int(indices.size):
+            order = cp.lexsort(cp.stack((eligible_ids, eligible_ranges, pixels)))
+            sorted_pixels = pixels[order]
+            first = cp.ones(len(order), dtype=cp.bool_)
+            first[1:] = sorted_pixels[1:] != sorted_pixels[:-1]
+            winners = order[first]
+            flat_image[pixels[winners]] = eligible_ranges[winners]
+            flat_owners[pixels[winners]] = eligible_ids[winners]
+        image = flat_image.reshape(shape)
+        owners = flat_owners.reshape(shape)
+        valid = owners >= 0
         valid_count = int(cp.count_nonzero(valid))
         eligible_count = int(indices.size)
         return RangeImage(
@@ -161,7 +203,8 @@ class CudaFramePath:
 
         cp = self.cp
         keys = self._cell_keys(xyz_map_m, sensor_xy_m, config)
-        order = cp.lexsort((keys[:, 2], keys[:, 1], keys[:, 0]))
+        # CuPy requires one stacked key array; NumPy also accepts this form.
+        order = cp.lexsort(cp.stack((keys[:, 2], keys[:, 1], keys[:, 0])))
         ordered = keys[order]
         starts = cp.empty(len(keys), dtype=cp.bool_)
         starts[0] = True
@@ -178,8 +221,8 @@ class CudaFramePath:
         ground_device = cp.asarray(ground)
         semantic_device = cp.asarray(semantic)
         motion_device = cp.asarray(motion)
-        is_ground = ground_device == GroundClass.GROUND
-        is_obstacle = ground_device == GroundClass.NONGROUND
+        is_ground = ground_device == int(GroundClass.GROUND)
+        is_obstacle = ground_device == int(GroundClass.NONGROUND)
 
         def counts(mask: Any) -> Any:
             return cp.bincount(inverse_device[mask], minlength=n)
@@ -193,7 +236,7 @@ class CudaFramePath:
             return cp.where(valid, low, 0), cp.where(valid, high, 0)
 
         ground_count_device = counts(is_ground)
-        unknown_ground_count_device = counts(ground_device == GroundClass.UNKNOWN)
+        unknown_ground_count_device = counts(ground_device == int(GroundClass.UNKNOWN))
         obstacle_count_device = counts(is_obstacle)
         ground_low_device, ground_high_device = bounds(is_ground)
         observed_low_device, observed_high_device = bounds(cp.ones(len(keys), dtype=cp.bool_))
@@ -262,8 +305,8 @@ class CudaFramePath:
             stationary_count, moving_count = self._host(
                 cp.stack(
                     (
-                        counts(motion_device == Motion.STATIONARY),
-                        counts(motion_device == Motion.MOVING),
+                        counts(motion_device == int(Motion.STATIONARY)),
+                        counts(motion_device == int(Motion.MOVING)),
                     )
                 )
             ).astype(np.int64)

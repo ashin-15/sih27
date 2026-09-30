@@ -158,7 +158,7 @@ def test_candidate_result_on_shared_engine_path_and_evaluator_guards() -> None:
         InProcessProductEvaluator().receive(frame, replace(product, schema_version=2)).error_code
         == "unsupported-schema"
     )
-    with pytest.raises(ValueError, match="learned CPU"):
+    with pytest.raises(ValueError, match="require learned mode"):
         MappingEngine(MappingConfig(), detector=ConnectedComponentDetector())
 
 

@@ -15,6 +15,7 @@ from drishti.mapping import MapSnapshot, aggregate_cells
 from drishti.obstacles import InstanceEvidence, ObstacleDetector
 from drishti.projection import RangeImage, project
 from drishti.tracking import CandidateTracker, TrackingUpdate
+from drishti.visibility import CurrentScanVisibility, VisibilityEvidence
 
 if TYPE_CHECKING:
     from drishti.product_result import (
@@ -47,6 +48,7 @@ class StageTimings:
     total_ms: float
     detector_ms: float | None = None
     association_ms: float | None = None
+    visibility_ms: float | None = None
 
 
 @dataclass(frozen=True)
@@ -58,6 +60,7 @@ class FrameResult:
     timings: StageTimings
     instances: tuple[InstanceEvidence, ...] = ()
     tracking: TrackingUpdate | None = None
+    visibility: VisibilityEvidence | None = None
 
 
 class MappingEngine:
@@ -70,6 +73,7 @@ class MappingEngine:
         predictor: SemanticPredictor | None = None,
         detector: ObstacleDetector | None = None,
         tracker: CandidateTracker | None = None,
+        visibility: CurrentScanVisibility | None = None,
         device: Literal["cpu", "cuda"] = "cpu",
     ) -> None:
         if mode not in (Mode.GEOMETRIC, Mode.ORACLE, Mode.LEARNED):
@@ -78,10 +82,17 @@ class MappingEngine:
             raise ValueError("learned mode requires a predictor; other modes forbid it")
         if device not in ("cpu", "cuda"):
             raise ValueError("mapping device must be cpu or cuda")
-        if detector is not None and (mode != Mode.LEARNED or device != "cpu"):
-            raise ValueError("obstacle candidates require learned CPU mode")
+        if detector is not None and mode != Mode.LEARNED:
+            raise ValueError("obstacle candidates require learned mode")
         if tracker is not None and detector is None:
-            raise ValueError("tracking requires the learned CPU candidate stage")
+            raise ValueError("tracking requires the learned candidate stage")
+        if visibility is not None and tracker is None:
+            raise ValueError("visibility requires the learned tracking stage")
+        # The published backend names one device; stages may not silently mix devices.
+        for stage in (detector, visibility):
+            if stage is not None and getattr(stage, "device", "cpu") != device:
+                raise ValueError("candidate and visibility stages must use the engine device")
+        self.visibility = visibility
         self.tracker = tracker
         self._pending_tracking: FrameResult | None = None
         self._tracking_failed = False
@@ -211,6 +222,20 @@ class MappingEngine:
             else ()
         )
         detector_completed = perf_counter()
+        # Stateless and computed before the tracker transition, so a failure leaves nothing pending.
+        visibility = (
+            self.visibility.compute(
+                observations,
+                snapshot,
+                instances,
+                frame.map_from_sensor,
+                config,
+                frame.deskew_status,
+            )
+            if self.visibility is not None
+            else None
+        )
+        visibility_completed = perf_counter()
         accounting = Accounting(
             input_points=len(xyz),
             invalid_geometry=int(np.count_nonzero(~valid)),
@@ -231,6 +256,8 @@ class MappingEngine:
             else None
         )
         association_completed = perf_counter()
+        if self._cuda is not None:
+            self._cuda.release_host_cache()
         self._stream = frame.sequence
         self._last_frame = frame.frame_id
         self._last_timestamp = frame.timestamp_s
@@ -246,9 +273,12 @@ class MappingEngine:
             (association_completed - association_started) * 1000
             if self.tracker is not None
             else None,
+            (visibility_completed - detector_completed) * 1000
+            if self.visibility is not None
+            else None,
         )
         result = FrameResult(
-            snapshot, observations, image, accounting, timings, instances, tracking
+            snapshot, observations, image, accounting, timings, instances, tracking, visibility
         )
         if tracking is not None:
             self._pending_tracking = result
@@ -268,7 +298,11 @@ class MappingEngine:
             raise ValueError("no matching prepared tracking result")
         update = result.tracking
         if (
-            product.stage != "tracking"
+            product.stage != ("visibility" if self.visibility is not None else "tracking")
+            or (
+                result.visibility is not None
+                and product.visibility_summary != result.visibility.summary
+            )
             or product.tracks != update.tracks
             or product.tracking_summary != update.summary
             or product.instances != result.instances

@@ -16,12 +16,27 @@ dependencies = [
 [tool.uv]
 exclude-newer = "2026-09-14T00:00:00Z"
 
+# CUDA 12.6 PyTorch wheels match the release host driver (561.00, CUDA 12.6).
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu126", marker = "sys_platform == 'win32' or sys_platform == 'linux'" }]
+
 [project.scripts]
 drishti = "drishti.cli:main"
 
 [project.optional-dependencies]
 viz = [
     "rerun-sdk>=0.24,<0.30",
+]
+cuda = [
+    "cupy-cuda12x[ctk]>=14,<15",
+]
+model = [
+    "torch>=2.6,<3",
 ]
 
 [tool.setuptools.packages.find]
@@ -33,7 +48,7 @@ drishti = ["py.typed"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--strict-config --strict-markers"
-markers = ["native: exercises the installed Patchwork++ extension", "viewer: exercises the optional Rerun SDK", "cuda: requires a working NVIDIA CUDA device and CuPy"]
+markers = ["native: exercises the installed Patchwork++ extension", "viewer: exercises the optional Rerun SDK", "cuda: requires a working NVIDIA CUDA device (CuPy or CUDA PyTorch)"]
 
 [tool.ruff]
 line-length = 100
