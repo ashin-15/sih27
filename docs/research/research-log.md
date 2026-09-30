@@ -715,11 +715,21 @@ Future sessions append entries with date, question, sources, findings, support/c
   T-005 contract with unknown velocity and schema-4 proposal. Production T-005
   remains pending owner review of that concrete contract.
 
+## 2026-09-29 - Adaptive versus uniform grid payload (RQ-004)
+
+- Trigger: pitch material needed a measured answer to the SIH26053 memory-reduction
+  requirement; no Drishti comparison existed.
+- Research: experiment 0031 replayed 20 sequence 08 scans through the default
+  adaptive rings and a uniform 5 cm grid to 100 m. MEASURED RESULT: 33.6% fewer
+  observed cells and snapshot array bytes (E-058, C-053). A full-coverage design
+  calculation gives about 31 times fewer cells, but that is not a measurement.
+- Engineering impact: none to runtime. The result supports feasibility claims only
+  for single-frame logical payload, not process memory, 3D voxel baselines or timing.
 ## 2026-09-29 - T-006 visibility contract screen
 
 - Trigger: owner asked to continue at T-006, which was BLOCKED with no
   research or contract recorded.
-- Research: experiment 0031 checks SemanticKITTI completion voxels
+- Research: experiment 0037 checks SemanticKITTI completion voxels
   (invalid/occluded masks, 0.2 m grid, future-scan aggregation), the 2.5D ray
   geometry of ground-terminated beams and the reserved schema-1 beam-proof
   rules. No code, fixture or real-data run was executed; this workstation has
@@ -733,7 +743,7 @@ Future sessions append entries with date, question, sources, findings, support/c
 
 - Trigger: owner reported an RTX 4050 and asked for a CUDA option with CPU as
   the reference.
-- Result: experiment 0032 (E-059). The first real-GPU run found three CuPy
+- Result: experiment 0032 (E-060). The first real-GPU run found three CuPy
   incompatibilities hidden by the NumPy-standing-in test, including inexact
   float64 `minimum.at`. After fixes, CUDA backend and new CUDA detector and
   visibility stages match CPU exactly on synthetic fixtures. Synthetic timing
@@ -746,8 +756,8 @@ Future sessions append entries with date, question, sources, findings, support/c
 - Trigger: owner made the RTX 4050 laptop the release host, supplied sequence 08 and
   the FRNet checkpoint, and asked for GPU conversion and T-006 completion.
 - Research: re-implemented FRNet inference from the authors' pinned source without
-  mmcv/mmdet3d (E-060); verified the SSC voxel layout empirically; profiled the
-  per-frame receipt (E-061); inspected the Pragyaam repository's FRNet timing
-  evidence at the owner's request (E-062).
+  mmcv/mmdet3d (E-061); verified the SSC voxel layout empirically; profiled the
+  per-frame receipt (E-062); inspected the Pragyaam repository's FRNet timing
+  evidence at the owner's request (E-063).
 - Engineering impact: decisions 0009 and 0010; free-cell cap raised to 262,144;
   fp16 and GPU-interpolation options pending full-sequence accuracy measurement.

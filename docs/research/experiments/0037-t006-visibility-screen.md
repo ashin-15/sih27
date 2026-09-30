@@ -1,4 +1,4 @@
-# Experiment 0031: T-006 visibility and free-space contract screen
+# Experiment 0037: T-006 visibility and free-space contract screen
 
 Date: 2026-09-29. Question: RQ-003 (with RQ-002 for later temporal state).
 Scope: research and contract preparation only. No visibility code, fixture,

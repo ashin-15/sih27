@@ -61,3 +61,32 @@ Main agent owns `src/drishti/tracking.py`, `pipeline.py`, `product_result.py`, `
 
 Result: bounded AC-016 accepted with caveats on 2026-09-29 under E-057 and
 experiment 0030. Full T-005 quality/motion validation stays IN PROGRESS.
+
+## T-007 - bounded semantic dashboard class view
+
+- Approval: product owner, 2026-09-29; see
+  [approved contract](../../../../docs/t-007-semantic-dashboard-proposal.md).
+- Related requirements/criteria: SD-FR-001 through SD-FR-004 and SD-AC-001
+  through SD-AC-004. Full AC-007/010 remain separate.
+- Inputs: immutable `FrameResult`, `PointObservations.semantic`,
+  `MapSnapshot.semantic`, `semantic_evidence` and `semantic_conflict`, plus
+  canonical `CLASS_NAMES` and the existing Rerun annotation context.
+- Allowed: `src/drishti/visualization.py`, `tests/test_visualization.py` and
+  linked documentation. Forbidden: model/checkpoint behavior, `MapSnapshot`,
+  engine/evaluator schemas, oracle access, source dataset edits, raw-point
+  rendering, filtering controls and release-gate changes.
+- Outputs: clear semantic legend/count/conflict evidence in the current Rerun
+  panel, preserving the existing cell class IDs/colors and geometric unknown
+  behavior.
+- Checks: learned/oracle/geometric semantic-summary fixtures, Rerun recording
+  verification, focused and full package checks, then a fresh learned Rerun
+  replay with separate viewer cost evidence.
+- Stop and report: missing pinned learned runtime, a change to source class
+  contracts, raw-point/filter scope expansion, or a viewer limitation that
+  prevents SD-AC evidence.
+
+Result: `visualization.py` now adds a static semantic legend tab and per-frame
+accepted-point/dominant-cell class summary with explicit conflicts/ties. The
+focused suite, full 88-pass suite, Ruff, strict mypy, build and fresh learned
+Rerun recording/verification passed. SD-AC-001 through SD-AC-004 are accepted;
+full T-007 remains blocked.

@@ -2,7 +2,7 @@
 
 Drafted 2026-09-29; APPROVED 2026-09-29 by the owner's "approve all four and continue".
 Implementation is authorized under [decision 0007](decisions/0007-visibility-cpu-slice.md).
-Research basis: [experiment 0031](research/experiments/0031-t006-visibility-screen.md).
+Research basis: [experiment 0037](research/experiments/0037-t006-visibility-screen.md).
 This slice develops FR-006/AC-006 current-scan evidence. AC-003 temporal
 fusion, stale state, the numeric false-free gate (O-003/D-005), AC-010 viewer
 work and AC-008 timing remain open.

@@ -1,0 +1,16 @@
+{
+  "name": "drishti-deck",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node build.mjs",
+    "icons": "./render-icons.sh"
+  },
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "pptxgenjs": "4.0.1"
+  },
+  "devDependencies": {
+    "lucide-static": "1.47.0"
+  }
+}

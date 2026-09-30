@@ -59,6 +59,59 @@ def _semantic_palette() -> ByteArray:
     )
 
 
+def semantic_legend_markdown() -> str:
+    rows = [
+        "# Semantic class legend",
+        "",
+        "Semantic cell color is the dominant accepted point class, not a point-level label.",
+        "",
+        "| ID | Class | RGB |",
+        "| ---: | --- | --- |",
+    ]
+    for semantic_id, (class_name, color) in enumerate(
+        zip(CLASS_NAMES, _semantic_palette(), strict=True)
+    ):
+        red, green, blue = color.tolist()
+        rows.append(f"| {semantic_id} | {class_name} | {red}, {green}, {blue} |")
+    return "\n".join(rows)
+
+
+def semantic_summary_markdown(result: FrameResult) -> str:
+    snapshot = result.snapshot
+    class_count = len(CLASS_NAMES)
+    point_counts = np.bincount(result.observations.semantic, minlength=class_count)
+    cell_counts = np.bincount(snapshot.semantic, minlength=class_count)
+    present = np.flatnonzero((point_counts + cell_counts) > 0)
+    rows = [
+        "## Semantic evidence",
+        "",
+        "Cell color is the dominant accepted point class, not a point-level label.",
+        "",
+        "| ID | Class | Accepted points | Cells |",
+        "| ---: | --- | ---: | ---: |",
+    ]
+    rows.extend(
+        f"| {semantic_id} | {CLASS_NAMES[semantic_id]} | {point_counts[semantic_id]:,} | "
+        f"{cell_counts[semantic_id]:,} |"
+        for semantic_id in present
+    )
+    evidence = snapshot.semantic_evidence
+    if len(evidence):
+        maximum = np.max(evidence, axis=1, keepdims=True)
+        tied_cells = int(np.count_nonzero(np.count_nonzero(evidence == maximum, axis=1) > 1))
+    else:
+        tied_cells = 0
+    conflicts = int(np.count_nonzero(snapshot.semantic_conflict))
+    rows.extend(
+        [
+            "",
+            f"Known-class conflicts: {conflicts:,} cells.",
+            f"Tied class evidence rendered as unknown: {tied_cells:,} cells.",
+        ]
+    )
+    return "\n".join(rows)
+
+
 class RerunView:
     def __init__(self, *, recording_path: Path | None = None, spawn: bool = False) -> None:
         if (recording_path is None) == (not spawn):
@@ -79,6 +132,11 @@ class RerunView:
                     )
                 ]
             ),
+            static=True,
+        )
+        self.recording.log(
+            "semantic_legend",
+            rr.TextDocument(semantic_legend_markdown(), media_type="text/markdown"),
             static=True,
         )
         self.recording.send_blueprint(
@@ -106,6 +164,9 @@ class RerunView:
                         ),
                         rrb.Spatial3DView(
                             name="Accepted raw points", origin="world", contents=["world/raw/**"]
+                        ),
+                        rrb.TextDocumentView(
+                            name="Semantic class legend", origin="semantic_legend"
                         ),
                     ),
                     rrb.Vertical(
@@ -203,6 +264,7 @@ class RerunView:
             f"Outside ROI: {result.accounting.outside_roi:,} | "
             f"Outside height: {result.accounting.outside_height:,}\n\n"
             f"Invalid intensity: {result.accounting.invalid_intensity:,}\n\n"
+            f"{semantic_summary_markdown(result)}\n\n"
             + ("No accepted points in this frame." if not len(snapshot.point_count) else "")
         )
         stream.log("status", rr.TextDocument(status, media_type="text/markdown"))
