@@ -1,6 +1,6 @@
 # O-001 release profile decision brief
 
-Status: DRAFT gate with CUDA platform, deadline, evaluator-receipt endpoint and evidence-only output selected, 2026-09-25. Workload approval is explicitly deferred. The original
+Status: DRAFT gate with CUDA platform, deadline, evaluator-receipt endpoint and evidence-only output selected, 2026-09-25. The complete sequences 08/00, sequence 10 frame 206 cold start and 130,000-point cap were selected for future release validation in the staged contract on 2026-09-26. The original
 current-laptop release-machine choice was superseded by [decision 0002](decisions/0002-cuda-replay-release-platform.md):
 the CUDA-backed replay gate will run on an identified NVIDIA host. The 100 ms per-scan deadline
 and zero-miss policy remain selected. This does not freeze the remaining D-001/D-005 fields,
@@ -44,7 +44,7 @@ DESIGN DECISION, 2026-09-25: each scheduled scan must publish its complete first
 output within 100 ms on the selected release host. This is a per-scan deadline, so the allowed
 deadline-miss count is zero across the accepted measurement window, including its first scan.
 Warmup may occur before the first scheduled arrival. It cannot remove slow scans from the
-accepted window. Run length remains deferred; the later handoff review selected the evaluator
+accepted window. The later staged approval selected the full release windows; the handoff review selected the evaluator
 receipt endpoint below, with the complete payload schema still to be frozen.
 
 DESIGN DECISION, 2026-09-25: the CUDA-backed 100 ms replay gate will run on an identified
@@ -72,9 +72,9 @@ Rerun recording and display remain outside the deadline and are measured separat
 
 | Field | Measurement contract or proposal | Decision still needed |
 | --- | --- | --- |
-| Workload | Record sequences/splits, cadence, scan count/density, poses, calibration, mode, checkpoint and code/config hashes. | Workload/window/cap approval explicitly deferred; quality-evaluation splits and model also open. |
-| Throughput | Count arrivals, receipts, drops, backlog and queue age over the accepted window. | Window, headroom, queue limits and overload behavior. |
-| Output age | Scheduled arrival to complete-product evaluator receipt on one monotonic clock; report p50/p95/p99/max and every miss. Strict 100 ms and zero misses are selected. | Complete payload schema and validation checks; measurement window. |
+| Workload | Record sequences/splits, cadence, scan count/density, poses, calibration, mode, checkpoint and code/config hashes. Complete sequences 08/00 at 10 Hz, separate sequence 10 frame 206 cold start and explicit rejection above 130,000 points are selected. | Quality-evaluation splits and complete model configuration remain open. |
+| Throughput | Count arrivals, receipts, drops, backlog and queue age over the accepted full-sequence windows. | Headroom, queue limits and overload behavior. |
+| Output age | Scheduled arrival to complete-product evaluator receipt on one monotonic clock; report p50/p95/p99/max and every miss. Strict 100 ms and zero misses are selected. | Complete fused payload schema and validation checks. |
 | Audit | Persist receipts and audit evidence without silently losing records or hiding their effect on later scan ages. | Bounded audit scheduling, drain/failure behavior and retention. |
 | Resources | Measure process-tree RSS, GPU memory, queue depth and artifact/disk use, not just snapshot bytes. | Physical host inventory, numeric ceilings, reserve and stop thresholds. |
 | Evidence quality | Preserve explicit unknown/stale states and validate learned, object, motion, temporal and free-space evidence without a navigation-safe claim. | D-002 model and D-005 numeric quality/recovery gates. |
@@ -83,16 +83,17 @@ DESIGN CONSTRAINT: a finite queue cannot keep output fresh when arrival rate sus
 exceeds service rate. Parallel throughput alone is not a per-scan latency guarantee.
 AC-008 remains BLOCKED by the incomplete product path and remaining acceptance contract.
 
-## Replay-workload proposal, approval explicitly deferred
+## Replay workload selected after the initial handoff
 
-The product owner deferred this proposal during the handoff review. The following is retained
-for later review, not adopted as a release workload, quality split or configured capacity.
+The product owner deferred this proposal during the 2026-09-25 handoff review, then approved
+the windows and cap in the 2026-09-26 staged contract. This selection is for later release
+validation; it does not establish a quality split, configured runtime capacity or gate pass.
 
 | Gate field | Proposed rule | Basis and open decision |
 | --- | --- | --- |
-| Release replay | All 4,071 scans of SemanticKITTI sequence 08 and all 4,541 scans of sequence 00 as separate ordered 10 Hz replays, with a new engine per sequence and complete product mode. | Counts are in local manifests. Performance workload approval is deferred; these are not designated held-out quality splits. |
-| Density boundary | Sequence 10 frame 206, the extracted dataset's 129,392-point maximum, as a cold-start first-scan check; explicitly reject scans above a proposed 130,000-point cap. | The historical one-frame check missed at 129.13 ms. Cap approval is deferred; current saved default configs allow 150,000 points. |
-| Accepted window | Count every selected scan including the first. Initialize/load the checkpoint before arrival without processing or discarding selected scans during warmup. | The no-excluded-slow-scans rule follows the selected zero-miss policy; sequence/window approval is deferred. |
+| Release replay | All 4,071 scans of SemanticKITTI sequence 08 and all 4,541 scans of sequence 00 as separate ordered 10 Hz replays, with a new engine per sequence and complete product mode. | Counts are in local manifests. Selected performance windows; these are not both held-out quality splits. |
+| Density boundary | Sequence 10 frame 206, the extracted dataset's 129,392-point maximum, as a cold-start first-scan check; explicitly reject scans above 130,000 points. | The historical one-frame check missed at 129.13 ms. Selected release cap; current saved default configs allow 150,000 points outside complete mode. |
+| Accepted window | Count every selected scan including the first. Initialize/load the checkpoint before arrival without processing or discarding selected scans during warmup. | The no-excluded-slow-scans rule follows the selected zero-miss policy and full windows. |
 | Integrity and service | One ordered complete output per arrival with zero drops/duplicates/skips. After timing misses, continue valid processing for diagnostics but fail the gate and expose stale results. | This proposal does not yet freeze fault/overload behavior. Zero deadline misses remains selected. |
 | Resources | Set RSS, VRAM and artifact ceilings from the host; require no run-induced swap growth. | Former Intel-laptop 8 GiB RSS/32 GiB artifact candidates are not adopted for NVIDIA; numeric limits remain open. |
 

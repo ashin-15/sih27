@@ -14,6 +14,7 @@ from drishti.learned import SemanticPredictor
 from drishti.mapping import MapSnapshot, aggregate_cells
 from drishti.obstacles import InstanceEvidence, ObstacleDetector
 from drishti.projection import RangeImage, project
+from drishti.temporal import FusedMapView, TemporalMap
 from drishti.tracking import CandidateTracker, TrackingUpdate
 from drishti.visibility import CurrentScanVisibility, VisibilityEvidence
 
@@ -49,6 +50,7 @@ class StageTimings:
     detector_ms: float | None = None
     association_ms: float | None = None
     visibility_ms: float | None = None
+    temporal_ms: float | None = None
 
 
 @dataclass(frozen=True)
@@ -61,6 +63,7 @@ class FrameResult:
     instances: tuple[InstanceEvidence, ...] = ()
     tracking: TrackingUpdate | None = None
     visibility: VisibilityEvidence | None = None
+    fused: FusedMapView | None = None
 
 
 class MappingEngine:
@@ -74,6 +77,7 @@ class MappingEngine:
         detector: ObstacleDetector | None = None,
         tracker: CandidateTracker | None = None,
         visibility: CurrentScanVisibility | None = None,
+        temporal: TemporalMap | None = None,
         device: Literal["cpu", "cuda"] = "cpu",
     ) -> None:
         if mode not in (Mode.GEOMETRIC, Mode.ORACLE, Mode.LEARNED):
@@ -92,7 +96,10 @@ class MappingEngine:
         for stage in (detector, visibility):
             if stage is not None and getattr(stage, "device", "cpu") != device:
                 raise ValueError("candidate and visibility stages must use the engine device")
+        if temporal is not None and temporal.config != config:
+            raise ValueError("temporal map must use the engine mapping config")
         self.visibility = visibility
+        self.temporal = temporal
         self.tracker = tracker
         self._pending_tracking: FrameResult | None = None
         self._tracking_failed = False
@@ -256,6 +263,21 @@ class MappingEngine:
             else None
         )
         association_completed = perf_counter()
+        # Diagnostic sequence layer (decision 0011); fused after every per-scan stage succeeds.
+        fused = (
+            self.temporal.update(
+                points_map_m=mapped,
+                ground=ground,
+                semantic=semantic,
+                sensor_xy_m=frame.map_from_sensor[:2, 3],
+                timestamp_ns=round(frame.timestamp_s * 1e9),
+                free_level=visibility.free_level if visibility is not None else None,
+                free_indices=visibility.free_indices if visibility is not None else None,
+            )
+            if self.temporal is not None
+            else None
+        )
+        temporal_completed = perf_counter()
         if self._cuda is not None:
             self._cuda.release_host_cache()
         self._stream = frame.sequence
@@ -276,9 +298,20 @@ class MappingEngine:
             (visibility_completed - detector_completed) * 1000
             if self.visibility is not None
             else None,
+            (temporal_completed - association_completed) * 1000
+            if self.temporal is not None
+            else None,
         )
         result = FrameResult(
-            snapshot, observations, image, accounting, timings, instances, tracking, visibility
+            snapshot,
+            observations,
+            image,
+            accounting,
+            timings,
+            instances,
+            tracking,
+            visibility,
+            fused,
         )
         if tracking is not None:
             self._pending_tracking = result

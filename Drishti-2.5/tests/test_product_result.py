@@ -82,6 +82,18 @@ def test_product_evaluator_rejects_unsealed_misaligned_and_unsupported_claims() 
     )
     assert error(replace(product, cells=duplicated)) == "cell-overlap"
 
+    # A finer cell and its coarser parent have different packed keys but
+    # still claim the same spatial footprint.
+    assert cells.level[0] < len(cells.cell_sizes_cm) - 1
+    coarser_level = int(cells.level[0]) + 1
+    ratio = cells.cell_sizes_cm[coarser_level] // cells.cell_sizes_cm[int(cells.level[0])]
+    levels = cells.level.copy()
+    indices = cells.indices.copy()
+    levels[1] = coarser_level
+    indices[1] = indices[0] // ratio
+    overlapping = replace(cells, level=immutable(levels), indices=immutable(indices))
+    assert error(replace(product, cells=overlapping)) == "cell-overlap"
+
     free = replace(
         cells,
         occupancy=immutable(np.full(len(cells.level), Occupancy.OBSERVED_FREE, dtype=np.uint8)),

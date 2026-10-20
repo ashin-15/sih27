@@ -5,8 +5,8 @@ approved 2026-09-27; bounded T-004 CPU candidate slice approved 2026-09-28; boun
 association and AC-002 traffic-participant targets approved 2026-09-29.
 T-003 quality, full AC-002 and release acceptance remain open.
 The product owner approved the O-001 checklist and staged implementation. The CUDA-backed
-replay gate still requires an identified NVIDIA host, pinned checkpoint, numeric quality and
-resource thresholds, and final evidence. AC-008 is NOT VERIFIED.
+replay host was identified as an RTX 4050 laptop in decision 0009; numeric quality and
+resource thresholds, the complete result and final evidence remain open. AC-008 is NOT VERIFIED.
 
 ## Release boundaries
 

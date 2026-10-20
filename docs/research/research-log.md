@@ -1,5 +1,45 @@
 # Research log
 
+## 2026-10-15 - RQ-004 CUDA visibility batch screen
+
+- [Experiment 0050](experiments/0050-visibility-chunk-screen.md) compares
+  8,192 and 16,384 beams per CUDA batch on the same six sequence-08 frames
+  in two order pairs. All 24 receipts were accepted; corresponding map
+  digests, accounting and visibility summaries matched. A large authored
+  CUDA fixture matched the full evidence arrays across the 8,192 boundary.
+- MEASURED RESULT: warm visibility p50 was 887.2/1,295.4 ms for the 8,192
+  runs and 773.8/754.7 ms for 16,384. The baseline pair varied widely;
+  power state and peak memory were not controlled or measured. All frames
+  still missed 100 ms. Retain the internal 16,384 setting; T-008/O-006 stay
+  IN PROGRESS.
+
+## 2026-10-15 - RQ-004 temporal neighbour integration
+
+- [Experiment 0047](experiments/0047-temporal-neighbor-integration.md) integrates
+  direct toroidal slot offsets for the diagnostic temporal step flags.
+- MEASURED RESULT: exact rise/drop arrays on the same 30-frame synthetic state;
+  isolated late-frame lookup sum 149.005 to 117.044 ms across three levels.
+  Thirty saved frame records match input/map digests, accounting and fused
+  summaries. Different-date complete runs do not establish an attributed
+  whole-frame speedup.
+- A valid-ground filter preserved output but regressed temporal p50 and was
+  reverted. T-008/O-006 and the complete 100 ms gate remain open.
+
+## 2026-10-14 - RQ-004 diagnostic temporal cost screen
+
+- [Experiment 0044](experiments/0044-temporal-cost-and-neighbour-screen.md)
+  compares 30 same-seed geometric synthetic CLI frames with and without the
+  diagnostic temporal layer. All input/map digests, accounting and snapshot
+  cell counts match; fixed retained temporal allocation is 53,737,911 bytes.
+- MEASURED RESULT: published fused cells rose from 15,576 to 164,214;
+  temporal stage p50/p95/max was 324.454/583.305/630.851 ms. Selective
+  profiling ranks full-view construction, neighbour steps and ownership.
+  This is unpaced CPU synthetic evidence without model, visibility or receipt.
+- A toroidal-neighbour index candidate matched final-state rise/drop arrays
+  exactly but saved only about 12.5 ms across levels in a one-state isolated
+  screen. It was not integrated. Engineering impact: full-view temporal cost
+  remains a T-008/O-006 bottleneck; no AC-008 or output-schema claim follows.
+
 ## 2026-09-29 - T-005 bounded CPU association implemented and screened
 
 - Trigger: the owner continued after review of the AC-002 traffic thresholds
@@ -757,7 +797,44 @@ Future sessions append entries with date, question, sources, findings, support/c
   the FRNet checkpoint, and asked for GPU conversion and T-006 completion.
 - Research: re-implemented FRNet inference from the authors' pinned source without
   mmcv/mmdet3d (E-061); verified the SSC voxel layout empirically; profiled the
-  per-frame receipt (E-062); inspected the Pragyaam repository's FRNet timing
-  evidence at the owner's request (E-063).
+  per-frame receipt (E-062).
 - Engineering impact: decisions 0009 and 0010; free-cell cap raised to 262,144;
   fp16 and GPU-interpolation options pending full-sequence accuracy measurement.
+
+## 2026-10-13 - Short complete-current-path GPU baseline
+
+- Question/module: RQ-004 / R-SYSTEM. Experiment 0041 used three real sequence-08
+  scans with FRNet, candidates, tracks, visibility, diagnostic temporal fusion
+  and the current schema-5 evaluator on the RTX 4050 laptop.
+- MEASURED RESULT: steady processing p50 was 1,452 ms; model, visibility and
+  temporal stages each exceeded 100 ms on warm frames. All three current
+  receipts were accepted; all three audit-inclusive frame budgets were missed.
+- Engineering impact: T-008 remains IN PROGRESS. Profile a controlled warm
+  workload and evaluator boundary before optimizing. The run revealed stale
+  manifest scope/limit text, corrected in the CLI with a regression assertion.
+
+## 2026-10-13 - Visibility chunk-size screen
+
+- Question/module: RQ-004 / R-SYSTEM. Experiment 0042 compared 4,096 and
+  8,192 beam chunks on matched six-frame learned CUDA runs.
+- MEASURED RESULT: warm visibility median 501.7 -> 449.2 ms; whole-frame
+  median 1,308.6 -> 1,278.6 ms. Six map digests and visibility summaries
+  matched; authored 4,100-beam evidence arrays matched exactly.
+- Engineering impact: retained the internal 8,192 chunk for T-008. AC-008
+  still fails its intended budget; peak VRAM and sustained timing unmeasured.
+
+## 2026-10-13 - 100 ms feasibility source and local-evidence review
+
+- Question/module: RQ-004 / R-SYSTEM. Experiment 0043 reviews official NVIDIA
+  TensorRT/CUDA and ONNX Runtime guidance against the short RTX 4050 current-path
+  timings from experiments 0041/0042 and the instrumented local profile.
+- MEASURED RESULT: warm current-path processing p50 1,278.6 ms, visibility p50
+  449.2 ms, and current evaluator validation 547-703 ms in the short unpaced
+  run. This review ran no new benchmark.
+- HYPOTHESIS: controlled tracing, FRNet runtime/precision screening, a
+  device-resident visibility/map path, incremental temporal state and a compact
+  exhaustive evaluator are the highest-priority screens. No cited source
+  establishes a Drishti speedup or a 100 ms pass.
+- Engineering impact: T-008 remains IN PROGRESS; O-001/O-006 remain open.
+  Freeze the full result and numeric D-005 gates, then measure each candidate
+  with exact-output, quality, memory and paced receipt evidence.

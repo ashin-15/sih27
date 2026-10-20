@@ -33,6 +33,7 @@ from drishti.product_result import (
     visibility_product_result,
 )
 from drishti.semantics import LEARNING_TO_RAW, decode_semantickitti
+from drishti.temporal import TEMPORAL_METHOD, TemporalMap, TemporalSettings
 from drishti.tracking import MAX_TRACKS, CandidateTracker
 from drishti.visibility import VISIBILITY_METHOD, CurrentScanVisibility, VisibilitySettings
 
@@ -120,6 +121,11 @@ def _parser() -> argparse.ArgumentParser:
             "--visibility",
             action="store_true",
             help="emit current-scan occupied/observed-free/unknown cell evidence; not clearance",
+        )
+        command.add_argument(
+            "--temporal",
+            action="store_true",
+            help="fuse scans into the rolling elevation/occupancy/terrain map (diagnostic layer)",
         )
         command.add_argument(
             "--write-panoptic-predictions",
@@ -292,6 +298,7 @@ def _run_ready(
         device=args.device,
         tracker=CandidateTracker(args.max_tracks) if args.track_obstacles else None,
         visibility=CurrentScanVisibility(device=args.device) if args.visibility else None,
+        temporal=TemporalMap(config) if args.temporal else None,
     )
     consumer = InProcessFrameConsumer() if check_deadline else None
     product_evaluator = (
@@ -365,11 +372,19 @@ def _run_ready(
             if predictor is not None
             else None
         ),
-        "scope": "single-frame-map-with-sequence-tracks-and-current-scan-visibility"
-        if args.visibility
-        else "single-frame-map-with-sequence-tracks"
-        if args.track_obstacles
-        else "single-frame",
+        "scope": (
+            "diagnostic-fused-map-with-sequence-tracks-and-current-scan-visibility"
+            if args.temporal and args.visibility
+            else "diagnostic-fused-map-with-sequence-tracks"
+            if args.temporal and args.track_obstacles
+            else "diagnostic-fused-map"
+            if args.temporal
+            else "single-frame-map-with-sequence-tracks-and-current-scan-visibility"
+            if args.visibility
+            else "single-frame-map-with-sequence-tracks"
+            if args.track_obstacles
+            else "single-frame"
+        ),
         "visibility": (
             {
                 "method": VISIBILITY_METHOD,
@@ -383,6 +398,22 @@ def _run_ready(
                 "ground_only_cells": "unknown",
             }
             if args.visibility
+            else None
+        ),
+        "temporal": (
+            {
+                "method": TEMPORAL_METHOD,
+                **asdict(TemporalSettings()),
+                "allocated_bytes": engine.temporal.allocated_bytes
+                if engine.temporal is not None
+                else None,
+                "free_evidence": "current-scan visibility" if args.visibility else "none",
+                "meaning": (
+                    "diagnostic fused sequence layer; terrain is evidence, not a navigation "
+                    "guarantee; unknown is never drivable"
+                ),
+            }
+            if args.temporal
             else None
         ),
         "tracker": (
@@ -426,7 +457,9 @@ def _run_ready(
         "replay_audit_event": "frame-jsonl-flushed-from-python" if check_deadline else None,
         "replay_viewer_flush_each_frame": False,
         "limits": [
-            "no temporal fusion",
+            "diagnostic temporal fusion outside receipt schema"
+            if args.temporal
+            else "no temporal fusion",
             "no motion estimation",
             "no refinement",
             "no clearance or passability verdict",
@@ -460,6 +493,7 @@ def _run_ready(
             sink = RerunView(
                 recording_path=output / "map.rrd" if args.view == "record" else None,
                 spawn=args.view == "spawn",
+                config=config,
             )
         with ExitStack() as stack:
             stream = stack.enter_context((output / "frames.jsonl").open("x", encoding="utf-8"))
@@ -621,6 +655,9 @@ def _run_ready(
                     "visibility_summary": (
                         asdict(result.visibility.summary) if result.visibility is not None else None
                     ),
+                    "temporal_summary": (
+                        asdict(result.fused.summary) if result.fused is not None else None
+                    ),
                     "candidate_instances": (
                         [
                             {
@@ -735,12 +772,19 @@ def _run_ready(
                 "scratch_bytes": None,
                 "realtime_release_gate_met": False,
                 "release_gate_note": (
-                    "single-frame slice only; full pipeline and real data unverified"
+                    "complete product schema, quality gates and 100 ms zero-miss "
+                    "release validation remain unverified"
                 ),
             }
             _write_json(output / "summary.json", summary)
     scope = (
-        "sequence tracks and current-scan visibility"
+        "diagnostic fused map, sequence tracks and current-scan visibility"
+        if args.temporal and args.visibility
+        else "diagnostic fused map and sequence tracks"
+        if args.temporal and args.track_obstacles
+        else "diagnostic fused map"
+        if args.temporal
+        else "sequence tracks and current-scan visibility"
         if args.visibility
         else "sequence tracks"
         if args.track_obstacles

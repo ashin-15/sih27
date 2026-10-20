@@ -4,6 +4,9 @@ Start with [project context](project-context.md), [current assessment](project-a
 and the [execution plan](execution-plan.md). Read [open items](open-items.md) before choosing work
 and append a short entry to the [work log](work-log.md) after meaningful changes.
 
+For the complete production path and recurring SIH26053 requirement checks, use the
+[production readiness roadmap](production-roadmap.md).
+
 | Record | Use |
 | --- | --- |
 | `interfaces.md` | Current data contracts and invariants |

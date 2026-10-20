@@ -1,0 +1,47 @@
+name: Package quality
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: Python 3.12 / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    defaults:
+      run:
+        working-directory: Drishti-2.5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.12.20"
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: Drishti-2.5/uv.lock
+      - name: Verify lock and install package
+        run: |
+          uv lock --check
+          uv sync --frozen --extra viz --extra model
+      - name: Test
+        run: uv run --frozen --extra viz --extra model pytest -q -W error -p no:cacheprovider
+      - name: Lint and format
+        run: |
+          uv run --frozen --extra viz --extra model ruff check .
+          uv run --frozen --extra viz --extra model ruff format --check .
+      - name: Type check
+        run: uv run --frozen --extra viz --extra model python -m mypy
+      - name: Build source and wheel
+        run: uv build --no-sources

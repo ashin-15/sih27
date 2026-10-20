@@ -133,3 +133,29 @@ def test_semantic_dashboard_reports_canonical_classes_and_aggregation_limits() -
     assert "| 0 | unknown | 145, 151, 160 |" in legend
     assert "| 1 | car | 100, 160, 245 |" in legend
     assert "| 19 | traffic-sign | 235, 195, 70 |" in legend
+
+
+@pytest.mark.viewer
+def test_fused_terrain_layers_record_and_verify(tmp_path: Path) -> None:
+    from drishti.temporal import TemporalMap
+    from drishti.visualization import fused_summary_markdown, terrain_legend_markdown
+
+    engine = MappingEngine(MappingConfig(), temporal=TemporalMap(MappingConfig()))
+    points = np.array([[5, 0, -1.73, 0.5], [5.2, 0, -1.6, 0.5], [30, 0, 1, 0.8]], np.float32)
+    path = tmp_path / "fused.rrd"
+    view = RerunView(recording_path=path, config=MappingConfig())
+    for frame_id in range(3):
+        result = engine.process(make_frame(points, frame_id=frame_id, timestamp_s=frame_id / 10))
+        view.publish(result)
+    view.close()
+    assert result.fused is not None
+    assert "Fixed allocation" in fused_summary_markdown(result.fused)
+    assert "Unknown is never drivable" in terrain_legend_markdown()
+    verified = subprocess.run(
+        ["rerun", "rrd", "verify", str(path)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        env={**os.environ, "RUST_LOG": "error"},
+    )
+    assert verified.returncode == 0, verified.stderr

@@ -1,11 +1,18 @@
 # Research to engineering bridge
 
+Rows preserve the decision state when each finding was recorded; later rows
+and the current [task register](../open-items.md) supersede earlier proposed
+or blocked states. In particular, current-scan evidence-only free cells now
+exist, while numeric false-free acceptance remains open.
+
 | Finding and category | Evidence | Affected assumption | Engineering consequence | Decision | Component and validation |
 | --- | --- | --- | --- | --- | --- |
+| MEASURED RESULT: a 16,384-beam CUDA visibility batch retained six-frame summaries and full boundary-fixture evidence while reducing short-run stage medians. | Experiment 0050 | The previous 8,192 batch is the best exact current-path setting. | Retain 16,384 internally; continue controlled tails and peak-memory measurement before release judgment. | Integrated bounded T-008 optimization; AC-008 remains open. | `visibility.py`, `test_visibility.py`, `test_cuda_stages.py`; two order pairs and exact boundary parity. |
+| MEASURED RESULT: direct toroidal slot offsets preserve temporal step arrays and reduce isolated late-frame step cost on a 30-frame synthetic state. | Experiment 0047 | The diagnostic temporal neighbour loop needs repeated row/column reconstruction. | Retain exact offsets and wrap/slot-reuse regression; keep full-view and complete-path performance work open. | Integrated bounded T-008 optimization; AC-008 remains open. | `temporal.py`, `test_temporal.py`; same-state array A/B, 30 saved summaries and three-frame learned CUDA replay. |
 | FACT: geometric mode yields unknown semantics/motion. | E-001 | A painted semantic cell might appear to imply model inference. | Require explicit model provenance and oracle isolation. | Proposed in draft design; not approved. | T-002/T-003; point-order and label-access tests. |
 | LITERATURE-BACKED CLAIM: official semantic and moving-object tasks are distinct. | E-004 | One semantic score would establish motion quality. | Evaluate semantic and motion outputs separately. | Proposed; not approved. | T-003/T-005; official evaluator plus fixtures. |
 | MEASURED RESULT: synthetic current-slice run has no recorded misses. | E-003 | A 100 ms config is a full real-time guarantee. | Keep release gate false; require target full-path benchmark. | Current code already does so. | T-008; long representative benchmark. |
-| FACT: no free-space output exists. | E-001 | Unobserved space is traversable. | Specify occupied/free/unknown and false-free validation before navigation use. | Proposed; D-003 open. | T-006; ray and occlusion fixtures. |
+| HISTORICAL FACT: the initial geometric map had no free-space output. | E-001 | Unobserved space is traversable. | Specify occupied/free/unknown and false-free validation before navigation use. | The later bounded current-scan rule is implemented; D-005 false-free acceptance remains open. | T-006; ray and occlusion fixtures, independent final scoring. |
 | LITERATURE-BACKED CLAIM: the official tasks separate semantic points, instances, 4D association and moving points. | E-006 | One model benchmark can validate the whole product. | Keep distinct acceptance evidence and evaluator adapters; do not fold tracker/obstacle claims into semantic mIoU. | Research conclusion; product thresholds still open. | T-002 to T-005; official evaluator plus task-specific fixtures. |
 | LITERATURE-BACKED CLAIM: FRNet weights and code are available; Autoware exposes stage timings. | E-007/E-008 | A published model FPS proves Drishti latency. | Screen FRNet as a candidate and copy the measurement boundaries, not the implementation or performance claim. | Candidate only; D-001/D-002 open. | T-003/T-008; checkpoint and full-path experiment. |
 | FACT: Autoware FRNet ONNX artifacts use 27 T4Dataset classes and sensor-specific inputs, while Drishti requires SemanticKITTI IDs 0..19. | E-045; screen 0020 | An available FRNet-branded ONNX file can be used as Drishti's point-semantic checkpoint. | Keep these artifacts as an instrumentation reference; obtain exact allowed SemanticKITTI weights or approve remapping/retraining before adapter work. | Candidate screen, not product selection; D-002/D-005 open. | O-001/O-002/T-003/T-008; class-map, point-order, quality and full-path latency tests. |
@@ -43,3 +50,29 @@
 | MEASURED RESULT: the bounded CPU tracker accepts schema-4 receipts on source/wheel replay and has 69 ID switches plus 39 fragmentations in a 200-frame saved-class diagnostic. | E-057; experiment 0030 | A working lifecycle fixture or one development metric is enough to approve final tracking and motion quality. | Keep association quality and measured velocity as separate gates. Improve association only against prospectively selected final labels and report official 4D metrics or their limits; keep unknown velocity. | Decision 0006 bounded implementation accepted with caveats; AC-004/005 open. | RQ-002/T-005/T-008; independent evaluation and target-host complete-path gate. |
 
 Every future significant finding should identify the changed assumption, proposed decision, task and validation. Failed experiments may invalidate an ADR and reopen its question.
+
+2026-10-13 T-008 impact: [experiment 0042](experiments/0042-visibility-chunk-screen.md)
+confirmed that reducing visibility chunk count can preserve exact evidence and
+lower a short-run GPU stage median (501.7 to 449.2 ms). It changes only the
+internal beam chunk. The complete path remains far above 100 ms, so the next
+R-SYSTEM action is controlled profiling of sampling/key-packing, transfers and
+the evaluator before a larger device-resident redesign. No quality or release
+gate changes.
+
+2026-10-13 RQ-004 impact: [experiment 0043](experiments/0043-100ms-feasibility-options.md)
+places a controlled RTX 4050 CPU/GPU/receipt trace before broader rewrites,
+then ranks FRNet inference, device-resident visibility and temporal/map,
+and exhaustive evaluator prototypes. This confirms the T-008 dependency on
+the complete result schema and D-005 gates: a stage microbenchmark cannot
+close AC-008. Keep exact ownership/point alignment and conservative free-space
+proof, and recheck distance-stratified semantic/obstacle quality and memory
+after every speed candidate. No runtime decision or gate status changes.
+
+2026-10-14 RQ-004 impact: [experiment 0044](experiments/0044-temporal-cost-and-neighbour-screen.md)
+matched 30 synthetic base-map outputs with and without diagnostic temporal
+fusion. The temporal stage rose to 324.454 ms p50 while published fused cells
+grew from 15,576 to 164,214. A neighbour-index candidate preserved sampled
+evidence but saved only about 12.5 ms in isolated late-frame calls, so it was
+not integrated. Profile the full view construction and wait for the complete
+result contract before a layout change. This CPU synthetic screen does not
+change AC-008 or any release gate.

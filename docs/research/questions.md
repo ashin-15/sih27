@@ -36,21 +36,21 @@ Status vocabulary: TODO, IN PROGRESS, BLOCKED, VALIDATION, DONE. A DONE question
 
 - Question: Which ray/visibility policy minimizes false-free cells with sparse returns, occlusion and pose error at the chosen map resolutions?
 - Why: FR-006/010; false-free errors affect navigation safety.
-- Current understanding: FACT, current range projection has no free-space output.
+- Current understanding: FACT, current-scan ground-terminated beams now produce bounded evidence-only free cells; a diagnostic fused layer can carry recent free evidence. Sequence-08 SSC scoring measured a nonzero static false-free rate (E-064), with numeric acceptance still open.
 - Hypothesis: HYPOTHESIS, only calibrated valid returns can support traversed free cells; no-return areas stay unknown.
 - Evidence required: ray and occlusion fixtures, pose perturbations, held-out false-free metrics and bounded compute cost.
 - Falsifier: Any unsupported or occluded cell is declared free under the selected policy.
-- Status: IN PROGRESS. Experiment 0035 measures 0.549% static false-free cells on sequence 08 with the approved rule (E-064). D-003 selects evidence-only output. Experiment 0037 screens SemanticKITTI completion voxels as a held-out false-free route and drafts a current-scan ground-terminated-beam policy in the [T-006 contract](../t-006-visibility-proposal.md), pending owner approval. Voxel availability on the data host is UNKNOWN; no policy is measured. Conclusion: UNKNOWN. Engineering impact: T-006.
+- Status: IN PROGRESS. Decision 0007 approved the bounded current-scan rule; experiment 0035 measures 0.549% static false-free cells over 815 sequence-08 SSC voxel frames (E-064). Decision 0011 adds diagnostic temporal state; the 2026-10-14 regression prevents older free evidence from reappearing after a newer hit. D-003 selects evidence-only output. Numeric false-free, stale/recovery and independent final gates remain open. Engineering impact: T-006.
 
 ## RQ-004 - Real-time feasibility
 
-- Question: Can the entire model, detection, temporal map, audit and viewer path meet the frozen deadline on target hardware for representative sequences?
+- Question: Can the complete model, detection, temporal map and same-process evaluator receipt meet the selected deadline on target hardware for representative sequences, with viewer display measured separately?
 - Why: FR-008 is an end-to-end requirement.
-- Current understanding: MEASURED RESULT, two 100-frame real-data headless geometric current-slice runs had 200/200 misses of the 100 ms budget. E-052 adds an unpaced 4,071-scan FRNet CPU model p50 of 7,177 ms, also far above 100 ms. The complete product path does not exist.
-- Hypothesis: UNKNOWN until model and platform are selected.
+- Current understanding: MEASURED RESULT, the RTX 4050 is the selected host and short learned CUDA current-path runs exist. Experiment 0042 measured 1,278.6 ms warm processing p50 plus 547-703 ms current schema-5 validation, with diagnostic temporal fusion. The frozen complete product result does not yet exist.
+- Hypothesis: HYPOTHESIS, coordinated model, visibility, map/temporal and evaluator redesign may reduce the critical path; feasibility remains UNKNOWN.
 - Evidence required: hardware inventory, warmup, long sequences, point-density distribution, p50/p95/p99/max, misses/drops and process/model/viewer memory.
 - Falsifier: Any frozen gate fails under the declared workload.
-- Status: IN PROGRESS for CPU-reference measurement; decision 0002 selects an NVIDIA CUDA host for the first-release 100 ms zero-miss replay gate, but no physical host has been inventoried. Later exact-output changes lowered current-slice work but sequence 08/00 still missed 100/100 and 82/100 strict deadlines in experiment 0016. Buffering audit after the paced loop reduced short-run misses to 2/100 and 3/100 at a minimal current-result check, but longer runs missed 28/1,000 and 3/1,000 in experiment 0019, still above the selected zero-miss rule. The present JSONL endpoint is only an audit flush, not complete machine-output publication (E-041). Complete-path feasibility is BLOCKED by NVIDIA host access, remaining D-001/D-005 payload/consumer/gate fields and T-003 to T-007. Conclusion: current CPU path fails; future CUDA path UNKNOWN. Engineering impact: T-008. See experiments 0016 and 0019 and the O-001 output-boundary audit.
+- Status: IN PROGRESS. Earlier CPU geometric checks and buffered audits still missed the zero-miss rule (experiments 0016/0019). The RTX 4050 current learned path also exceeds 100 ms in experiments 0041/0042; experiment 0043 ranks source-backed optimization screens. Experiment 0044 finds diagnostic temporal full-view cost rising to 324.454 ms p50 over 30 synthetic frames and rejects one small exact-output neighbour candidate as insufficient. Complete-path acceptance is blocked by the draft complete schema and D-005 gates, followed by integrated optimization and paced validation. Conclusion: current implementation fails the intended deadline; final RTX 4050 feasibility UNKNOWN. Engineering impact: T-008/O-001/O-006.
 
 ## RQ-005 - Lossless acquisition under slower processing
 

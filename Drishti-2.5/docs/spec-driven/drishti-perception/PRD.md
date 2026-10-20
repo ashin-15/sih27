@@ -33,7 +33,7 @@ The immediate users are developers evaluating SemanticKITTI replay and operators
 | FR-005 | Estimate motion relative to the world from sequential observations; publish velocity/uncertainty or unknown. Semantic class and oracle motion labels may not substitute for measured motion. | Draft |
 | FR-006 | Publish conservative occupied, observed-free and unknown evidence. Missing returns, occluded areas and out-of-FOV cells remain unknown; a free-space claim requires valid ray evidence. | Draft |
 | FR-007 | Publish clear per-frame provenance: model and checkpoint, pose source, point attrition, dropped frames, stage timing, evidence age, state memory, viewer costs and release-gate result. | Draft |
-| FR-008 | On the identified NVIDIA CUDA release host, a same-process evaluator must validate and acknowledge each complete versioned immutable replay result within 100 ms of scheduled arrival, with zero misses in the accepted measurement window. | Platform, deadline and receipt endpoint selected; BLOCKED by physical host, complete payload schema, deferred workload/window and resource gates |
+| FR-008 | On the identified NVIDIA CUDA release host, a same-process evaluator must validate and acknowledge each complete versioned immutable replay result within 100 ms of scheduled arrival, with zero misses in the accepted measurement window. | Host, workload, point cap, deadline and receipt endpoint selected; BLOCKED by complete payload schema, quality/resource gates and full-path zero-miss proof |
 | FR-009 | Keep oracle labels isolated to evaluation, preserve the original point order, and evaluate semantic, obstacle, motion, tracking, free-space and latency quality on held-out sequences. | Draft |
 | FR-010 | Expose unknown, stale and ambiguous states in the viewer and machine output without silently turning them into drivable space. | Draft |
 | FR-011 | First CUDA-backed release uses evidence-only dataset replay on an identified NVIDIA host. The current Intel laptop remains the CPU reference. Live sensor input and planner-facing output are deferred; define their safety, timestamp, calibration and deskew contracts before a later release. | Replay and evidence-only scope selected; full contract remains Draft |
@@ -57,7 +57,7 @@ frame 206 cold-start case, and 130,000-point explicit-reject cap are the selecte
 workload. CPU development measurements and the later CUDA release judgment are separate
 milestones. A checkpoint is pinned for T-003 local development; its separate
 terms and exact public-byte identity, numeric quality/resource gates, physical
-CUDA host and final
+CUDA timing and final
 release verification remain open; no result may claim those gates passed.
 
 ## Data and use rules

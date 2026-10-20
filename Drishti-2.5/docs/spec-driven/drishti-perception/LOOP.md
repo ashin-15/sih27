@@ -8,7 +8,19 @@ Current objective: bounded semantic dashboard class slice implemented and
 judged. Full T-007, quality and release validation remain separate.
 Blocking issue: none for the accepted bounded UI slice; full T-007 remains
 blocked by its independent product contracts.
-Last updated: 2026-09-29
+Last updated: 2026-10-14
+
+## 2026-10-14 audit addendum
+
+- The accepted bounded LOOP-006 UI scope is unchanged. The full
+  [execution-plan audit](../../../../docs/execution-plan.md#2026-10-14-submission-readiness-audit)
+  leaves T-001/T-003 through T-008 and the later product gates open.
+- A diagnostic temporal FREE-state regression was reproduced and fixed:
+  free evidence must be newer than the last hit. The focused fixture and
+  documented full suite pass; a separate installed-wheel geometric synthetic
+  run matched source digests and fused summaries. This does not complete
+  AC-003/006/008/010, because independent quality, complete receipt and paced
+  release evidence are still missing.
 
 ## Current loop - LOOP-006: bounded semantic dashboard class view
 

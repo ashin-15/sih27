@@ -2,6 +2,106 @@
 
 Run package commands from `Drishti-2.5/`. Use a new output directory for each run and do not alter source scans or existing run evidence.
 
+## 2026-10-14 follow-up: local CI definition and temporal cost screen
+
+- Added `.github/workflows/package-quality.yml` for Python 3.12 on Ubuntu
+  24.04 and Windows 2025. It checks the lock, installs the locked `viz` and
+  `model` extras, then runs the full test suite, Ruff, strict mypy and a
+  source/wheel build. Locally `uv lock --check`, 143 tests (8 optional skips),
+  Ruff lint/format, mypy (50 source files) and the build passed with those
+  extras. The first `viz`-only rehearsal passed 137 tests with six skips but
+  failed mypy because PyTorch was absent; adding `model` resolved that.
+  The workflow YAML parsed with both event triggers and seven steps. A hosted
+  workflow run is **NOT VERIFIED**.
+- [Experiment 0044](research/experiments/0044-temporal-cost-and-neighbour-screen.md)
+  matched 30/30 input and base-map digests and accounting records across paired
+  synthetic runs. Temporal stage p50/p95 was 324.454/583.305 ms and the
+  number of published fused cells grew from 15,576 to 164,214. Isolated
+  profile and exact neighbour screen are development evidence only; no runtime
+  optimization was integrated.
+
+## 2026-10-14 execution-plan audit and temporal evidence correction
+
+- `uv run --frozen --extra viz pytest -q -W error -p no:cacheprovider`:
+  **147 passed, 4 skipped**. The Windows dataset-output guard now uses a
+  junction to exercise resolved-path rejection without requiring symlink
+  privilege. A focused temporal fixture failed before the evidence-order fix
+  and passed afterward; the full suite includes it.
+- `.venv/Scripts/ruff.exe check .`, `.venv/Scripts/ruff.exe format --check .`,
+  `.venv/Scripts/python.exe -m mypy`: passed (50 source files checked by mypy).
+  `uv build --no-sources`: source distribution and wheel built, including
+  `temporal.py`.
+- A fresh two-frame geometric synthetic `--temporal` CLI run completed under
+  `Drishti-2.5/runs/synthetic-temporal-audit-1791964172994`. Its manifest and
+  both frame records report a constant 53,737,911-byte temporal allocation;
+  the summary reports two audit-inclusive budget misses and no product
+  receipts. It is an integration smoke test, not real-data quality or AC-008.
+- The built wheel was installed with NumPy and pypatchworkpp into a fresh
+  temporary Python 3.12 environment and run from outside the source tree.
+  Its two-frame `--temporal` demo completed; import resolved to that
+  environment's `site-packages`, and both input/map digests and fused summaries
+  matched the source run. The wheel run also missed both audit-inclusive
+  100 ms budgets. The environment and report are under
+  `C:/Users/Robin Joe/AppData/Local/Temp/drishti-wheel-audit-1791964406902`.
+  Reproduction: `uv venv <new-temp-env> --python 3.12`,
+  `uv pip install --python <new-temp-env>/Scripts/python.exe
+  dist/drishti_25-0.1.0-py3-none-any.whl`, then from outside the source tree
+  run `<new-temp-env>/Scripts/python.exe -m drishti demo --output
+  <new-temp-env>/run --view none --frames 2 --temporal`.
+  This verifies only the geometric synthetic wheel path.
+- The first sandboxed `uv` attempt could not open its cache. A direct Python
+  full-suite run found the virtual-environment `rerun` executable absent from
+  `PATH`; the documented `uv run` invocation passed the two viewer tests.
+  Real-data learned installed-wheel replay and paced complete-path acceptance
+  were **NOT VERIFIED** in this audit.
+
+## 2026-10-13 short GPU baseline and CLI provenance correction
+
+- [Experiment 0041](research/experiments/0041-production-path-short-baseline.md):
+  three real sequence-08 frames completed on the learned CUDA path with
+  candidates, tracking, visibility, diagnostic temporal fusion and accepted
+  current schema-5 receipts. Steady processing p50 was 1,452 ms; this was not
+  a paced release benchmark.
+- Focused `tests/test_cli.py`: 8 passed, 1 skipped, 1 failed. The failure is
+  `test_output_cannot_be_written_into_the_dataset`, where Windows denied
+  symlink creation (`WinError 1314`) before application behavior ran. Ruff check,
+  Ruff format check and strict mypy on 50 source files passed. The full suite
+  through `uv run --no-sync pytest -q -W error` had 144 passed, 4 skipped and
+  that same symlink failure; full Ruff lint and format checks passed. A first
+  direct-Python full run additionally failed two Rerun executable lookups
+  because that invocation did not put the venv scripts on PATH; the `uv run`
+  rerun resolved both. Post-correction real replay is NOT VERIFIED as of this
+  entry.
+
+## 2026-10-13 visibility chunk-size screen
+
+- [Experiment 0042](research/experiments/0042-visibility-chunk-screen.md):
+  matched six-frame learned CUDA runs had identical map digests and visibility
+  summaries, with 6/6 accepted current receipts each. The 8,192 chunk's warm
+  visibility median was 449.2 ms versus 501.7 ms at 4,096; all frames missed
+  the configured 100 ms audit-inclusive budget. Peak VRAM was NOT VERIFIED.
+- Visibility and CUDA stage tests: 32 passed, including an exact 4,100-beam
+  chunk-boundary regression. Full `uv run --no-sync pytest -q -W error`:
+  145 passed, 4 skipped, 1 failed (same Windows symlink privilege, WinError
+  1314). Full Ruff lint/format and strict mypy on 50 source files passed.
+
+## 2026-10-05 temporal fusion, drivability and dashboard (decision 0011)
+
+- `python -m pytest -q -W error`: 144 passed, 4 skipped, 1 failed (pre-existing Windows
+  symlink privilege, WinError 1314). `tests/test_temporal.py` 11/11 (Kalman steady state and
+  reset, staleness, eviction and slot reuse, ghost clearing, free and current-return
+  precedence, nonoverlap after motion, ownership equal to `resolve_owners`, every terrain
+  state and flag, invalid input). CLI `--temporal` and fused Rerun recording tests pass.
+  Ruff, format and strict mypy pass.
+- Real replay: `drishti replay ... --mode learned --device cuda --detect-obstacles
+  --track-obstacles --visibility --temporal --audit-every 100 --view record --max-frames 100`
+  completed; `rerun rrd verify` passed.
+- Drivability against labels: `python ../docs/research/experiments/0038-temporal-drivability.py
+  --dataset ../data/semantickitti --sequence 08 --start-frame <0|2000> --frames 250
+  --checkpoint ... --checkpoint-sha256 ... --output <new json>`; results in experiment 0038.
+- NOT VERIFIED: owner visual inspection of the new tabs, full-sequence fused run, installed
+  wheel, any real-time claim for the fused stage.
+
 ## 2026-09-30 release host: in-process FRNet, voxels and light receipt
 
 Environment: `uv sync --frozen --extra viz --extra cuda --extra model` (PyTorch

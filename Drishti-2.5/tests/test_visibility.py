@@ -6,6 +6,7 @@ from typing import Any
 import numpy as np
 import pytest
 
+import drishti.visibility as visibility_module
 from drishti.arrays import ByteArray, FloatArray, IntArray, PointArray, immutable
 from drishti.cli import main
 from drishti.config import MappingConfig
@@ -164,6 +165,33 @@ def test_ground_corridor_free_cells_proof_and_unknown_return_cell() -> None:
     summary = result.visibility.summary
     assert (summary.qualifying_beams, summary.free_cells, summary.unknown_cells) == (1, 12, 1)
     assert summary.deskew_status == frame.deskew_status == "unavailable"
+
+
+@pytest.mark.parametrize(
+    ("smaller", "larger", "beams"),
+    ((4096, 8192, 4100), (8192, 16384, 8200)),
+)
+def test_visibility_is_identical_across_beam_chunk_boundaries(
+    monkeypatch: pytest.MonkeyPatch, smaller: int, larger: int, beams: int
+) -> None:
+    scene = [_ground(20.02, float(y)) for y in np.linspace(-2.0, 2.0, beams)]
+    monkeypatch.setattr(visibility_module, "_BEAM_CHUNK", smaller)
+    _, reference, _ = Harness().step(scene)
+    monkeypatch.setattr(visibility_module, "_BEAM_CHUNK", larger)
+    _, batched, _ = Harness().step(scene)
+    assert reference.visibility is not None and batched.visibility is not None
+    for name in (
+        "occupancy",
+        "obstacle_support",
+        "free_level",
+        "free_indices",
+        "free_ray_support",
+        "free_beam_point_id",
+    ):
+        np.testing.assert_array_equal(
+            getattr(reference.visibility, name), getattr(batched.visibility, name)
+        )
+    assert reference.visibility.summary == batched.visibility.summary
 
 
 def test_pole_within_margin_blocks_nearby_corridor_cells() -> None:

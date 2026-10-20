@@ -47,7 +47,18 @@ def test_installed_cli_replays_dataset_from_another_directory(
 
 def test_output_cannot_be_written_into_the_dataset(dataset_root: Path, tmp_path: Path) -> None:
     alias = tmp_path / "alias"
-    alias.symlink_to(dataset_root, target_is_directory=True)
+    if sys.platform == "win32":
+        # Junctions exercise the same resolved-path guard without requiring
+        # Windows Developer Mode or the symbolic-link privilege.
+        linked = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(alias), str(dataset_root)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert linked.returncode == 0, linked.stderr
+    else:
+        alias.symlink_to(dataset_root, target_is_directory=True)
     output = alias / "run"
     command = [
         sys.executable,
@@ -287,3 +298,40 @@ def test_viewer_flush_failure_cannot_report_success(
         == 1
     )
     assert json.loads((output / "summary.json").read_text())["status"] == "failed"
+
+
+def test_replay_with_temporal_reports_fused_map_on_the_same_path(
+    dataset_root: Path, tmp_path: Path
+) -> None:
+    output = tmp_path / "temporal"
+    command = [
+        sys.executable,
+        "-m",
+        "drishti",
+        "replay",
+        "--dataset",
+        str(dataset_root),
+        "--sequence",
+        "08",
+        "--output",
+        str(output),
+        "--max-frames",
+        "3",
+        "--temporal",
+    ]
+    completed = subprocess.run(command, cwd=tmp_path, capture_output=True, text=True, timeout=60)
+    assert completed.returncode == 0, completed.stderr
+    manifest = json.loads((output / "manifest.json").read_text())
+    temporal = manifest["temporal"]
+    assert temporal["method"] == "rolling-kalman-logodds-v1"
+    assert temporal["free_evidence"] == "none"
+    assert temporal["allocated_bytes"] > 0
+    assert manifest["scope"] == "diagnostic-fused-map"
+    assert "diagnostic temporal fusion outside receipt schema" in manifest["limits"]
+    assert "no temporal fusion" not in manifest["limits"]
+    records = [json.loads(line) for line in (output / "frames.jsonl").read_text().splitlines()]
+    summaries = [record["temporal_summary"] for record in records]
+    assert all(summary["allocated_bytes"] == temporal["allocated_bytes"] for summary in summaries)
+    assert all(record["timings_ms"]["temporal_ms"] is not None for record in records)
+    # Geometric mode has no semantics, so nothing may be judged drivable.
+    assert all(summary["terrain_counts"][1] == 0 for summary in summaries)

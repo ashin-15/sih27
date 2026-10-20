@@ -1151,15 +1151,19 @@ def _validate_cells(frame: ScanFrame, result: ProductFrameResult, deep: bool = T
     if n and int(np.abs(cells.indices).max()) >= 1 << 25:
         raise ValueError("cell-index")
     packed = pack_cells(cells.level, cells.indices)
-    if len(np.unique(packed)) != n:
+    ordered_packed = np.sort(packed)
+    if np.any(ordered_packed[1:] == ordered_packed[:-1]):
         raise ValueError("cell-overlap")
     for level in range(len(sizes)):
         finer = cells.indices[cells.level == level]
         for coarser in range(level + 1, len(sizes)):
             ratio = sizes[coarser] // sizes[level]
             parents = pack_cells(np.full(len(finer), coarser, dtype=np.int64), finer // ratio)
-            if np.any(np.isin(parents, packed)):
-                raise ValueError("cell-overlap")
+            if len(parents):
+                positions = np.searchsorted(ordered_packed, parents)
+                valid = positions < n
+                if np.any(ordered_packed[positions[valid]] == parents[valid]):
+                    raise ValueError("cell-overlap")
     beam_ids, beam_points, origins, returns = _beam_columns(result)
     if len(np.unique(beam_ids)) != len(beam_ids):
         raise ValueError("beam-id")

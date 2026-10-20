@@ -1,5 +1,71 @@
 # Work log
 
+## 2026-10-15 - CUDA visibility batch screen
+
+- IMPLEMENTED: raised the internal visibility CUDA/CPU beam batch from 8,192
+  to 16,384 without changing evidence or result contracts. Extended the CPU
+  boundary fixture and added a CUDA full-evidence boundary regression.
+- VERIFIED: [experiment 0050](research/experiments/0050-visibility-chunk-screen.md)
+  ran two six-frame order pairs on sequence 08 with FRNet, mapping,
+  candidates, tracking, visibility, temporal fusion and schema-5 receipts.
+  All 24 receipts were accepted; corresponding input/map digests, accounting
+  and visibility summaries matched. The CUDA boundary regression matched
+  every evidence array with more than 8,192 qualifying beams. Focused
+  visibility tests passed 28/28; the full suite passed 150 with four skipped;
+  Ruff lint/format and strict mypy passed.
+- LIMIT: all 24 complete-path frames missed 100 ms. The 8,192 baseline
+  slowed substantially in the last run, so the observed small-run median
+  improvement is not a controlled sustained-speed claim. Peak VRAM/RSS and
+  scratch memory remain unmeasured; T-008/O-006 stay IN PROGRESS.
+
+## 2026-10-15 - Bounded temporal performance pass
+
+- IMPLEMENTED: direct toroidal slot offsets in diagnostic fused-map step
+  calculation, with a boundary and slot-reuse regression. A valid-ground
+  filtering candidate was measured and reverted after a median regression.
+- VERIFIED: [experiment 0047](research/experiments/0047-temporal-neighbor-integration.md)
+  found exact rise/drop arrays and matching frame ID, input/map digests,
+  accounting and fused summaries across 30 synthetic frames. Its same-state
+  isolated step cost was 149.005 versus 117.044 ms. Focused temporal tests
+  13/13, full package tests 148 passed and four skipped, Ruff lint/format and
+  strict mypy passed. Pytest required an unrestricted run because fixture
+  directories raised Windows access errors inside the sandbox; the viewer
+  tests also required the installed `rerun.exe` on PATH.
+- VERIFIED: a three-frame learned CUDA sequence-08 run with candidates,
+  tracking, visibility, temporal fusion and schema-5 receipt completed with
+  three accepted receipts. Its input/map digests, accounting and temporal
+  summaries matched the preceding instrumented three-frame report. All three
+  audit-inclusive frames still missed 100 ms; this short concurrent-load run
+  is not a release benchmark.
+- LIMIT: complete current-path GPU latency, full-release output and 100 ms
+  zero-miss acceptance remain unverified. T-008/O-006 stay IN PROGRESS.
+
+## 2026-10-14 - Execution-plan audit and temporal free-evidence correction
+
+- FACT: The task board has six bounded/historical DONE entries, ten IN
+  PROGRESS, one BLOCKED and three TODO. Full product/release acceptance is
+  open: the complete schema and D-005 thresholds, independent final quality,
+  motion, foveation, exact layered-store/memory evidence and zero-miss 100 ms
+  release replay do not have the required proof. See the
+  [dated plan audit](execution-plan.md#2026-10-14-submission-readiness-audit).
+- REPRODUCED: after five free observations, a newer obstacle return and one
+  unobserved frame, the fused occupancy incorrectly became FREE again from
+  the older beam evidence. The focused regression failed before the fix.
+- IMPLEMENTED: fused FREE now requires its last free observation to be newer
+  than its last obstacle hit. The Windows path-safety test uses a directory
+  junction when symlink creation requires unavailable privilege, preserving
+  its resolved-path rejection assertion.
+- VERIFIED: focused 13/13 tests; full documented `uv run` suite 147 passed,
+  four skipped; Ruff lint/format, strict mypy and source/wheel build passed.
+  A two-frame synthetic CLI temporal run completed with fixed 53,737,911-byte
+  allocation. A separate installed-wheel run from outside the source tree
+  completed with identical input/map digests and fused summaries. Both source
+  and wheel runs missed their audit-inclusive 100 ms budgets. Commands and
+  the source run path are in [testing](testing.md).
+- NOT VERIFIED: learned real-data installed-wheel replay, independent quality,
+  complete receipt timing, dashboard visual acceptance and AC-008. No task or
+  release gate was promoted by this verification.
+
 ## 2026-09-29 - Approved T-005 bounded CPU association verified
 
 - DESIGN DECISION: the owner's "continue" after the explicit approval
@@ -1139,6 +1205,38 @@ Detailed test evidence belongs in `testing.md`; active blockers belong in `open-
 - NOT DONE: paced 100 ms learned check (checker is geometric-only; laptop on
   battery), installed-wheel release replay, commit.
 
+## 2026-10-05 - Drivable recall gap cause (experiment 0040)
+
+- MEASURED: frames 2000-2249 miss 21.0% of labelled-drivable cells; 14.3 points are
+  parking that FRNet predicts as sidewalk (FRNet parking IoU 0.537). Frames 0-249 miss
+  4.6%, led by interior curb flags (1.4%; steps p50 0.13 m vs 0.10 m limit).
+- NOT APPLIED: candidate fixes listed in experiment 0040 need owner/D-005 approval.
+
+## 2026-10-05 - Single-scan versus fused terrain (experiment 0039)
+
+- REQUEST: owner asked whether fusion is necessary given its cost.
+- MEASURED: same accuracy on observed cells (fused IoU 0.943/0.782 vs single
+  0.959/0.797); drivable flip rate 1.1-1.2% fused vs 12.5-14.8% single; known area
+  within 20 m 3.7-5.7x larger fused; fusion adds about 50-80 ms over the same rules
+  without history. Recall gap in 2000-2249 also present without fusion.
+
+## 2026-10-05 - Temporal fusion, Kalman elevation, drivability and dashboard
+
+- REQUEST: owner asked for temporal fusion, Kalman filtering where applicable, the
+  drivable/non-drivable layer and dashboard integration. Decision 0011 records the
+  design; track-velocity Kalman left out (changes the T-005 contract).
+- DONE: `temporal.py` fused rolling map, engine/CLI `--temporal`, four Rerun tabs plus
+  terrain legend, `tests/test_temporal.py` (11), CLI and viewer tests,
+  `0038-temporal-drivability.py`.
+- CHECKS: Ruff, format, mypy clean; full suite 144 passed, 4 skipped, 1 failed
+  (`test_output_cannot_be_written_into_the_dataset`: Windows symlink privilege
+  WinError 1314, unrelated to this change).
+- MEASURED (experiment 0038): 100-frame recorded replay verified; drivable IoU
+  0.943 / 0.782, precision 0.988 / 0.987, false drivable on obstacle cells
+  0.10% / 0.09%; temporal stage p50 273 / 168 ms after optimisation; fixed 53.7 MB.
+- OPEN: cause of the 0.79 drivable recall in frames 2000-2249, D-005 threshold
+  approval, motion layer, receipt schema for the fused map, commit.
+
 ## 2026-09-30 - Map memory comparison (experiment 0036)
 
 - MEASURED: adaptive snapshot median 12.56 MB (44,375 cells) over 51 sequence-08 scans;
@@ -1157,3 +1255,121 @@ Detailed test evidence belongs in `testing.md`; active blockers belong in `open-
 - PLAN: added T-016 (map store and memory benchmark), T-017 (terrain and
   drivability), T-018 (motion layer) and T-019 (dashboard layers), all TODO and
   needing approval. Nothing implemented; memory figures are arithmetic estimates.
+
+## 2026-10-13 - Production roadmap and SIH26053 cross-check
+
+- REQUEST: owner asked to finish the remaining tasks, plan for production quality,
+  meet the 100 ms budget and check against the SIH problem statement regularly.
+- REVIEWED: root and nested agent rules, task board, open items, PRD, acceptance,
+  SIH26053, decisions 0009-0011 and experiments 0034-0040. Git status showed
+  existing uncommitted temporal code, tests and research; preserved them.
+- PLAN: added `production-roadmap.md` with five evidence gates and a direct
+  SIH26053 cross-check. Linked it from the execution plan and docs index.
+- FACT: recorded GPU learned work is roughly 0.7-1.1 s before receipt;
+  temporal update p50 is 168-273 ms in two measured chunks. The complete
+  100 ms zero-miss release gate is not met or fully verified. No new benchmark
+  or test was run for this documentation-only planning change.
+- OPEN: D-005 numeric quality/resource gates, complete fused output schema,
+  final quality sets, motion, foveation, full map/dashboard acceptance and
+  RTX 4050 complete-path performance. Owner confirmation of release scope and
+  the existing timing boundary is pending.
+- MEASURED RESULT: experiment 0041 ran three real sequence-08 learned CUDA
+  frames with candidates, tracking, visibility, temporal map and accepted
+  current schema-5 receipts. Steady processing p50 was 1,452 ms; all three
+  audit-inclusive frame budgets were missed. This was not a paced AC-008 test.
+- FIXED: the CLI manifest now reports diagnostic fusion when `--temporal` is
+  enabled; the earlier artifact had incorrectly stated `no temporal fusion`.
+  A regression assertion covers the scope and limit text.
+- CHECKS: focused CLI tests 8 passed, 1 skipped, 1 failed due to pre-existing
+  Windows symlink privilege (WinError 1314). Full suite through uv: 144 passed,
+  4 skipped, same failure. Ruff lint/format and strict mypy pass. A direct
+  Python full run first had two additional executable lookup failures because
+  `rerun` was not on PATH; `uv run` resolved both. No test was removed or
+  skipped to make the gate pass.
+
+## 2026-10-13 - T-008 visibility chunk screen
+
+- PROFILE: a two-frame cProfile run put visibility at 1.18 s cumulative;
+  corridor sampling used 0.47 s across 40 GPU chunks. The profile itself is
+  instrumented and is not release latency evidence.
+- CHANGE: increased the internal visibility beam chunk from 4,096 to 8,192.
+  Six matched real learned CUDA frames kept all map digests and visibility
+  summaries equal; a 4,100-beam fixture matched exact evidence arrays across
+  the boundary. See experiment 0042.
+- MEASURED RESULT: warm visibility median 501.7 -> 449.2 ms; whole-frame
+  median 1,308.6 -> 1,278.6 ms, with all six current receipts accepted in
+  each run. Every frame still missed the configured 100 ms audit-inclusive
+  budget. Peak VRAM and controlled p99 remain NOT VERIFIED.
+- CHECKS: 32 visibility/CUDA stage tests passed; full suite 145 passed,
+  4 skipped, one existing Windows symlink privilege failure; full Ruff
+  lint/format and strict mypy passed. T-008/O-001/O-006 remain open.
+- SIH26053 CROSS-CHECK: the low-latency/dashboard requirement remains open;
+  the adaptive-grid and semantic requirements did not change. This screen
+  cannot support a real-time or high-FPS claim. The next roadmap review is
+  due at the next development gate or within one active-development week.
+- FOLLOW-UP FINDING: the post-change six-frame report shows 547-703 ms warm
+  schema-5 evaluator validation. Profiling also ranks cell/visibility checks
+  and digesting as receipt costs. The evaluator is a separate T-008 bottleneck.
+
+## 2026-10-13 - RQ-004 100 ms feasibility research
+
+- REVIEW: experiment 0043 compares the measured short RTX 4050 critical path
+  with official TensorRT, CUDA and ONNX Runtime performance guidance. No new
+  product code or benchmark was run. The six-frame current-path processing
+  p50 is 1,278.6 ms, with 547-703 ms schema-5 validation on warm frames;
+  this is unpaced and not a frozen complete-result measurement.
+- PLAN: controlled stage/transfer/evaluator trace, then separate exact-output
+  screens for FRNet, visibility, temporal/map and evaluator, followed by a
+  paced integrated gate. T-008 remains IN PROGRESS; O-001/O-006 remain open.
+- SIH26053 CROSS-CHECK: low latency/high-FPS remains unmet; any speed change
+  must preserve distance accuracy, adaptive high-detail near cells, obstacle
+  and terrain evidence, conservative free cells and measured memory reduction.
+  The dashboard display gate remains separately unverified. No SIH row was
+  promoted. The next review is due at the next development gate or within one
+  active-development week.
+
+## 2026-10-14 - Pending-work follow-up and CI definition
+
+- REVIEW: read the execution plan, roadmap, open items, interfaces and research
+  rules. The remaining full-product work still depends on D-005 numeric gates,
+  complete output schema, independent final labels and checkpoint terms. Asked
+  the owner for these inputs; no acceptance status was promoted.
+- CHANGE: added a pinned, read-only GitHub Actions package workflow for Linux
+  and Windows with lock, test, lint, type and build checks. Local
+  `uv lock --check` passed. The first local `viz`-only check exposed a missing
+  PyTorch dependency for strict mypy, so the workflow installs both `viz` and
+  `model`. The corrected local suite passed 143 tests with eight optional
+  skips; mypy checked 50 source files, and workflow YAML parsed. A hosted run
+  is NOT VERIFIED; release/security policy remains open under O-009.
+- MEASURED RESULT: experiment 0044 paired 30 synthetic frames; input/map
+  digests, accounting and base-cell counts matched. Temporal stage p50/p95
+  was 324.454/583.305 ms as fused cells grew from 15,576 to 164,214. An
+  isolated exact neighbour candidate saved about 12.5 ms on late-frame
+  calls and was not integrated. This is CPU development evidence, not AC-008.
+- RESEARCH: updated RQ-003/RQ-004, R-TIME/R-SYSTEM, claims, evidence and
+  engineering impact to reflect existing visibility evidence and the current
+  temporal/performance limits. O-006 moved from TODO to IN PROGRESS because
+  controlled short diagnostics exist; representative release validation is
+  still missing. No product runtime algorithm changed.
+
+## 2026-10-15 - G0 contract consistency and gate check
+
+- FACT: the 2026-09-26 staged [O-001 contract](o-001-contract-proposal.md),
+  PRD and AC-008 select complete sequences 08/00 at 10 Hz, sequence 10 frame
+  206 as a cold start and a 130,000-point explicit-reject cap. Active T-001,
+  O-001, PRD FR-008 and the older release brief still described those choices
+  as deferred. Reconciled their current-status text; historical decisions and
+  measurement results were preserved.
+- RESEARCH CHECK: inspected the official SemanticKITTI configuration and
+  evaluator linked by the [D-005 semantic threshold sheet](d-005-semantic-thresholds-v0.1.md).
+  Its proposed numbers remain draft. The independent F-002 range audit set,
+  complete fused result schema and other D-005 quality/resource limits remain
+  UNKNOWN or NOT VERIFIED; G0/T-001 and AC-008 remain open.
+- VERIFIED on the current working tree before documentation edits:
+  `uv run --frozen --extra viz --extra model pytest -q -W error -p no:cacheprovider`
+  returned 147 passed, 4 skipped. Ruff check and format check passed, and
+  `python -m mypy` found no issues in 50 source files. After the documentation
+  edits, `uv build --no-sources` produced the source distribution and wheel,
+  and `git diff --check` passed. Source inspection confirms `--temporal`
+  remains outside the current receipt schema. These checks do not validate
+  the proposed release result or the 100 ms gate.

@@ -6,6 +6,7 @@ from typing import Any, Literal, cast
 import numpy as np
 import pytest
 
+from drishti import visibility as visibility_module
 from drishti.arrays import ByteArray, IntArray, PointArray, immutable
 from drishti.config import MappingConfig
 from drishti.contracts import Mode, ScanFrame, make_frame
@@ -35,10 +36,12 @@ class NumpyArrayAPI:
         return values
 
 
-def _scene(seed: int) -> tuple[np.ndarray[Any, Any], ByteArray, ByteArray]:
+def _scene(
+    seed: int, ground_points: int = 1500
+) -> tuple[np.ndarray[Any, Any], ByteArray, ByteArray]:
     """Ground returns, clustered cars/poles and scattered structure around the sensor."""
     rng = np.random.default_rng(seed)
-    ground_xy = rng.uniform(-60, 60, (1500, 2))
+    ground_xy = rng.uniform(-60, 60, (ground_points, 2))
     ground_xy = ground_xy[np.hypot(ground_xy[:, 0], ground_xy[:, 1]) > 3.0]
     ground = np.column_stack((ground_xy, np.full(len(ground_xy), -1.73)))
     centers = rng.uniform(-40, 40, (12, 2))
@@ -100,9 +103,9 @@ def _frame(xyz: np.ndarray[Any, Any]) -> ScanFrame:
 
 
 def _run(
-    device: Literal["cpu", "cuda"], seed: int
+    device: Literal["cpu", "cuda"], seed: int, ground_points: int = 1500
 ) -> tuple[ScanFrame, FrameResult, ProductFrameResult]:
-    xyz, semantic, ground = _scene(seed)
+    xyz, semantic, ground = _scene(seed, ground_points)
     authored = Authored(semantic, ground)
     engine = MappingEngine(
         MappingConfig(),
@@ -182,6 +185,27 @@ def test_cuda_candidate_tracking_and_visibility_match_cpu(seed: int) -> None:
     _, _, cpu = _run("cpu", seed)
     _, _, cuda = _run("cuda", seed)
     _assert_same_evidence(cuda, cpu)
+
+
+@pytest.mark.cuda
+def test_cuda_visibility_evidence_matches_across_8192_beam_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    if not CudaFramePath.available():
+        pytest.skip("working NVIDIA CUDA device and CuPy required")
+    monkeypatch.setattr(visibility_module, "_BEAM_CHUNK", 8192)
+    _, reference, _ = _run("cuda", 26053, ground_points=11_000)
+    monkeypatch.setattr(visibility_module, "_BEAM_CHUNK", 16384)
+    _, candidate, _ = _run("cuda", 26053, ground_points=11_000)
+    assert reference.visibility is not None and candidate.visibility is not None
+    assert reference.visibility.summary.qualifying_beams > 8192
+    for field in fields(reference.visibility):
+        old = getattr(reference.visibility, field.name)
+        new = getattr(candidate.visibility, field.name)
+        if isinstance(old, np.ndarray):
+            np.testing.assert_array_equal(old, new, err_msg=field.name)
+        else:
+            assert old == new
 
 
 def test_stage_devices_must_match_engine() -> None:
