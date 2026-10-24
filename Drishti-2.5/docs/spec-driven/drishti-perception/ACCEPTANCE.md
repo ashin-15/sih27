@@ -55,8 +55,26 @@ results. The one-scan official evaluator check was format/metric validation.
 E-051 now records the full sequence 08 semantic baseline, but D-005 numeric
 gates have not been approved and the split engine does not establish AC-008.
 The [D-005 semantic threshold sheet v0.1](../../../../docs/d-005-semantic-thresholds-v0.1.md)
-is a draft proposal for AC-001/014 metrics, support and independent final
-evaluation; it is not a frozen pass rule.
+and the [G0 implementation bundle](../../../../docs/d-005-g0-thresholds-v0.2.md)
+define approved executable values for AC-001/014 metrics, support and resource
+samples. Independent final evaluation remains open; the bundle is not a release
+pass.
+
+## G0 complete-result implementation candidate
+
+The G0 implementation uses `drishti-g0-v1` and product-result schema version
+6. `stage=complete` is accepted only when the same shared path has produced
+semantic provenance, candidate instances, tracking evidence, current-scan
+visibility proofs and a fused temporal map. The result contains the immutable
+fused cell arrays and summary, current-scan cells and beam proofs, calibration
+provenance, `d005-v0.2` and the declared `ResourceLimits`.
+
+The evaluator rejects incomplete provenance, missing fused evidence, cross-level
+cell overlap, summary mismatches and resource samples above a declared ceiling.
+Schemas 1-5 retain their prior compatibility behavior. This implementation
+candidate is covered by focused evaluator and threshold tests, but the CLI
+still reports temporal output as diagnostic schema 5 until the release producer
+and calibration/resource sampling are wired into the replay gate.
 
 
 ## Approved bounded T-005 slice (AC-016), 2026-09-29

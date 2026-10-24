@@ -1,7 +1,8 @@
-"""Version 1 complete-result contract and synchronous same-process evaluator.
+"""Versioned product-result contracts and synchronous same-process evaluator.
 
-The current engine can populate a diagnostic result with explicit unknown evidence.
-Only a later complete producer may set stage to ``complete``.
+The current engine can populate diagnostic and staged learned results with
+explicit evidence. The G0 adapter may set stage to ``complete`` only after the
+candidate, tracking, visibility and temporal payloads are present.
 """
 
 import hashlib
@@ -20,6 +21,13 @@ from drishti.contracts import Accounting, ScanFrame
 from drishti.learned import FRNET_CLASS_MAP_VERSION, FRNET_REVISION
 from drishti.obstacles import InstanceEvidence
 from drishti.pipeline import FrameResult
+from drishti.release_contract import (
+    D005_VERSION,
+    DEFAULT_D005,
+    G0_CONTRACT_VERSION,
+    ResourceLimits,
+)
+from drishti.temporal import FusedMapSummary, FusedOccupancy, TerrainState
 from drishti.tracking import (
     ASSOCIATION_METHOD,
     MAX_TRACK_ID,
@@ -48,11 +56,12 @@ SEMANTIC_SCHEMA_VERSION = 2
 CANDIDATE_SCHEMA_VERSION = 3
 TRACKING_SCHEMA_VERSION = 4
 VISIBILITY_SCHEMA_VERSION = 5
+COMPLETE_SCHEMA_VERSION = 6
 RELEASE_POINT_CAP = 130_000
 COORDINATE_FRAME = "map-x-forward-y-left-z-up"
 UNITS = "metre-nanosecond"
-TRACKED_STAGES = ("tracking", "visibility")
-LEARNED_STAGES = ("semantic", "candidate", "tracking", "visibility")
+TRACKED_STAGES = ("tracking", "visibility", "complete")
+LEARNED_STAGES = ("semantic", "candidate", "tracking", "visibility", "complete")
 type Stage = Literal["diagnostic", "semantic", "candidate", "tracking", "visibility", "complete"]
 
 
@@ -109,6 +118,29 @@ class CellEvidence:
 
 
 @dataclass(frozen=True)
+class FusedCellEvidence:
+    """Version-6 fused cells copied from the sequence-owned temporal map view."""
+
+    cell_sizes_cm: tuple[int, ...]
+    level: IntArray
+    indices: IntArray
+    centers_xy_m: FloatArray
+    size_m: FloatArray
+    ground_height_m: FloatArray
+    ground_sigma_m: FloatArray
+    ground_valid: BoolArray
+    occupancy: ByteArray
+    terrain: ByteArray
+    flags: ByteArray
+    semantic_id: ByteArray
+    obstacle_low_m: FloatArray
+    obstacle_high_m: FloatArray
+    last_seen_ns: IntArray
+    observations: IntArray
+    summary: FusedMapSummary
+
+
+@dataclass(frozen=True)
 class ProductDiagnostics:
     load_ms: float | None
     ground_ms: float
@@ -127,6 +159,10 @@ class ProductDiagnostics:
     process_rss_bytes: int | None
     device_memory_bytes: int | None
     device_memory_status: Literal["unavailable", "sampled"]
+    swap_delta_bytes: int | None = None
+    receipt_bytes: int | None = None
+    audit_bytes: int | None = None
+    disk_free_bytes: int | None = None
 
 
 @dataclass(frozen=True)
@@ -170,6 +206,10 @@ class ProductFrameResult:
     tracking_summary: TrackingSummary | None = None
     visibility_summary: VisibilitySummary | None = None
     beam_table: BeamTable | None = None
+    fused: FusedCellEvidence | None = None
+    complete_contract_version: str | None = None
+    d005_version: str | None = None
+    resource_limits: ResourceLimits | None = None
 
 
 @dataclass(frozen=True)
@@ -212,20 +252,18 @@ def _canonical(value: object) -> object:
         }
     if isinstance(value, ProductFrameResult):
         # Fields added by later schemas stay out of earlier digests, preserving them exactly.
-        excluded: set[str] = set()
-        if value.schema_version < VISIBILITY_SCHEMA_VERSION:
-            excluded.update(("visibility_summary", "beam_table"))
-        if value.schema_version < TRACKING_SCHEMA_VERSION:
-            excluded.add("tracking_summary")
-        if value.schema_version == SCHEMA_VERSION:
-            excluded.update(
-                ("model_source_revision", "model_weights_sha256", "model_class_map_version")
+        excluded = _result_excluded_fields(value)
+        payload: dict[str, object] = {}
+        for field in fields(value):
+            if field.name in excluded:
+                continue
+            current = getattr(value, field.name)
+            payload[field.name] = (
+                _canonical_diagnostics(current, include_resource_fields=False)
+                if field.name == "diagnostics" and value.schema_version < COMPLETE_SCHEMA_VERSION
+                else _canonical(current)
             )
-        return {
-            field.name: _canonical(getattr(value, field.name))
-            for field in fields(value)
-            if field.name not in excluded
-        }
+        return payload
     if is_dataclass(value) and not isinstance(value, type):
         return {field.name: _canonical(getattr(value, field.name)) for field in fields(value)}
     if isinstance(value, tuple):
@@ -242,9 +280,65 @@ def _canonical(value: object) -> object:
     return value
 
 
-def _feed_raw(digest: Any, value: object) -> None:
+def _result_excluded_fields(value: ProductFrameResult) -> set[str]:
+    excluded: set[str] = set()
+    if value.schema_version < COMPLETE_SCHEMA_VERSION:
+        excluded.update(("fused", "complete_contract_version", "d005_version", "resource_limits"))
+    if value.schema_version < VISIBILITY_SCHEMA_VERSION:
+        excluded.update(("visibility_summary", "beam_table"))
+    if value.schema_version < TRACKING_SCHEMA_VERSION:
+        excluded.add("tracking_summary")
+    if value.schema_version == SCHEMA_VERSION:
+        excluded.update(
+            ("model_source_revision", "model_weights_sha256", "model_class_map_version")
+        )
+    return excluded
+
+
+def _canonical_diagnostics(value: ProductDiagnostics, *, include_resource_fields: bool) -> object:
+    excluded: set[str] = set()
+    if not include_resource_fields:
+        excluded.update(("swap_delta_bytes", "receipt_bytes", "audit_bytes", "disk_free_bytes"))
+    return {
+        field.name: _canonical(getattr(value, field.name))
+        for field in fields(value)
+        if field.name not in excluded
+    }
+
+
+def _feed_raw(digest: Any, value: object, *, include_resource_fields: bool = True) -> None:
     """Typed, length-prefixed stream: array headers then raw bytes, no hex or JSON bodies."""
-    if isinstance(value, np.ndarray):
+    if isinstance(value, ProductFrameResult):
+        excluded = _result_excluded_fields(value)
+        digest.update(f"D{type(value).__name__}{{".encode())
+        for field in fields(value):
+            if field.name in excluded:
+                continue
+            digest.update(f"{field.name}=".encode())
+            _feed_raw(
+                digest,
+                getattr(value, field.name),
+                include_resource_fields=value.schema_version >= COMPLETE_SCHEMA_VERSION,
+            )
+        digest.update(b"}")
+    elif isinstance(value, ProductDiagnostics):
+        digest.update(f"D{type(value).__name__}{{".encode())
+        for field in fields(value):
+            if not include_resource_fields and field.name in {
+                "swap_delta_bytes",
+                "receipt_bytes",
+                "audit_bytes",
+                "disk_free_bytes",
+            }:
+                continue
+            digest.update(f"{field.name}=".encode())
+            _feed_raw(
+                digest,
+                getattr(value, field.name),
+                include_resource_fields=include_resource_fields,
+            )
+        digest.update(b"}")
+    elif isinstance(value, np.ndarray):
         if value.dtype.byteorder not in ("<", "=", "|"):
             raise ValueError("array byte order must be native little endian")
         if not value.flags.c_contiguous:
@@ -257,7 +351,9 @@ def _feed_raw(digest: Any, value: object) -> None:
         digest.update(f"D{type(value).__name__}{{".encode())
         for field in fields(value):
             digest.update(f"{field.name}=".encode())
-            _feed_raw(digest, getattr(value, field.name))
+            _feed_raw(
+                digest, getattr(value, field.name), include_resource_fields=include_resource_fields
+            )
         digest.update(b"}")
     elif isinstance(value, tuple):
         digest.update(f"T{len(value)}[".encode())
@@ -266,7 +362,7 @@ def _feed_raw(digest: Any, value: object) -> None:
             digest.update(np.asarray(value, dtype=np.int64).tobytes())
         else:
             for item in value:
-                _feed_raw(digest, item)
+                _feed_raw(digest, item, include_resource_fields=include_resource_fields)
         digest.update(b"]")
     else:
         scalar = value if type(value) in (int, str, bool) or value is None else _canonical(value)
@@ -589,6 +685,98 @@ def visibility_product_result(
     )
 
 
+def complete_product_result(
+    frame: ScanFrame,
+    result: FrameResult,
+    *,
+    run_id: str,
+    code_revision: str,
+    checkpoint_sha256: str,
+    weights_sha256: str,
+    cell_sizes_cm: tuple[int, ...],
+    calibration_id: str,
+    calibration_digest: str,
+    backend: Literal["cpu", "cuda"] = "cpu",
+    pose_quality: Literal["verified", "degraded"] = "verified",
+    scheduled_arrival_ns: int | None = None,
+    resource_limits: ResourceLimits | None = None,
+    process_rss_bytes: int | None = None,
+    device_memory_bytes: int | None = None,
+    device_memory_status: Literal["unavailable", "sampled"] = "unavailable",
+    swap_delta_bytes: int | None = None,
+    receipt_bytes: int | None = None,
+    audit_bytes: int | None = None,
+    disk_free_bytes: int | None = None,
+) -> ProductFrameResult:
+    """Build the frozen G0 result from the shared complete execution path.
+
+    The producer must have executed candidates, tracking, current-scan
+    visibility and temporal fusion. This function only adapts those already
+    computed immutable values; it does not manufacture missing evidence.
+    """
+    if result.fused is None:
+        raise ValueError("complete product result requires temporal fusion")
+    if result.visibility is None or result.tracking is None:
+        raise ValueError("complete product result requires visibility and tracking")
+    if result.timings.temporal_ms is None:
+        raise ValueError("complete product result requires fusion timing")
+    baseline = visibility_product_result(
+        frame,
+        result,
+        run_id=run_id,
+        code_revision=code_revision,
+        checkpoint_sha256=checkpoint_sha256,
+        weights_sha256=weights_sha256,
+        cell_sizes_cm=cell_sizes_cm,
+        backend=backend,
+        scheduled_arrival_ns=scheduled_arrival_ns,
+    )
+    fused = result.fused
+    diagnostics = replace(
+        baseline.diagnostics,
+        fusion_ms=result.timings.temporal_ms,
+        map_cells=len(fused.level),
+        process_rss_bytes=process_rss_bytes,
+        device_memory_bytes=device_memory_bytes,
+        device_memory_status=device_memory_status,
+        swap_delta_bytes=swap_delta_bytes,
+        receipt_bytes=receipt_bytes,
+        audit_bytes=audit_bytes,
+        disk_free_bytes=disk_free_bytes,
+    )
+    return replace(
+        baseline,
+        schema_version=COMPLETE_SCHEMA_VERSION,
+        stage="complete",
+        pose_quality=pose_quality,
+        calibration_id=calibration_id,
+        calibration_digest=calibration_digest,
+        fused=FusedCellEvidence(
+            cell_sizes_cm=cell_sizes_cm,
+            level=fused.level,
+            indices=fused.indices,
+            centers_xy_m=fused.centers_xy_m,
+            size_m=fused.size_m,
+            ground_height_m=fused.ground_height_m,
+            ground_sigma_m=fused.ground_sigma_m,
+            ground_valid=fused.ground_valid,
+            occupancy=fused.occupancy,
+            terrain=fused.terrain,
+            flags=fused.flags,
+            semantic_id=fused.semantic,
+            obstacle_low_m=fused.obstacle_low_m,
+            obstacle_high_m=fused.obstacle_high_m,
+            last_seen_ns=fused.last_seen_ns,
+            observations=fused.observations,
+            summary=fused.summary,
+        ),
+        complete_contract_version=G0_CONTRACT_VERSION,
+        d005_version=D005_VERSION,
+        resource_limits=DEFAULT_D005.resources if resource_limits is None else resource_limits,
+        diagnostics=diagnostics,
+    )
+
+
 def _extend[Scalar: np.generic](
     current: NDArray[Scalar], added: NDArray[np.generic]
 ) -> NDArray[Scalar]:
@@ -703,6 +891,7 @@ class InProcessProductEvaluator:
             CANDIDATE_SCHEMA_VERSION,
             TRACKING_SCHEMA_VERSION,
             VISIBILITY_SCHEMA_VERSION,
+            COMPLETE_SCHEMA_VERSION,
         ):
             raise ValueError("unsupported-schema")
         if result.stage not in (*LEARNED_STAGES, "diagnostic", "complete"):
@@ -713,7 +902,7 @@ class InProcessProductEvaluator:
             "candidate": CANDIDATE_SCHEMA_VERSION,
             "tracking": TRACKING_SCHEMA_VERSION,
             "visibility": VISIBILITY_SCHEMA_VERSION,
-            "complete": SCHEMA_VERSION,
+            "complete": COMPLETE_SCHEMA_VERSION,
         }
         if result.schema_version != stage_schemas[result.stage]:
             raise ValueError("unsupported-schema")
@@ -770,6 +959,18 @@ class InProcessProductEvaluator:
             or not _is_sha256(result.calibration_digest)
         ):
             raise ValueError("incomplete-provenance")
+        if result.stage == "complete" and result.pose_quality == "unverified":
+            raise ValueError("incomplete-pose-quality")
+        if result.stage == "complete" and (
+            result.complete_contract_version != G0_CONTRACT_VERSION
+            or result.d005_version != D005_VERSION
+            or result.resource_limits is None
+            or result.fused is None
+            or result.tracking_summary is None
+            or result.visibility_summary is None
+            or result.beam_table is None
+        ):
+            raise ValueError("incomplete-complete-result")
         if result.stage == "diagnostic" and result.checkpoint_sha256 is not None:
             raise ValueError("diagnostic-checkpoint")
         if result.stage in LEARNED_STAGES and (
@@ -793,6 +994,11 @@ class InProcessProductEvaluator:
         _validate_points(frame, result)
         _validate_objects(frame, result, self._track_births, deep)
         _validate_cells(frame, result, deep)
+        if result.stage == "complete":
+            assert result.fused is not None
+            assert result.resource_limits is not None
+            _validate_fused_cells(result.fused, result)
+            _validate_resource_limits(result)
         _validate_diagnostics(result.diagnostics, result)
         if (
             self._last_stage
@@ -804,7 +1010,7 @@ class InProcessProductEvaluator:
             self._validate_tracking(result)
         elif result.tracking_summary is not None:
             raise ValueError("unexpected-tracking-summary")
-        if result.stage == "visibility":
+        if result.stage in ("visibility", "complete"):
             _validate_visibility(frame, result, deep)
         elif result.visibility_summary is not None or result.beam_table is not None:
             raise ValueError("unexpected-visibility-summary")
@@ -818,7 +1024,7 @@ class InProcessProductEvaluator:
             or not 1 <= summary.capacity <= MAX_TRACKS
             or (self._tracking_capacity is not None and summary.capacity != self._tracking_capacity)
             or result.diagnostics.association_ms is None
-            or (result.beams and result.stage != "visibility")
+            or (result.beams and result.stage not in ("visibility", "complete"))
             or result.allow_overlapping_instance_support
         ):
             raise ValueError("tracking-contract")
@@ -1447,6 +1653,121 @@ def _validate_visibility(frame: ScanFrame, result: ProductFrameResult, deep: boo
                 raise ValueError("visibility-margin")
 
 
+def _validate_fused_cells(value: FusedCellEvidence, result: ProductFrameResult) -> None:
+    """Validate the complete-result temporal map without trusting its summary."""
+    n = len(value.level)
+    specs = (
+        (value.level, (n,), np.int64),
+        (value.indices, (n, 2), np.int64),
+        (value.centers_xy_m, (n, 2), np.float64),
+        (value.size_m, (n,), np.float64),
+        (value.ground_height_m, (n,), np.float64),
+        (value.ground_sigma_m, (n,), np.float64),
+        (value.ground_valid, (n,), np.bool_),
+        (value.occupancy, (n,), np.uint8),
+        (value.terrain, (n,), np.uint8),
+        (value.flags, (n,), np.uint8),
+        (value.semantic_id, (n,), np.uint8),
+        (value.obstacle_low_m, (n,), np.float64),
+        (value.obstacle_high_m, (n,), np.float64),
+        (value.last_seen_ns, (n,), np.int64),
+        (value.observations, (n,), np.int64),
+    )
+    if any(array.shape != shape or array.dtype != dtype for array, shape, dtype in specs):
+        raise ValueError("fused-cell-shape-dtype")
+    sizes = value.cell_sizes_cm
+    if sizes != result.cells.cell_sizes_cm or not sizes or sizes[0] != 5:
+        raise ValueError("fused-cell-size")
+    if any(size <= 0 or size % 5 for size in sizes) or any(
+        larger % smaller for smaller, larger in zip(sizes, sizes[1:], strict=False)
+    ):
+        raise ValueError("fused-cell-size")
+    if np.any(value.level < 0) or np.any(value.level >= len(sizes)):
+        raise ValueError("fused-cell-level")
+    if np.any(value.occupancy > max(FusedOccupancy)) or np.any(value.terrain > max(TerrainState)):
+        raise ValueError("fused-cell-state")
+    if np.any(value.semantic_id > 19) or np.any(value.observations < 0):
+        raise ValueError("fused-cell-range")
+    if (
+        not np.isfinite(value.centers_xy_m).all()
+        or not np.isfinite(value.size_m).all()
+        or not np.isfinite(value.ground_height_m).all()
+        or not np.isfinite(value.ground_sigma_m).all()
+        or not np.isfinite(value.obstacle_low_m).all()
+        or not np.isfinite(value.obstacle_high_m).all()
+        or np.any(value.size_m <= 0)
+        or np.any(value.ground_sigma_m < -1)
+        or np.any(value.last_seen_ns < -1)
+        or np.any(value.last_seen_ns > result.scan_timestamp_ns)
+    ):
+        raise ValueError("fused-cell-values")
+    expected_size = np.asarray(sizes, dtype=np.float64)[value.level] / 100
+    expected_centers = (value.indices.astype(np.float64) + 0.5) * expected_size[:, None]
+    if not np.array_equal(value.size_m, expected_size) or not np.allclose(
+        value.centers_xy_m, expected_centers, rtol=0, atol=1e-12
+    ):
+        raise ValueError("fused-cell-geometry")
+    packed = pack_cells(value.level, value.indices)
+    ordered = np.sort(packed)
+    if np.any(ordered[1:] == ordered[:-1]):
+        raise ValueError("fused-cell-overlap")
+    for level in range(len(sizes)):
+        finer = value.indices[value.level == level]
+        for coarser in range(level + 1, len(sizes)):
+            ratio = sizes[coarser] // sizes[level]
+            parents = pack_cells(np.full(len(finer), coarser, dtype=np.int64), finer // ratio)
+            if len(parents):
+                positions = np.searchsorted(ordered, parents)
+                valid = positions < n
+                if np.any(ordered[positions[valid]] == parents[valid]):
+                    raise ValueError("fused-cell-overlap")
+    summary = value.summary
+    if (
+        summary.method != "rolling-kalman-logodds-v1"
+        or summary.published_cells != n
+        or summary.allocated_bytes <= 0
+        or summary.curb_cells != int(np.count_nonzero(value.flags & 1))
+        or summary.drop_cells != int(np.count_nonzero(value.flags & 2))
+        or summary.overhang_cells != int(np.count_nonzero(value.flags & 4))
+        or summary.terrain_counts
+        != tuple(int(item) for item in np.bincount(value.terrain, minlength=len(TerrainState)))
+        or summary.occupancy_counts
+        != tuple(int(item) for item in np.bincount(value.occupancy, minlength=len(FusedOccupancy)))
+    ):
+        raise ValueError("fused-summary")
+
+
+def _validate_resource_limits(result: ProductFrameResult) -> None:
+    limits = result.resource_limits
+    if limits is None:
+        raise ValueError("missing-resource-contract")
+    diagnostics = result.diagnostics
+    if result.accounting.input_points > limits.max_points:
+        raise ValueError("above-resource-point-cap")
+    if diagnostics.map_cells > limits.max_map_cells:
+        raise ValueError("resource-map-cap")
+    if diagnostics.track_count > limits.max_tracks:
+        raise ValueError("resource-track-cap")
+    if diagnostics.queue_depth > limits.max_queue_depth:
+        raise ValueError("resource-queue-cap")
+    if diagnostics.queue_age_ms > limits.max_queue_age_ms:
+        raise ValueError("resource-queue-age")
+    for value, ceiling, code in (
+        (diagnostics.process_rss_bytes, limits.max_process_rss_bytes, "resource-rss-cap"),
+        (diagnostics.device_memory_bytes, limits.max_device_memory_bytes, "resource-device-cap"),
+        (diagnostics.swap_delta_bytes, limits.max_swap_delta_bytes, "resource-swap-cap"),
+        (diagnostics.receipt_bytes, limits.max_receipt_bytes, "resource-receipt-cap"),
+        (diagnostics.audit_bytes, limits.max_audit_bytes, "resource-audit-cap"),
+    ):
+        if value is not None and value > ceiling:
+            raise ValueError(code)
+    if (
+        diagnostics.disk_free_bytes is not None
+        and diagnostics.disk_free_bytes < limits.min_disk_free_bytes
+    ):
+        raise ValueError("resource-disk-reserve")
+
+
 def _validate_diagnostics(value: ProductDiagnostics, result: ProductFrameResult) -> None:
     for field in fields(value):
         item = getattr(value, field.name)
@@ -1458,12 +1779,21 @@ def _validate_diagnostics(value: ProductDiagnostics, result: ProductFrameResult)
             raise ValueError("invalid-timing")
     if min(value.queue_depth, value.dropped_scans, value.invalid_scans) < 0:
         raise ValueError("invalid-counter")
-    if value.map_cells != len(result.cells.level) or value.track_count != len(result.tracks):
+    expected_cells = (
+        len(result.fused.level)
+        if result.stage == "complete" and result.fused
+        else len(result.cells.level)
+    )
+    if value.map_cells != expected_cells or value.track_count != len(result.tracks):
         raise ValueError("state-size-mismatch")
     if result.stage in ("candidate", *TRACKED_STAGES) and value.detector_ms is None:
         raise ValueError("missing-detector-time")
-    if (result.stage == "visibility") != (value.visibility_ms is not None):
+    if result.stage in ("visibility", "complete") and value.visibility_ms is None:
         raise ValueError("visibility-time")
+    if result.stage not in ("visibility", "complete") and value.visibility_ms is not None:
+        raise ValueError("visibility-time")
+    if result.stage == "complete" and value.fusion_ms is None:
+        raise ValueError("missing-fusion-time")
     if value.process_rss_bytes is not None and value.process_rss_bytes < 0:
         raise ValueError("invalid-memory")
     if value.device_memory_status not in ("unavailable", "sampled") or (
@@ -1472,3 +1802,7 @@ def _validate_diagnostics(value: ProductDiagnostics, result: ProductFrameResult)
         raise ValueError("invalid-device-memory")
     if value.device_memory_status == "sampled" and value.device_memory_bytes is None:
         raise ValueError("missing-device-sample")
+    for name in ("swap_delta_bytes", "receipt_bytes", "audit_bytes", "disk_free_bytes"):
+        sample = getattr(value, name)
+        if sample is not None and sample < 0:
+            raise ValueError("invalid-resource-sample")

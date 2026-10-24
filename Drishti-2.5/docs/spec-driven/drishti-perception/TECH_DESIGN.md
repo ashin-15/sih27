@@ -2,7 +2,8 @@
 
 Status: T-002 interface contract frozen 2026-09-26; T-003 semantic CPU slice
 approved 2026-09-27; bounded T-004 and T-005 CPU slices approved 2026-09-28
-and 2026-09-29. Other product stages and full release design stay Draft.
+and 2026-09-29. G0 schema-6/D-005 implementation candidate added 2026-10-24;
+product-owner acceptance and full release design stay open.
 
 ## Frozen T-002 result and receipt, version 1
 
@@ -10,9 +11,11 @@ and 2026-09-29. Other product stages and full release design stay Draft.
 `TrackEvidence`, `BeamProof`, `ProductDiagnostics` and `ProductReceipt`. `schema_version=1`
 is exact; unknown versions are rejected. All fields are required Python dataclass fields.
 `stage=diagnostic` is the existing geometric producer and may only emit unknown semantic/motion,
-no instances/tracks/beams, and unknown/ambiguous cells. `stage=complete` is reserved for future
-learned/temporal producers and requires checkpoint and calibration hashes; a schema-valid
-receipt alone does not prove quality or timing.
+no instances/tracks/beams, and unknown/ambiguous cells. `stage=complete` uses schema version 6
+under `drishti-g0-v1`; it is built only after learned semantics, candidates, tracking,
+current-scan visibility and temporal fusion are present. It carries the fused cell payload,
+`d005-v0.2` and the resource-limit bundle. A schema-valid receipt alone does not prove quality
+or timing.
 
 - Identity: nonempty run/sequence, nonnegative ordered frame ID and timestamp in ns,
   optional scheduled monotonic arrival ns, SHA-256 source scan/config/code/checkpoint hashes,
@@ -52,10 +55,10 @@ receipt alone does not prove quality or timing.
 
 Arrays must be C contiguous, little-endian/native on this little-endian runtime, and backed
 by immutable `bytes`, which prevents writable aliases after receipt. `canonical_result_digest`
-is SHA-256 over the entire dataclass tree encoded as UTF-8 JSON with sorted keys, compact
-separators and no NaN. Arrays encode `dtype.str`, shape and C-order payload hex; tuple order is
-retained. Changing any field, including diagnostics, changes the digest. This is a Python
-version-1 contract, not a cross-language wire format.
+uses the frozen JSON form for schemas 1-4 and the typed raw-array form for schemas 5-6. Arrays
+encode `dtype.str`, shape and C-order payload bytes; tuple order is retained. Changing any field,
+including diagnostics, changes the digest. This is a Python contract, not a cross-language wire
+format.
 
 `InProcessProductEvaluator.receive` checks the actual payload synchronously and stamps
 `receipt_monotonic_ns` after validation/digest. It returns `accepted` with a digest or
@@ -65,6 +68,24 @@ same `MappingEngine.process` used by replay/demo/viewer and records receipts in 
 under report schema 3. It does not replace the existing `--check-100ms` current-frame diagnostic
 receipt or make that timing an AC-008 measurement. Audit fsync, bounded queue/drain, complete
 producer and release timing remain T-007/T-008 work.
+
+## G0 complete-result implementation candidate
+
+Schema 6 is owned by `complete_product_result`. It adapts the same `FrameResult`
+after candidates, tracking, current-scan visibility and temporal fusion have
+completed. In addition to the schema-5 current-scan cells and beam table, it
+publishes `FusedCellEvidence`: level/index ownership, centres and extents,
+Kalman ground height/sigma/validity, fused occupancy, terrain state and flags,
+semantic evidence, obstacle height envelope, last-seen timestamp and observation
+count. The evaluator checks actual arrays, cross-level nonoverlap and summary
+counts before issuing a receipt.
+
+The result records `drishti-g0-v1`, `d005-v0.2` and the host-derived
+`ResourceLimits`. Over-limit samples reject the result. Missing independent
+quality data or missing final resource samples remain `not-verified`; a schema
+receipt is not a release or AC-008 pass. The current CLI still emits its
+diagnostic schema-5 result when `--temporal` is selected; release-producer
+integration is a following step after G0 acceptance.
 
 ## Approved T-003 semantic-only CPU path
 

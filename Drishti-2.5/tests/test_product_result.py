@@ -7,6 +7,7 @@ from drishti.config import MappingConfig
 from drishti.contracts import Accounting, Mode, ScanFrame, make_frame
 from drishti.pipeline import MappingEngine
 from drishti.product_result import (
+    COMPLETE_SCHEMA_VERSION,
     InProcessProductEvaluator,
     Occupancy,
     ProductFrameResult,
@@ -102,12 +103,14 @@ def test_product_evaluator_rejects_unsealed_misaligned_and_unsupported_claims() 
     complete = replace(
         product,
         stage="complete",
+        schema_version=COMPLETE_SCHEMA_VERSION,
         checkpoint_sha256="b" * 64,
         calibration_id="fixture",
         calibration_digest="c" * 64,
+        pose_quality="verified",
         cells=free,
     )
-    assert error(complete) == "unsupported-free"
+    assert error(complete) == "incomplete-complete-result"
 
 
 def test_rejection_does_not_advance_sequence_and_oracle_labels_do_not_enter_diagnostic() -> None:
@@ -146,6 +149,7 @@ def test_complete_result_rejects_approved_point_cap_without_truncation() -> None
     over_cap = replace(
         product,
         stage="complete",
+        schema_version=COMPLETE_SCHEMA_VERSION,
         source_scan_digest=source_scan_digest(frame),
         checkpoint_sha256="b" * 64,
         calibration_id="fixture",
@@ -162,15 +166,16 @@ def test_complete_result_schema_accepts_aligned_prediction_without_release_claim
     complete = replace(
         product,
         stage="complete",
+        schema_version=COMPLETE_SCHEMA_VERSION,
         checkpoint_sha256="b" * 64,
         calibration_id="fixture",
         calibration_digest="c" * 64,
+        pose_quality="verified",
         semantic_id=immutable(np.array([1, 0], dtype=np.uint8)),
         semantic_confidence=immutable(np.array([0.8, 0.0], dtype=np.float64)),
         semantic_support=immutable(np.array([1, 0], dtype=np.uint8)),
         semantic_unknown_reason=immutable(np.array([0, 2], dtype=np.uint8)),
     )
     receipt = InProcessProductEvaluator().receive(frame, complete)
-    assert receipt.status == ReceiptStatus.ACCEPTED
-    assert receipt.stage == "complete"
-    assert receipt.result_digest == canonical_result_digest(complete)
+    assert receipt.status == ReceiptStatus.REJECTED
+    assert receipt.error_code == "incomplete-complete-result"

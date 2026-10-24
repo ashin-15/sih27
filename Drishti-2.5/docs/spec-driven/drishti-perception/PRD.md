@@ -79,7 +79,7 @@ In scope for the first release: the existing Python package, its CLI, determinis
 | D-002 | First model milestone: semantic-only, joint semantic/motion, or checkpoint integration before training. | Semantic-only FRNet checkpoint integration approved for local CPU development on 2026-09-27. Motion remains separate. Checkpoint redistribution/release terms remain open. | FR-001, FR-005, FR-009 |
 | D-003 | Free-space output for evidence only or navigation consumption in the first release. | Evidence-only selected. No navigation-safe or drivable-space verdict; unknown/stale states remain explicit. Evidence-quality and recovery thresholds still require D-005 approval. | FR-006, FR-010 |
 | D-004 | Dataset replay only or live LiDAR and planner integration in the first release. | Dataset replay selected; live LiDAR and planner-facing output deferred beyond the first release. | FR-008, FR-011 |
-| D-005 | Numeric release thresholds for every success measure. | Set thresholds after a baseline on held-out data and target hardware; do not infer them from the synthetic demo. | FR-001 to FR-010 |
+| D-005 | Numeric release thresholds for every success measure. | `d005-v0.2` is approved for implementation and evaluation with the semantic sheet values, approved traffic-participant targets and host-derived resource ceilings. Independent range/wider-obstacle/terrain/motion/false-free evidence remains explicitly `not-verified`; do not infer a release pass from the synthetic demo. | FR-001 to FR-010 |
 | T4-D1 to T4-D3 | T-004 first-slice output scope, separate implementation acceptance and ambiguous obstacle behavior. | Approved bounded CPU candidate slice; see [decision 0005](../../../../docs/decisions/0005-obstacle-candidate-cpu-slice.md). Numeric AC-002 gates remain open. | FR-002, FR-009 |
 | T5-D1 to T5-D3 | First T-005 scope, lifecycle/ID policy and schema-4 evidence boundary. | [Association-only CPU slice proposed](../../../../docs/t-005-tracking-proposal.md); approved 2026-09-29 after the owner said "continue". Metric velocity remains separate. | FR-004, FR-005 |
 
@@ -166,3 +166,10 @@ by the 2026-09-27 approval; numeric D-005 gates, exact public checkpoint bytes,
 separate weight terms and complete-path release evidence remain open.
 
 2026-09-29: T5-D1 to T5-D3 and the AC-002 traffic-participant threshold sheet are approved under decision 0006; full quality and motion acceptance remain open.
+
+2026-10-24: G0 implementation candidate added under decision 0012. The product
+owner approved D-005 v0.2 and the listed resource ceilings. Schema 6
+`stage=complete` carries the fused temporal payload, current-scan proofs,
+calibration/provenance and resource-limit metadata. D-005 v0.2 checks are
+executable with explicit `not-verified` results for missing independent data.
+This does not approve the full release contract or establish AC-008.

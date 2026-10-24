@@ -1,6 +1,6 @@
 # Project context
 
-Updated 2026-09-25. Status labels distinguish current code from plans.
+Updated 2026-10-24. Status labels distinguish current code from plans.
 
 ## Identity and users
 
@@ -32,8 +32,10 @@ immutable result; persist receipts/audit, with full-payload disk persistence out
 DESIGN DECISION, later clarification: the current laptop CPU is the active implementation and
 execution target, with optional CUDA support for later use. NVIDIA access must not block
 approved CPU-only development; only GPU-specific validation is deferred.
-Output is evidence-only; planner-facing use is deferred. Workload/window/cap approval is explicitly
-deferred. UNKNOWN: physical NVIDIA host, complete payload schema, resource limits, model milestone,
-quantitative evidence-quality gates and release policy. See
+Output is evidence-only; planner-facing use is deferred. The G0 implementation
+defines `drishti-g0-v1` schema 6, approved `d005-v0.2` gates and approved
+host-derived resource limits. UNKNOWN: independent final quality data,
+controlled full-path resource evidence and release policy.
+See
 `docs/decisions/0002-cuda-replay-release-platform.md`, `docs/o-001-release-profile.md` and
 `docs/execution-plan.md`.

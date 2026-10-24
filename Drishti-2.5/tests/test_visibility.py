@@ -16,6 +16,7 @@ from drishti.learned import SemanticPrediction
 from drishti.obstacles import ConnectedComponentDetector
 from drishti.pipeline import FrameResult, MappingEngine
 from drishti.product_result import (
+    COMPLETE_SCHEMA_VERSION,
     EvidenceSource,
     InProcessProductEvaluator,
     Occupancy,
@@ -24,9 +25,11 @@ from drishti.product_result import (
     _segment_crosses_open_cell,
     _segments_cross_open_cells,
     canonical_result_digest,
+    complete_product_result,
     tracking_product_result,
     visibility_product_result,
 )
+from drishti.temporal import TemporalMap
 from drishti.tracking import CandidateTracker
 from drishti.visibility import CurrentScanVisibility, VisibilitySettings, _near, _near_window
 
@@ -81,6 +84,7 @@ class Harness:
             detector=ConnectedComponentDetector(),
             tracker=CandidateTracker(),
             visibility=CurrentScanVisibility(settings),
+            temporal=TemporalMap(MappingConfig()),
         )
         self.evaluator = InProcessProductEvaluator()
         self.frame_id = 0
@@ -122,6 +126,49 @@ def _product(frame: ScanFrame, result: FrameResult) -> ProductFrameResult:
         weights_sha256="b" * 64,
         cell_sizes_cm=MappingConfig().cell_sizes_cm,
     )
+
+
+def test_complete_result_publishes_fused_cells_and_enforces_g0_metadata() -> None:
+    harness = Harness()
+    frame = harness.frame([_ground(20.02, 0.03)])
+    result = harness.engine.process(frame)
+    product = complete_product_result(
+        frame,
+        result,
+        run_id="complete-test",
+        code_revision="c" * 64,
+        checkpoint_sha256="a" * 64,
+        weights_sha256="b" * 64,
+        cell_sizes_cm=MappingConfig().cell_sizes_cm,
+        calibration_id="fixture-calibration",
+        calibration_digest="d" * 64,
+        process_rss_bytes=128 * 1024**2,
+        swap_delta_bytes=0,
+        receipt_bytes=1024,
+        audit_bytes=1024,
+        disk_free_bytes=20 * 1024**3,
+    )
+    receipt = harness.engine.receive_tracking(frame, result, product, harness.evaluator)
+    assert receipt.status == ReceiptStatus.ACCEPTED
+    assert receipt.schema_version == COMPLETE_SCHEMA_VERSION
+    assert receipt.stage == "complete"
+    assert product.fused is not None
+    assert product.fused.summary.published_cells == len(product.fused.level)
+    assert product.d005_version == "d005-v0.2"
+    assert product.complete_contract_version == "drishti-g0-v1"
+
+    over_rss = replace(
+        product,
+        diagnostics=replace(
+            product.diagnostics,
+            process_rss_bytes=product.resource_limits.max_process_rss_bytes + 1
+            if product.resource_limits is not None
+            else 1,
+        ),
+    )
+    rejected = InProcessProductEvaluator().receive(frame, over_rss)
+    assert rejected.status == ReceiptStatus.REJECTED
+    assert rejected.error_code == "resource-rss-cap"
 
 
 def _cells(product: ProductFrameResult, state: Occupancy) -> set[Cell]:

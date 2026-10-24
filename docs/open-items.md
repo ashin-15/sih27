@@ -1,5 +1,26 @@
 # Open items
 
+2026-10-24 G0 implementation update: schema-6 `stage=complete` now carries the
+current-scan proof payload and immutable fused cells, while `d005-v0.2` exposes
+the semantic/traffic candidate gates, unresolved quality rows and host-derived
+resource ceilings. Focused evaluator, threshold and fused-cell tests pass.
+The D-005 v0.2 thresholds and listed resource ceilings are now product-owner
+approved. The CLI still emits diagnostic schema-5 temporal results, independent
+final labels and controlled full-path resource samples are absent, and AC-008
+remains open.
+See [decision 0012](decisions/0012-g0-complete-result-and-d005-contract.md) and
+the [G0 threshold bundle](d-005-g0-thresholds-v0.2.md).
+
+2026-10-24 approval update: the product owner approved D-005 v0.2, the
+unresolved-row `not-verified` policy and all listed resource ceilings. This
+closes the threshold/resource approval blocker only. Independent final labels,
+complete-producer integration, controlled target-host evidence and AC-008
+remain open.
+
+The O-001 table row below retains older wording about owner acceptance for
+historical continuity; the current approval boundary is the one recorded above
+and in decision 0012.
+
 2026-10-15 T-008/O-006 visibility update: [experiment 0050](research/experiments/0050-visibility-chunk-screen.md)
 retains a 16,384-beam CUDA batch after two six-frame order pairs and exact
 large-boundary evidence parity. All 24 receipts were accepted but every frame
@@ -18,10 +39,11 @@ Close an item only with a linked decision, implementation, and validation record
 2026-10-15 G0 audit: the staged contract and acceptance text already select the
 complete 08/00 windows, sequence 10 frame 206 cold start and 130,000-point
 cap. Active T-001/O-001 and release-profile wording was reconciled to that
-approval. G0 remains IN PROGRESS: complete fused schema, D-005 numeric gates,
-independent final labels and resource limits have no frozen acceptance record.
-The current 147-pass suite, Ruff and mypy checks validate the working tree,
-not those release gates. See the dated [work log](work-log.md).
+approval. G0 remained IN PROGRESS because complete fused schema, D-005 numeric
+gates, independent final labels and resource limits had no implementation or
+frozen acceptance record. The 2026-10-24 implementation pass added the schema
+and executable values; the later approval update freezes D-005/resource policy,
+but not final evidence. See the dated [work log](work-log.md).
 
 2026-10-14 audit: the [execution plan](execution-plan.md#2026-10-14-submission-readiness-audit)
 still has ten IN PROGRESS tasks, one BLOCKED task and three TODO tasks. The
@@ -81,8 +103,9 @@ T-003 update: [experiment 0025](research/experiments/0025-t003-full-sequence08.m
 now verifies all 4,071 sequence 08 point-semantic predictions, accepted receipts
 and official scoring: 0.675469 mIoU and 0.922835 labeled accuracy. The run
 combines a 793-frame saved prefix and a new-engine continuation, so continuous
-map state is not verified. O-002/O-007 remain IN PROGRESS pending D-005 numeric
-gates, exact public checkpoint-byte identity and separate weight terms.
+map state is not verified. O-002/O-007 remain IN PROGRESS pending execution of
+the approved D-005 gates, exact public checkpoint-byte identity and separate
+weight terms.
 E-052 adds a fresh three-scan prediction-parity check, current package checks
 and CPU timing/memory measurements; the T-003 status is unchanged.
 The [D-005 semantic threshold sheet v0.1](d-005-semantic-thresholds-v0.1.md)
@@ -91,8 +114,8 @@ independent labeled range set is not yet available.
 
 | ID | Status | Owner or decision | Open item | Next evidence |
 | --- | --- | --- | --- | --- |
-| O-001 | IN PROGRESS | Product owner and engineering, D-001/D-005 | [Decision 0009](decisions/0009-release-host-and-torch-frnet.md) identifies the RTX 4050 laptop as the strict 100 ms, zero-miss replay release host; CPU work remains the development reference. An optional CuPy projection, ownership and reduction path is integrated. Synthetic CPU/CUDA parity was established in E-060; experiment 0035 later recorded sequence-08 learned GPU replay and 30-frame real CPU/CUDA payload parity. Short complete-current-path diagnostics in experiment 0041 still miss the budget. The paced checker now uses a synchronous receipt for the complete *current single-frame* in-memory result, with report flush age separate; this is diagnostic, not the approved first-release output. Rerun is outside the 100 ms check. Earlier geometric replay still missed the deadline: the minimal in-process 1,000-frame screen missed 28/1,000 scans on 08 and 3/1,000 on 00 (E-044), before model, temporal stages and complete machine output exist. The JSONL is audit only. E-046 verified that installed Patchwork++ holds the GIL, so a Python thread pool alone does not enable its Python-driven stage overlap; safe GIL release or process isolation and speedup remain unverified. The [CUDA goal](o-001-cuda-frame-path.md) and [release brief](o-001-release-profile.md) capture the remaining proof contract. | Consumer selected: same-process evaluator receipt for the complete versioned immutable result; persist receipts/audit, with full-payload disk persistence outside this endpoint. Evidence-only output, complete sequences 08/00, sequence 10 frame 206 cold start and 130,000-point cap are selected for future release validation. Freeze the complete fused payload schema and remaining D-005 resource/quality gates; validate CPU/CUDA parity and complete-path timing on the RTX 4050; prove AC-008. See the dated handoff review in [work log](work-log.md#2026-09-25---handoff-reconciliation-and-partial-output-contract). |
-| O-002 | IN PROGRESS | Product owner and engineering, D-002/D-005 | D-002 selects semantic-only FRNet for local CPU development. The checkpoint, source and safe tensor export are pinned; the shared Drishti path and semantic-only receipt passed source and wheel replay (E-050). E-051 records complete sequence 08 official and range metrics; E-052 confirms fresh CPU replay prediction parity and package checks. Exact public-byte identity and separate weight terms remain unverified. Numeric D-005 semantic gates are not approved. | Establish terms/identity where possible and decide numeric D-005 gates against E-051 before T-003 closure. See [decision 0004](decisions/0004-frnet-semantic-cpu-slice.md). |
+| O-001 | IN PROGRESS | Product owner and engineering, D-001/D-005 | [Decision 0009](decisions/0009-release-host-and-torch-frnet.md) identifies the RTX 4050 laptop as the strict 100 ms, zero-miss replay release host; CPU work remains the development reference. An optional CuPy projection, ownership and reduction path is integrated. Synthetic CPU/CUDA parity was established in E-060; experiment 0035 later recorded sequence-08 learned GPU replay and 30-frame real CPU/CUDA payload parity. Short complete-current-path diagnostics in experiment 0041 still miss the budget. The paced checker now uses a synchronous receipt for the complete *current single-frame* in-memory result, with report flush age separate; this is diagnostic, not the approved first-release output. Rerun is outside the 100 ms check. Earlier geometric replay still missed the deadline: the minimal in-process 1,000-frame screen missed 28/1,000 scans on 08 and 3/1,000 on 00 (E-044), before model, temporal stages and complete machine output exist. The JSONL is audit only. E-046 verified that installed Patchwork++ holds the GIL, so a Python thread pool alone does not enable its Python-driven stage overlap; safe GIL release or process isolation and speedup remain unverified. The [CUDA goal](o-001-cuda-frame-path.md) and [release brief](o-001-release-profile.md) capture the remaining proof contract. | Consumer selected: same-process evaluator receipt for the complete versioned immutable result; persist receipts/audit, with full-payload disk persistence outside this endpoint. G0 now has a schema-6 complete-result adapter, executable D-005 candidate checks and resource ceilings, while the CLI temporal path remains diagnostic schema 5. Evidence-only output, complete sequences 08/00, sequence 10 frame 206 cold start and 130,000-point cap are selected for future release validation. Obtain owner acceptance, independent final labels, controlled resource samples and complete-path timing on the RTX 4050; prove AC-008. See [decision 0012](decisions/0012-g0-complete-result-and-d005-contract.md). |
+| O-002 | IN PROGRESS | Product owner and engineering, D-002/D-005 | D-002 selects semantic-only FRNet for local CPU development. The checkpoint, source and safe tensor export are pinned; the shared Drishti path and semantic-only receipt passed source and wheel replay (E-050). E-051 records complete sequence 08 official and range metrics; E-052 confirms fresh CPU replay prediction parity and package checks. Exact public-byte identity and separate weight terms remain unverified. D-005 v0.2 semantic gates are approved, but independent final semantic/range evidence remains open. | Establish terms/identity where possible and run the approved D-005 gates on independent final data before T-003 closure. See [decision 0004](decisions/0004-frnet-semantic-cpu-slice.md). |
 | O-003 | BLOCKED | Product owner, D-003/D-005 | Evidence-only output is selected; planner/navigation-safe use is deferred. The sequence-08 SSC voxel report measured 0.549% static false-free cells over 815 voxel frames ([experiment 0035](research/experiments/0035-t006-gpu-sequence08.md)); a 2026-10-14 regression closed one old-free-after-new-hit defect. Numeric false-free, unknown/stale handling and recovery criteria remain unresolved. | Freeze the evidence-quality and recovery gates under D-005, then test them on independent final data and the complete receipt path. |
 | O-004 | BLOCKED | Product owner, D-004 | Live sensor input and planner-facing output are deferred beyond the first replay release. Future sensor, calibration, deskew and navigation-safety contracts remain unresolved. | Reopen only for an explicitly approved later live/planner milestone; define its contracts before T-009. |
 | O-005 | IN PROGRESS | Product owner and engineering, T-003 to T-006 | Learned semantics and bounded T-004/T-005 CPU stages run in the shared path. AC-015 candidate and AC-016 association implementation slices are accepted with caveats; [experiments 0028](research/experiments/0028-t004-saved-prediction-eval.md) and [0030](research/experiments/0030-t005-association-eval.md) record source/wheel and development baselines. Motorcyclist PQ was zero and 50+ m eligible candidate recall was 8/30 in the T-004 diagnostic. Approved [AC-002 traffic gates](ac-002-quality-gates-proposal.md) have not been tested on an independent final set, while wider-obstacle labels and gates remain absent. The 200-frame T-005 diagnostic counted 69 ID switches and 39 fragmentations; full association quality, quantitative motion, temporal map state and free-space proof remain open. | Obtain independent thin/curb/overhang annotations and freeze their metric; measure approved AC-002 gates on final data; freeze AC-004/005 quality limits and test held-out tracking/motion separately; resolve T-003 gates independently. |

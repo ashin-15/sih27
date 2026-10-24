@@ -9,6 +9,10 @@ establish a real-time guarantee. See [the open-item register](open-items.md),
 [draft PRD](../Drishti-2.5/docs/spec-driven/drishti-perception/PRD.md) and
 [draft acceptance contract](../Drishti-2.5/docs/spec-driven/drishti-perception/ACCEPTANCE.md).
 
+2026-10-24 implementation addendum: G0 now has a schema-6 complete-result
+adapter and approved D-005/resource bundle. This does not turn the current
+diagnostic CLI into a complete release producer or establish AC-008.
+
 ## Established evidence
 
 - DESIGN DECISION for development: current Core Ultra 9 185H laptop, 10 Hz replay, up to 130,000

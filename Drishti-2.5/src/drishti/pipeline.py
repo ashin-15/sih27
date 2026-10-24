@@ -330,8 +330,9 @@ class MappingEngine:
         if self.tracker is None or result is not self._pending_tracking or result.tracking is None:
             raise ValueError("no matching prepared tracking result")
         update = result.tracking
+        expected_stage = "visibility" if self.visibility is not None else "tracking"
         if (
-            product.stage != ("visibility" if self.visibility is not None else "tracking")
+            product.stage not in (expected_stage, "complete")
             or (
                 result.visibility is not None
                 and product.visibility_summary != result.visibility.summary

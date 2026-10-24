@@ -36,6 +36,16 @@ full AC-004/005 quality, independent wider-obstacle AC-002 evaluation and
 AC-008 release timing remain NOT VERIFIED. The sections below preserve the
 original 2026-09-24 audit as historical context.
 
+## 2026-10-24 G0 implementation update
+
+FACT: schema-6 `stage=complete` is now implemented as a shared-path adapter
+with immutable fused cells, current-scan visibility proofs, calibration
+provenance, `d005-v0.2` and host-derived resource limits. Executable semantic
+and approved traffic-participant checks return `passed`, `failed` or
+`not-verified` without rounding away blocking rows. Focused and full package
+checks pass. This does not establish a complete CLI producer, independent final
+quality, controlled target-host resource measurements or AC-008 timing.
+
 ## Current state at the 2026-09-24 audit
 
 FACT: `Drishti-2.5/src/drishti/pipeline.py` creates one `MapSnapshot` per frame and does not read earlier snapshots. `mapping.py` computes adaptive cell ownership, ground/observed/nonground statistics and oracle semantic histograms. `cli.py` provides demo/replay, run manifests, point accounting, latency and memory reporting. `visualization.py` renders geometry/semantic cells and states limitations. `dataset.py` loads SemanticKITTI with explicit poses. `tests/` covers the present slice.

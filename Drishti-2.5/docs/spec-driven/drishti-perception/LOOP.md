@@ -1,14 +1,29 @@
 # Drishti-2.5 perception delivery loop
 
 Current state: accepted
-Current loop: LOOP-006
+Current loop: LOOP-007
 Frozen specification: [approved T-007 semantic dashboard class contract](../../../../docs/t-007-semantic-dashboard-proposal.md),
 SD-FR-001 through SD-FR-004 and SD-AC-001 through SD-AC-004.
-Current objective: bounded semantic dashboard class slice implemented and
-judged. Full T-007, quality and release validation remain separate.
-Blocking issue: none for the accepted bounded UI slice; full T-007 remains
-blocked by its independent product contracts.
-Last updated: 2026-10-14
+Current objective: implement the G0 complete-result schema, executable D-005
+threshold bundle and resource-limit checks while preserving schemas 1-5.
+Blocking issue: independent final quality data, complete-producer integration
+and controlled full-path resource evidence remain open.
+Last updated: 2026-10-24
+
+## Current loop - LOOP-007: G0 complete-result contract implementation
+
+- Related requirements/criteria: FR-007/008/009; AC-001/002/006/007/008/010/012.
+  Full release judgment remains separate.
+- Assignment: main agent only.
+- Outputs: schema-6 `stage=complete` adapter with immutable fused cells,
+  `drishti-g0-v1` and `d005-v0.2` provenance, executable semantic/traffic
+  threshold checks and host-derived resource-limit checks.
+- Verification: focused product, visibility and threshold tests pass; Ruff and
+  strict mypy pass for the modified package. The CLI still emits diagnostic
+  schema-5 temporal results, so no complete replay or AC-008 result is claimed.
+- Judgment: D-005 v0.2 and resource ceilings APPROVED. G0 remains IN PROGRESS
+  pending independent final labels, complete-producer integration and
+  controlled target-host resource/timing evidence.
 
 ## 2026-10-14 audit addendum
 

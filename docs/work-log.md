@@ -1,5 +1,38 @@
 # Work log
 
+## 2026-10-24 - G0 complete-result schema, D-005 and resource implementation
+
+- IMPLEMENTED: added `drishti-g0-v1` product-result schema version 6 with a
+  `stage=complete` adapter that requires candidate, tracking, current-scan
+  visibility and temporal fusion evidence. The payload carries immutable fused
+  cells, calibration/provenance fields, `d005-v0.2` and resource-limit metadata;
+  schemas 1-5 remain supported.
+- IMPLEMENTED: added executable D-005 semantic, approved traffic-participant
+  and deterministic evidence checks, explicit `not-verified` handling for
+  absent independent data, fixture unsupported-free zero policy, and
+  host-derived ceilings for points, RSS, device memory, swap, map cells,
+  tracks, queue, receipt/audit bytes and disk reserve.
+- DOCUMENTED: added [G0 threshold bundle](d-005-g0-thresholds-v0.2.md),
+  [decision 0012](decisions/0012-g0-complete-result-and-d005-contract.md),
+  interface/technical-design/acceptance updates and LOOP-007.
+- VERIFIED: focused product/visibility/threshold tests passed 38/38; full
+  package suite passed 149 with 9 skipped; Ruff lint and strict mypy passed.
+  The CLI temporal path remains diagnostic schema 5, so no complete replay,
+  independent final quality pass, controlled resource pilot or AC-008 result is
+  claimed.
+- LIMIT: independent final labels, release-producer replay wiring and target-host
+  timing/resource evidence remain open. G0 stays IN PROGRESS.
+
+## 2026-10-24 - Product-owner approval of D-005 v0.2 and resource ceilings
+
+- DECISION: the product owner approved D-005 v0.2, its unresolved-row
+  `not-verified` policy and all listed resource ceilings. The runtime status is
+  now `approved`; this approval covers thresholds/resources only, not the full
+  G0 or AC-008 release gate.
+- REMAINING: independent semantic/range, obstacle, terrain, motion and
+  false-free evidence; complete-producer CLI integration; controlled RTX 4050
+  resource/timing validation; hosted CI and final release judgment.
+
 ## 2026-10-15 - CUDA visibility batch screen
 
 - IMPLEMENTED: raised the internal visibility CUDA/CPU beam batch from 8,192

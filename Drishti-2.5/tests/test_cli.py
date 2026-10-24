@@ -32,6 +32,11 @@ def test_installed_cli_replays_dataset_from_another_directory(
     assert manifest["scope"] == "single-frame"
     assert manifest["ground_method"] == "patchworkpp"
     assert manifest["pose_source"] == "slam"
+    assert manifest["g0_contract"]["version"] == "drishti-g0-v1"
+    assert manifest["g0_contract"]["complete_result_schema_version"] == 6
+    assert manifest["g0_contract"]["d005_version"] == "d005-v0.2"
+    assert manifest["g0_contract"]["d005_status"] == "approved"
+    assert manifest["g0_contract"]["resource_limits"]["max_points"] == 130_000
     records = [json.loads(line) for line in (output / "frames.jsonl").read_text().splitlines()]
     assert len(records) == 2
     assert all(record["accounting"]["accepted_points"] == 2 for record in records)

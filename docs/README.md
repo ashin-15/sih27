@@ -9,7 +9,7 @@ For the complete production path and recurring SIH26053 requirement checks, use 
 
 | Record | Use |
 | --- | --- |
-| `interfaces.md` | Current data contracts and invariants |
+| `interfaces.md` | Current data contracts and invariants, including the G0 schema-6 implementation candidate |
 | `testing.md` | Commands, scope, and latest verified results |
 | `decisions/` | Accepted architecture decisions and their evidence |
 | `research/` | Questions, sources, claims, experiments, and engineering impact |

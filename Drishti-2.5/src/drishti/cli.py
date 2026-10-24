@@ -22,6 +22,7 @@ from drishti.obstacles import ConnectedComponentDetector, panoptic_raw_labels
 from drishti.output import InProcessFrameConsumer
 from drishti.pipeline import FrameResult, MappingEngine
 from drishti.product_result import (
+    COMPLETE_SCHEMA_VERSION,
     InProcessProductEvaluator,
     Occupancy,
     ProductFrameResult,
@@ -32,6 +33,7 @@ from drishti.product_result import (
     tracking_product_result,
     visibility_product_result,
 )
+from drishti.release_contract import DEFAULT_D005, G0_CONTRACT_VERSION
 from drishti.semantics import LEARNING_TO_RAW, decode_semantickitti
 from drishti.temporal import TEMPORAL_METHOD, TemporalMap, TemporalSettings
 from drishti.tracking import MAX_TRACKS, CandidateTracker
@@ -348,6 +350,14 @@ def _run_ready(
                 else ("diagnostic" if product_evaluator else None)
             )
         ),
+        "g0_contract": {
+            "version": G0_CONTRACT_VERSION,
+            "complete_result_schema_version": COMPLETE_SCHEMA_VERSION,
+            "d005_version": DEFAULT_D005.version,
+            "d005_status": DEFAULT_D005.status,
+            "d005_unresolved": DEFAULT_D005.unresolved,
+            "resource_limits": asdict(DEFAULT_D005.resources),
+        },
         "detector": (
             {
                 "name": "semantic-connected-components",
