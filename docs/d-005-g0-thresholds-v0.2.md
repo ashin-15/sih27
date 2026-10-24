@@ -1,10 +1,15 @@
 # D-005 G0 threshold and resource implementation v0.2
 
-Date: 2026-10-24. Status: **APPROVED FOR IMPLEMENTATION AND EVALUATION**.
+Date: 2026-10-24. Status: **FROZEN FOR IMPLEMENTATION AND EVALUATION**.
 The product owner approved D-005 v0.2 and the listed resource ceilings on
 2026-10-24. This record makes the approved G0 values executable. It is not a
 quality pass and does not claim that the independent final labels,
 target-hardware pilot or AC-008 replay exist.
+
+The complete contract, stable rejection/failure codes and release-run stop
+policy are frozen in [decision 0013](decisions/0013-g0-complete-result-quality-resource-release-freeze.md).
+This sheet owns the numeric D-005 bundle and the explicit `not-verified`
+policy for quality rows whose independent reference data is not yet present.
 
 ## Versioned implementation
 
@@ -48,14 +53,25 @@ and the unmatched-candidate row requires at least 1,000 annotated scans.
 Wider wall, pole, curb and overhang gates remain unresolved until their
 independent annotation protocol exists.
 
-## Evidence, terrain and motion
+## Tracking, motion and evidence rows
 
 The deterministic safety fixture rule is frozen in code: unsupported-free cells
 must be zero. The held-out false-free ceiling, terrain quality gate, recovery
-frame count and measured static/moving velocity limits remain `None` in the
-implementation bundle because the required independent evidence is absent.
-Those rows are reported as `not-verified` and cannot be promoted by a
-synthetic or sequence-08 diagnostic result.
+frame count and measured static/moving velocity limits remain `not-verified`
+because the required independent evidence is absent. Tracking ID-switch,
+fragmentation and recall rows are also blocking `not-verified` rows until an
+independent trajectory-labelled final set and evaluator protocol are frozen.
+Terrain/drivability, curb, drop, pothole and overhang recall/false-positive
+rows are blocking `not-verified` rows until reviewed feature annotations exist.
+These rows cannot be promoted by a synthetic or sequence-08 diagnostic result.
+
+The frozen functional evidence rules are:
+
+- unknown and stale cells are never drivable;
+- diagnostic stale TTL is 2.0 seconds;
+- a valid re-observation must be newer than the stale evidence before recovery;
+- a measured-motion claim requires supporting frames and covariance; and
+- a first-frame measured-motion claim is forbidden.
 
 ## Resource ceilings
 
@@ -66,10 +82,13 @@ GPU memory. The implementation baseline leaves host and driver headroom:
 | --- | ---: |
 | Input points | 130,000 |
 | Process-tree RSS | 12 GiB |
-| Device memory sample | 5,500 MiB |
+| GPU allocated memory | 5,500 MiB |
+| GPU reserved memory | 5,500 MiB |
+| Logical fused-map allocation | 64 MiB |
 | Run-induced swap delta | 0 bytes |
 | Published fused cells | 262,144 |
 | Live tracks | 512 |
+| Frame-local candidates | 8,192 |
 | Queue depth | 2 |
 | Oldest queue age | 100 ms |
 | Receipt bytes | 2 MiB |
@@ -77,16 +96,20 @@ GPU memory. The implementation baseline leaves host and driver headroom:
 | Minimum free disk reserve | 10 GiB |
 
 These are host-derived implementation ceilings, not measured full-path
-guarantees. A complete release sample must record the relevant values; missing
-RSS, swap, receipt, audit or disk samples remain `not-verified`, and a CUDA
-sample additionally needs device memory.
+guarantees. A complete release sample must record peak RSS, GPU allocated and
+reserved memory, logical map allocation, swap, receipt, audit and disk
+samples. Missing required samples remain `not-verified`, and a CUDA sample
+must provide both GPU memory values.
 
 ## Remaining G0 and release items
 
 The threshold/resource decision is approved, but G0 and release acceptance are
 not marked DONE:
 
-1. obtain the independent semantic range, wider-obstacle, terrain, motion and
-   false-free evidence;
-2. integrate and run the complete producer and evaluator on the selected host with controlled
-   tails, resource samples and the approved release windows.
+1. obtain the independent semantic range, wider-obstacle, tracking, terrain,
+   motion and false-free evidence;
+2. integrate and run the complete producer and evaluator on the selected host
+   with controlled tails, resource samples and the approved release windows;
+3. apply the frozen release protocol, including first-frame inclusion, zero
+   misses, explicit invalid-frame handling, bounded queue behavior and
+   fail-closed evaluator/audit handling.

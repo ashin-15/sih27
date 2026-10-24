@@ -1,3 +1,12 @@
+## 2026-10-24 G0 contract freeze
+
+Decision 0013 freezes the schema-6 `stage=complete` field groups, immutable
+fused-map representation, schemas 1 through 5 compatibility, D-005 v0.2
+policy, resource ceilings and release replay handling. The runtime has an
+implementation candidate and focused checks, but the CLI temporal path still
+emits diagnostic schema 5. Independent final quality data, complete-producer
+integration and controlled target-host evidence remain NOT VERIFIED.
+
 ## 2026-09-29 bounded tracking update
 
 The shared learned CPU path now prepares schema-4 `stage=tracking` results

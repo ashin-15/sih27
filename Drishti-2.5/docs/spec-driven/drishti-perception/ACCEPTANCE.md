@@ -3,10 +3,13 @@
 Status: T-002 slice approved 2026-09-26; T-003 semantic CPU implementation
 approved 2026-09-27; bounded T-004 CPU candidate slice approved 2026-09-28; bounded T-005 CPU
 association and AC-002 traffic-participant targets approved 2026-09-29.
-T-003 quality, full AC-002 and release acceptance remain open.
+The G0 complete-result, D-005, resource and replay acceptance contract is
+frozen 2026-10-24 under decision 0013. T-003 quality, independent full
+quality evidence and release acceptance remain open.
 The product owner approved the O-001 checklist and staged implementation. The CUDA-backed
-replay host was identified as an RTX 4050 laptop in decision 0009; numeric quality and
-resource thresholds, the complete result and final evidence remain open. AC-008 is NOT VERIFIED.
+replay host was identified as an RTX 4050 laptop in decision 0009. Decision 0013 freezes the
+complete result, numeric D-005 policy, resource thresholds, stable failure/rejection codes and
+release-run behavior. AC-008 is NOT VERIFIED until the implementation and evidence pass.
 
 ## Release boundaries
 
@@ -44,12 +47,12 @@ This status does not pass AC-002. Motorcyclist PQ was zero, 50+ m eligible
 diagnostic recall was 8/30, and independent curb/overhang obstacle labels
 are unavailable.
 
-Freeze numeric targets for semantic classes and ranges, obstacle classes and sizes, motion/track quality, false-free rate, map freshness and capacity after the pinned baseline. The approved future release workload is complete sequences 08 and 00 at 10 Hz plus the separate sequence 10 frame 206 cold-start fixture, with explicit rejection above 130,000 points. Identify and inventory the NVIDIA release host; freeze bounded audit behavior and CPU/GPU memory and disk ceilings. Rerun is excluded from the 100 ms timing and needs a separate resource/quality check. The 100 ms per-scan deadline, zero-miss policy, same-process evaluator receipt endpoint and evidence-only output scope are selected. Passing AC-013 cannot satisfy AC-001 to AC-012 or the full release contract.
+Decision 0013 freezes numeric semantic and traffic targets, the deterministic unsupported-free rule, the explicit blocking `not-verified` policy for independent tracking/motion/terrain/held-out false-free rows, map freshness and capacity rules, the approved complete sequences 08 and 00 at 10 Hz, the separate sequence 10 frame 206 cold-start fixture, explicit rejection above 130,000 points, bounded audit behavior, host configuration and CPU/GPU memory and disk ceilings. Rerun is excluded from the 100 ms timing and needs a separate resource/quality check. The 100 ms per-scan deadline, zero-miss policy, same-process evaluator receipt endpoint, evidence-only output scope and fail-closed stop matrix are frozen. Passing AC-013 cannot satisfy AC-001 to AC-012 or the full release contract.
 
-The [O-001 contract proposal](../../../../docs/o-001-contract-proposal.md) supplies the selected
-window accounting and a metric/threshold worksheet. T-002 freezes version-1 schema and
-validation in the technical design. Quality and host resource limits remain TBD; no complete-path
-acceptance run exists. T-002 receipts are diagnostic and cannot be counted in AC-008's denominator.
+The [O-001 contract proposal](../../../../docs/o-001-contract-proposal.md) supplies the earlier
+window accounting and metric worksheet. Decision 0013 is authoritative for the selected window,
+complete schema, resource limits and failure handling. No complete-path acceptance run exists.
+T-002 receipts are diagnostic and cannot be counted in AC-008's denominator.
 T-003 schema-2 semantic-only receipts also cannot be counted as complete AC-008
 results. The one-scan official evaluator check was format/metric validation.
 E-051 now records the full sequence 08 semantic baseline, but D-005 numeric
@@ -60,7 +63,7 @@ define approved executable values for AC-001/014 metrics, support and resource
 samples. Independent final evaluation remains open; the bundle is not a release
 pass.
 
-## G0 complete-result implementation candidate
+## Frozen G0 complete-result contract
 
 The G0 implementation uses `drishti-g0-v1` and product-result schema version
 6. `stage=complete` is accepted only when the same shared path has produced
@@ -71,10 +74,13 @@ provenance, `d005-v0.2` and the declared `ResourceLimits`.
 
 The evaluator rejects incomplete provenance, missing fused evidence, cross-level
 cell overlap, summary mismatches and resource samples above a declared ceiling.
-Schemas 1-5 retain their prior compatibility behavior. This implementation
-candidate is covered by focused evaluator and threshold tests, but the CLI
-still reports temporal output as diagnostic schema 5 until the release producer
-and calibration/resource sampling are wired into the replay gate.
+Schemas 1-5 retain their prior compatibility behavior. Decision 0013 freezes
+the required semantic, instance, track, motion, current-scan visibility,
+fused-map, terrain, provenance and diagnostic fields, plus stable rejection and
+run-failure codes. The implementation candidate is covered by focused
+evaluator and threshold tests, but the CLI still reports temporal output as
+diagnostic schema 5 until the release producer and calibration/resource
+sampling are wired into the replay gate.
 
 
 ## Approved bounded T-005 slice (AC-016), 2026-09-29

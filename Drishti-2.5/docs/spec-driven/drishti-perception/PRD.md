@@ -2,8 +2,9 @@
 
 Status: Staged approval for T-002 on 2026-09-26, semantic-only T-003 on
 2026-09-27, bounded T-004 CPU candidates on 2026-09-28 and bounded T-005
-CPU association on 2026-09-29; full release
-contract remains Draft.
+CPU association on 2026-09-29. The G0 complete-result, D-005, resource and
+release-replay contract is frozen under decision 0013 on 2026-10-24. Full
+release acceptance and independent evidence remain open.
 Approval: product owner said "I approve the checklist. Move forward." after reviewing
 `docs/o-001-contract-proposal.md`. This authorizes the staged implementation beginning with
 T-002. The owner separately approved T-003 implementation on 2026-09-27;
@@ -33,23 +34,21 @@ The immediate users are developers evaluating SemanticKITTI replay and operators
 | FR-005 | Estimate motion relative to the world from sequential observations; publish velocity/uncertainty or unknown. Semantic class and oracle motion labels may not substitute for measured motion. | Draft |
 | FR-006 | Publish conservative occupied, observed-free and unknown evidence. Missing returns, occluded areas and out-of-FOV cells remain unknown; a free-space claim requires valid ray evidence. | Draft |
 | FR-007 | Publish clear per-frame provenance: model and checkpoint, pose source, point attrition, dropped frames, stage timing, evidence age, state memory, viewer costs and release-gate result. | Draft |
-| FR-008 | On the identified NVIDIA CUDA release host, a same-process evaluator must validate and acknowledge each complete versioned immutable replay result within 100 ms of scheduled arrival, with zero misses in the accepted measurement window. | Host, workload, point cap, deadline and receipt endpoint selected; BLOCKED by complete payload schema, quality/resource gates and full-path zero-miss proof |
+| FR-008 | On the identified NVIDIA CUDA release host, a same-process evaluator must validate and acknowledge each complete versioned immutable replay result within 100 ms of scheduled arrival, with zero misses in the accepted measurement window. | Host, workload, point cap, deadline, complete schema, quality/resource policy and receipt endpoint frozen; blocked by implementation and full-path zero-miss proof |
 | FR-009 | Keep oracle labels isolated to evaluation, preserve the original point order, and evaluate semantic, obstacle, motion, tracking, free-space and latency quality on held-out sequences. | Draft |
 | FR-010 | Expose unknown, stale and ambiguous states in the viewer and machine output without silently turning them into drivable space. | Draft |
-| FR-011 | First CUDA-backed release uses evidence-only dataset replay on an identified NVIDIA host. The current Intel laptop remains the CPU reference. Live sensor input and planner-facing output are deferred; define their safety, timestamp, calibration and deskew contracts before a later release. | Replay and evidence-only scope selected; full contract remains Draft |
+| FR-011 | First CUDA-backed release uses evidence-only dataset replay on an identified NVIDIA host. The current Intel laptop remains the CPU reference. Live sensor input and planner-facing output are deferred; define their safety, timestamp, calibration and deskew contracts before a later release. | Replay and evidence-only scope selected; live/planner extension remains Draft |
 
 ## Success measures
 
 Baseline: E-051 scores all 4,071 held-out sequence 08 scans at 0.675469
-official semantic mIoU and 0.922835 labeled accuracy. Numeric semantic
-acceptance remains draft; obstacle full quality, tracking full quality, free-space quality and
-full-pipeline release latency remain unverified. The first-release deadline is
-100 ms for every scheduled scan with zero misses in the accepted window.
-AC-002 traffic-participant recall targets are approved in the threshold sheet.
-Targets for semantic mIoU, wider obstacle recall, moving IoU, track ID switches,
-false-free rate, peak memory and disk remain TBD. They must be frozen
-before T-003 quality or release acceptance. Synthetic demo and oracle scores
-are not substitutes.
+official semantic mIoU and 0.922835 labeled accuracy. Decision 0013 freezes
+the semantic and traffic thresholds, the explicit blocking `not-verified`
+policy for independent tracking, motion, terrain and false-free rows, the
+resource envelope and the full replay protocol. No frozen threshold is a
+measured pass. The first-release deadline is 100 ms for every scheduled scan
+with zero misses in the accepted window. Synthetic demo and oracle scores are
+not substitutes.
 
 The [O-001 contract proposal](../../../../docs/o-001-contract-proposal.md) is approved as a staged
 development contract. The proposed 10 Hz complete sequences 08 and 00, separate sequence 10
@@ -75,11 +74,11 @@ In scope for the first release: the existing Python package, its CLI, determinis
 
 | ID | Decision | Recommendation | Affected requirements |
 | --- | --- | --- | --- |
-| D-001 | Target hardware, input rate, complete-path deadline and allowed miss rate. | Current laptop CPU is the development path; NVIDIA CUDA validation follows on a physical host still to be identified. Strict 100 ms, zero misses, same-process complete-result receipt and the proposal's complete-sequence 10 Hz workload and 130,000-point cap are selected, not achieved. Full-payload disk persistence and Rerun are outside the deadline. T-002 freezes the payload schema; the present and new diagnostic receipts are not release proof. | FR-008 |
+| D-001 | Target hardware, input rate, complete-path deadline and allowed miss rate. | The inventoried RTX 4050 laptop is the release host; the current Intel laptop is the CPU reference. Strict 100 ms, zero misses, same-process complete-result receipt, the full 08/00 10 Hz windows, sequence 10 frame 206 cold start and 130,000-point cap are frozen, not achieved. Full-payload disk persistence and Rerun are outside the deadline. | FR-008 |
 | D-002 | First model milestone: semantic-only, joint semantic/motion, or checkpoint integration before training. | Semantic-only FRNet checkpoint integration approved for local CPU development on 2026-09-27. Motion remains separate. Checkpoint redistribution/release terms remain open. | FR-001, FR-005, FR-009 |
 | D-003 | Free-space output for evidence only or navigation consumption in the first release. | Evidence-only selected. No navigation-safe or drivable-space verdict; unknown/stale states remain explicit. Evidence-quality and recovery thresholds still require D-005 approval. | FR-006, FR-010 |
 | D-004 | Dataset replay only or live LiDAR and planner integration in the first release. | Dataset replay selected; live LiDAR and planner-facing output deferred beyond the first release. | FR-008, FR-011 |
-| D-005 | Numeric release thresholds for every success measure. | `d005-v0.2` is approved for implementation and evaluation with the semantic sheet values, approved traffic-participant targets and host-derived resource ceilings. Independent range/wider-obstacle/terrain/motion/false-free evidence remains explicitly `not-verified`; do not infer a release pass from the synthetic demo. | FR-001 to FR-010 |
+| D-005 | Numeric release thresholds for every success measure. | `d005-v0.2` is frozen for implementation and evaluation with the semantic sheet values, approved traffic-participant targets, deterministic unsupported-free rule, host-derived resource ceilings and explicit blocking `not-verified` rows for independent tracking, motion, terrain and held-out false-free evidence. The release protocol and stable failure/rejection codes are in decision 0013. | FR-001 to FR-010 |
 | T4-D1 to T4-D3 | T-004 first-slice output scope, separate implementation acceptance and ambiguous obstacle behavior. | Approved bounded CPU candidate slice; see [decision 0005](../../../../docs/decisions/0005-obstacle-candidate-cpu-slice.md). Numeric AC-002 gates remain open. | FR-002, FR-009 |
 | T5-D1 to T5-D3 | First T-005 scope, lifecycle/ID policy and schema-4 evidence boundary. | [Association-only CPU slice proposed](../../../../docs/t-005-tracking-proposal.md); approved 2026-09-29 after the owner said "continue". Metric velocity remains separate. | FR-004, FR-005 |
 
@@ -167,9 +166,9 @@ separate weight terms and complete-path release evidence remain open.
 
 2026-09-29: T5-D1 to T5-D3 and the AC-002 traffic-participant threshold sheet are approved under decision 0006; full quality and motion acceptance remain open.
 
-2026-10-24: G0 implementation candidate added under decision 0012. The product
-owner approved D-005 v0.2 and the listed resource ceilings. Schema 6
-`stage=complete` carries the fused temporal payload, current-scan proofs,
-calibration/provenance and resource-limit metadata. D-005 v0.2 checks are
-executable with explicit `not-verified` results for missing independent data.
-This does not approve the full release contract or establish AC-008.
+2026-10-24: The product owner froze the G0 complete-result, D-005, resource
+and release-replay contract under decision 0013, extending implementation
+decision 0012. Schema 6 `stage=complete` carries the fused temporal payload,
+current-scan proofs, calibration/provenance and resource-limit metadata. D-005
+checks use explicit `not-verified` results for missing independent data. This
+freezes implementation and evaluation behavior; it does not establish AC-008.

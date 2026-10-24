@@ -1,14 +1,35 @@
 # Drishti-2.5 perception delivery loop
 
 Current state: accepted
-Current loop: LOOP-007
-Frozen specification: [approved T-007 semantic dashboard class contract](../../../../docs/t-007-semantic-dashboard-proposal.md),
-SD-FR-001 through SD-FR-004 and SD-AC-001 through SD-AC-004.
-Current objective: implement the G0 complete-result schema, executable D-005
-threshold bundle and resource-limit checks while preserving schemas 1-5.
-Blocking issue: independent final quality data, complete-producer integration
-and controlled full-path resource evidence remain open.
+Current loop: LOOP-008
+Frozen specification: decision 0013's G0 complete-result, D-005, resource and
+release-replay contract, plus the previously accepted T-007 semantic dashboard
+class contract and SD-FR-001 through SD-AC-004.
+Current objective: carry the frozen contract into complete-producer integration,
+independent quality evaluation and controlled release evidence.
+Blocking issue: independent final quality data, complete-producer integration,
+target-host resource/timing evidence and AC-008 remain open.
 Last updated: 2026-10-24
+
+## Current loop - LOOP-008: freeze G0 result, quality, resource and replay contract
+
+- Related requirements/criteria: FR-001 through FR-010; AC-001 through AC-010
+  and AC-012. Full release judgment remains separate.
+- Assignment: main agent only.
+- Decision: the product owner requested the complete-result schema, D-005
+  policy, resource envelope and release protocol be frozen. Decision 0013 is
+  the authoritative record; unresolved independent quality rows are blocking
+  `not-verified`, not omitted requirements.
+- Outputs: required schema-6 field groups, immutable fused-map representation,
+  model/checkpoint/calibration/code/config provenance, schema 1-5 compatibility,
+  stable result rejection/run-failure codes, D-005 thresholds, host/resource
+  limits, exact 08/00/10-206 workload and failure stop matrix.
+- Checks: documentation links and consistency are checked against the runtime
+  candidate and existing tests; no complete replay or AC-008 pass is claimed.
+- Judgment: ACCEPTED as a contract freeze. Implementation, independent final
+  labels, controlled target-host samples and release acceptance remain open.
+- Next action: integrate the complete producer and replay harness without
+  weakening the frozen `not-verified`, zero-miss or fail-closed policies.
 
 ## Current loop - LOOP-007: G0 complete-result contract implementation
 

@@ -2,8 +2,9 @@
 
 Status: T-002 interface contract frozen 2026-09-26; T-003 semantic CPU slice
 approved 2026-09-27; bounded T-004 and T-005 CPU slices approved 2026-09-28
-and 2026-09-29. G0 schema-6/D-005 implementation candidate added 2026-10-24;
-product-owner acceptance and full release design stay open.
+and 2026-09-29. G0 schema-6, D-005, resource and replay design frozen
+2026-10-24 under decision 0013; implementation integration, independent
+evidence and full release acceptance remain open.
 
 ## Frozen T-002 result and receipt, version 1
 
@@ -82,10 +83,12 @@ counts before issuing a receipt.
 
 The result records `drishti-g0-v1`, `d005-v0.2` and the host-derived
 `ResourceLimits`. Over-limit samples reject the result. Missing independent
-quality data or missing final resource samples remain `not-verified`; a schema
-receipt is not a release or AC-008 pass. The current CLI still emits its
-diagnostic schema-5 result when `--temporal` is selected; release-producer
-integration is a following step after G0 acceptance.
+quality data or missing final resource samples remain blocking `not-verified`;
+a schema receipt is not a release or AC-008 pass. The complete field inventory,
+compatibility policy, stable rejection/failure codes and replay stop behavior
+are frozen in [decision 0013](../../../../docs/decisions/0013-g0-complete-result-quality-resource-release-freeze.md).
+The current CLI still emits its diagnostic schema-5 result when `--temporal`
+is selected; release-producer integration is a following implementation step.
 
 ## Approved T-003 semantic-only CPU path
 
@@ -123,7 +126,9 @@ No numeric D-005 quality threshold is frozen. See decision 0004, experiment
 for the complete held-out semantic baseline. This CPU slice is not a
 complete-result release producer.
 
-Status: The remaining design below is Draft. Based on the draft PRD.
+Status: The G0 complete-result, D-005, resource and replay sections above are
+frozen under decision 0013. The later live-source, planner-facing and
+unapproved product extensions below remain Draft based on the PRD.
 
 The [bounded T-005 tracking proposal](../../../../docs/t-005-tracking-proposal.md)
 is approved as of 2026-09-29 for sequence-owned known-thing association and
@@ -186,20 +191,22 @@ DESIGN DECISION: the first-release consumer is a same-process evaluator. Timesta
 receipt after it validates and acknowledges the complete versioned immutable product result,
 using the same monotonic clock as scheduled arrival. Persist receipts and audit evidence;
 full-payload disk persistence is not part of this endpoint. Output is evidence-only, not
-planner-facing or navigation-safe. The complete payload schema, bounded audit behavior and
-numeric gates still need a frozen contract. Workload/window approval is explicitly deferred.
-See `docs/o-001-output-boundary-audit.md` and decision 0002.
+planner-facing or navigation-safe. Decision 0013 freezes the complete payload schema,
+bounded audit behavior, D-005 gate policy, resource ceilings and replay workload. Missing
+independent evidence remains blocking `not-verified`. See `docs/o-001-output-boundary-audit.md`
+and decisions 0002 and 0013.
 
 Current-slice FACT: paced replay now passes the in-memory `FrameResult` to a
 synchronous diagnostic consumer. It checks and hashes the existing single-frame
 payload, then returns a receipt before the audit JSONL flush. This is not the
 approved future complete product output or consumer.
 
-The [O-001 contract proposal](../../../../docs/o-001-contract-proposal.md) details the proposed
-complete immutable result groups, validation/receipt sequence, bounded ordered scheduling,
-audit drain and fail-closed cases. Exact types, array layout, canonical digests and reason codes
-remain to be frozen. Implementation of that future evaluator is still blocked by contract
-approval; this proposal does not redefine the current diagnostic `FrameResult`.
+The [O-001 contract proposal](../../../../docs/o-001-contract-proposal.md) supplies the earlier
+complete immutable result groups and validation sequence. Decision 0013 is now authoritative
+for exact G0 field groups, compatibility, canonical array requirements, reason codes, bounded
+ordered scheduling, audit drain and fail-closed cases. Implementation of the complete producer
+and replay wiring remains open; this decision does not redefine the current diagnostic
+`FrameResult`.
 
 DESIGN DECISION: Rerun recording and display are excluded from the 100 ms deadline;
 measure them in separate runs. An optional CuPy backend now handles range projection

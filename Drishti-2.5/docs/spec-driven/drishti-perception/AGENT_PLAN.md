@@ -1,6 +1,8 @@
 # Drishti-2.5 staged agent plan
 
-Status: T-002 approved and validated under AC-013, 2026-09-26.
+Status: T-002 approved and validated under AC-013, 2026-09-26. G0 schema-6,
+D-005, resource and release-replay decisions are frozen under decision 0013
+on 2026-10-24; implementation integration and acceptance evidence remain open.
 Specification approval: product owner's "I approve the checklist. Move forward" after
 reviewing `docs/o-001-contract-proposal.md` at commit `6af2b80`.
 Plan owner: main agent. No delegated file ownership in this slice.
@@ -8,8 +10,10 @@ Plan owner: main agent. No delegated file ownership in this slice.
 ## Frozen shared contract
 
 Version-1 `ProductFrameResult` and `ProductReceipt` in `src/drishti/product_result.py`,
-documented in `TECH_DESIGN.md` and `docs/interfaces.md`. Any semantic change to this schema
-requires a version bump and matching acceptance update; current single-frame contracts remain.
+documented in `TECH_DESIGN.md` and `docs/interfaces.md`. Schema 6 and the
+release contract are additionally frozen in decision 0013. Any semantic
+change to an existing schema requires a version bump and matching acceptance
+update; current single-frame contracts remain.
 
 ## T-002 - versioned result and evaluator
 
@@ -49,11 +53,12 @@ approved as of 2026-09-29 under decision 0006; full AC-004/005 quality gates
 remain open. The main agent owns implementation and validation.
 
 1. T-003: pin exact licensed SemanticKITTI-compatible checkpoint, class map and milestone.
-2. Obtain CPU quality baselines and reviewed detector/track/motion/free-space references;
-   freeze D-005 numeric gates before final held-out scoring.
-3. T-004 to T-007: instances, temporal motion, ray proof, map and bounded audit in order.
-4. Identify/inventory a physical NVIDIA host, pin resource limits and validate CUDA parity.
-5. T-008: run the complete release protocol and judge all blocking ACs, including AC-008.
+2. Obtain independent final semantic, detector, tracking, motion, terrain and
+   false-free references; apply the frozen D-005 gates without tuning on final data.
+3. Integrate the schema-6 complete producer, bounded audit and release replay
+   behavior without changing the frozen failure or zero-miss policy.
+4. Validate the inventoried RTX 4050 host, resource limits and CUDA parity.
+5. T-008: run the frozen release protocol and judge all blocking ACs, including AC-008.
 
 ## T-005 approved execution, 2026-09-29
 

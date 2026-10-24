@@ -13,7 +13,7 @@ For the complete production path and recurring SIH26053 requirement checks, use 
 | `testing.md` | Commands, scope, and latest verified results |
 | `decisions/` | Accepted architecture decisions and their evidence |
 | `research/` | Questions, sources, claims, experiments, and engineering impact |
-| `../Drishti-2.5/docs/spec-driven/drishti-perception/` | T-002 and bounded T-003/T-004/T-005 CPU implementation approved; full quality and release acceptance remain open |
+| `../Drishti-2.5/docs/spec-driven/drishti-perception/` | T-002 and bounded T-003/T-004/T-005 CPU implementation approved; G0 complete-result, D-005 and replay protocol frozen; quality evidence and release acceptance remain open |
 
 Status words in plans are TODO, IN PROGRESS, BLOCKED, VALIDATION, and DONE. A proposed
 architecture is not an implemented feature. Historical research under `../research/sih26053/`

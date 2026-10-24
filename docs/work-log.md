@@ -1,5 +1,29 @@
 # Work log
 
+## 2026-10-24 - G0 contract freeze
+
+- DECISION: product-owner request froze the schema-6 `stage=complete` result,
+  fused temporal map representation, schemas 1 through 5 compatibility,
+  required model/checkpoint/calibration/code/config provenance and stable
+  result rejection/run-failure codes in [decision 0013](decisions/0013-g0-complete-result-quality-resource-release-freeze.md).
+- DECISION: D-005 v0.2 freezes the semantic and traffic-participant numeric
+  gates, deterministic unsupported-free zero rule, resource envelope and
+  explicit blocking `not-verified` policy for independent tracking, motion,
+  terrain, curb/drop/pothole/overhang and held-out false-free rows.
+- DECISION: the release protocol freezes the RTX 4050 host inventory, complete
+  sequence 08 and 00 10 Hz windows, sequence 10 frame 206 cold-start case,
+  130,000-point cap, warmup and first-frame inclusion, zero-miss denominator,
+  bounded queue, late-frame diagnostic continuation and fail-closed handling
+  for invalid input, overflow, evaluator, resource, audit and disk failures.
+- VERIFIED: documentation links, status wording and the frozen contract were
+  reconciled with the schema-6 implementation candidate. Focused contract
+  tests passed 38/38; the full package suite passed 149 with 9 skipped; Ruff,
+  format, strict mypy and `git diff --check` passed. No complete replay or
+  AC-008 pass is claimed.
+- LIMIT: the CLI still emits diagnostic schema 5 for temporal output;
+  independent final labels, complete-producer integration and controlled
+  target-host timing/resource evidence remain open.
+
 ## 2026-10-24 - G0 complete-result schema, D-005 and resource implementation
 
 - IMPLEMENTED: added `drishti-g0-v1` product-result schema version 6 with a

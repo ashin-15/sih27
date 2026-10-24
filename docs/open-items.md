@@ -1,25 +1,25 @@
 # Open items
 
-2026-10-24 G0 implementation update: schema-6 `stage=complete` now carries the
-current-scan proof payload and immutable fused cells, while `d005-v0.2` exposes
-the semantic/traffic candidate gates, unresolved quality rows and host-derived
-resource ceilings. Focused evaluator, threshold and fused-cell tests pass.
-The D-005 v0.2 thresholds and listed resource ceilings are now product-owner
-approved. The CLI still emits diagnostic schema-5 temporal results, independent
-final labels and controlled full-path resource samples are absent, and AC-008
-remains open.
-See [decision 0012](decisions/0012-g0-complete-result-and-d005-contract.md) and
-the [G0 threshold bundle](d-005-g0-thresholds-v0.2.md).
+2026-10-24 G0 freeze update: decision 0013 freezes schema 6 `stage=complete`,
+its current-scan proof and immutable fused-cell payload, schemas 1 through 5
+compatibility, stable failure/rejection codes, D-005 v0.2 gate policy, resource
+ceilings and the complete replay protocol. Focused evaluator, threshold and
+fused-cell tests pass for the implemented candidate. The CLI still emits
+diagnostic schema-5 temporal results, independent final labels and controlled
+full-path resource samples are absent, and AC-008 remains open.
+See [decision 0013](decisions/0013-g0-complete-result-quality-resource-release-freeze.md),
+[decision 0012](decisions/0012-g0-complete-result-and-d005-contract.md) and the
+[G0 threshold bundle](d-005-g0-thresholds-v0.2.md).
 
 2026-10-24 approval update: the product owner approved D-005 v0.2, the
-unresolved-row `not-verified` policy and all listed resource ceilings. This
-closes the threshold/resource approval blocker only. Independent final labels,
-complete-producer integration, controlled target-host evidence and AC-008
-remain open.
+unresolved-row `not-verified` policy, all listed resource ceilings and the
+release-run handling policy. This freezes the contract boundary only.
+Independent final labels, complete-producer integration, controlled target-host
+evidence and AC-008 remain open.
 
 The O-001 table row below retains older wording about owner acceptance for
 historical continuity; the current approval boundary is the one recorded above
-and in decision 0012.
+and in decisions 0012 and 0013.
 
 2026-10-15 T-008/O-006 visibility update: [experiment 0050](research/experiments/0050-visibility-chunk-screen.md)
 retains a 16,384-beam CUDA batch after two six-frame order pairs and exact
@@ -126,11 +126,11 @@ independent labeled range set is not yet available.
 | O-010 | VALIDATION | Engineering, RQ-004 | Packed int64 grouping with overflow fallback is integrated. Edge tests pass; fresh 100-frame CLI replays on sequences 08 and 00 matched all prior input/map digests, cell counts and accounting. The grouping-only run cut audited work p50 to 193.4 ms but still missed 100 ms; later exact-output changes reduced it further. Longer sequence and cross-configuration validation remain. | Validate exact outputs and resource/latency behavior over longer and varied real sequences; profile the remaining preprocessing and mapping costs. |
 | O-011 | IN PROGRESS | Product owner and engineering, T-014 | Continuous 10 Hz arrival exceeds the current-path service rate. Experiment 0009 compared SQLite, LMDB and a custom log; LMDB showed lower commit tails than SQLite in short runs and a matched 1,000-scan pair, and passed injected process-kill/map-limit checks. Both long runs reverified all payloads, but source-read variation made LMDB's long-run acquisition p95 slower. A 500-scan LMDB writer with reader/current replay also passed, while replay missed 100/100 processing deadlines. A separate scheduled producer with a two-frame volatile queue preserved 100 frames in one diagnostic run but blocked on 93 queue-full events and fell behind its 10 Hz schedule. No runtime ingress, live-sensor retry contract, disk budget, stale-output policy or measured parallel scheduler exists. | Freeze source ack/retry and overload/freshness behavior; test longer concurrent workers/readers, map growth and retention, physical disk/power faults and complete-path output age. |
 | O-012 | DONE | Product owner and engineering, T-007 / SD-D-001 | The bounded semantic cell-class view with legend/count/conflict evidence is accepted under [SD-AC-001 through SD-AC-004](t-007-semantic-dashboard-proposal.md). A fresh learned Rerun recording verified its presentation path. This does not complete full T-007 or AC-007/010. | Preserve the bounded evidence; reopen only for a separately approved raw-point or interactive-filter scope. |
-| O-013 | OPEN | Product owner and engineering, T-006 / T-017 / D-005 | Decision 0011 fused terrain uses unapproved defaults (step 0.10 m, clearance 2.0 m, stale 2.0 s, log-odds and Kalman noise values). Experiment 0038 drivable recall fell to 0.79 in frames 2000-2249; experiment 0039 shows the same gap without fusion (single-scan recall 0.81), so fusion is not the cause. Experiment 0040 attributes it mainly to FRNet predicting parking as sidewalk (14.3% of labelled drivable), with false interior curb flags (step limit 0.10 m) the largest loss where FRNet is good. Temporal stage p50 was 168-273 ms on CPU, with one 9.7 s stall. A 2026-10-14 regression fixed older FREE evidence reappearing after a newer obstacle hit. | Review the experiment-0040 flag/class breakdown, approve or revise thresholds under D-005, evaluate the frozen choice on independent labels, and decide whether the fused map enters the receipt schema. |
+| O-013 | OPEN | Product owner and engineering, T-006 / T-017 / D-005 | Decision 0013 freezes the diagnostic stale TTL at 2.0 s, the unknown/stale-not-drivable rule and the schema-6 fused-map field boundary. Independent terrain/drivability, curb, drop, pothole and overhang labels and numeric quality rows remain blocking `not-verified`. Experiment 0038 drivable recall fell to 0.79 in frames 2000-2249; experiment 0040 attributes the gap mainly to FRNet predicting parking as sidewalk and false interior curb flags. A 2026-10-14 regression fixed older FREE evidence reappearing after a newer obstacle hit. | Obtain the independent feature-labelled final set, run the frozen terrain/evidence gates, and integrate the complete producer without promoting diagnostic fusion or synthetic results to release evidence. |
 
 See `execution-plan.md` for task sequence and `research/modules.md` for research paired to tasks.
-The [O-001 contract proposal](o-001-contract-proposal.md) now gives D-001/D-005 a concrete
-payload, evaluator, replay, audit and threshold worksheet for review. It does not resolve
-the complete fused payload, numeric quality/resource limits or full-release approval.
+The [O-001 contract proposal](o-001-contract-proposal.md) and [decision 0013](decisions/0013-g0-complete-result-quality-resource-release-freeze.md)
+now give D-001/D-005 a frozen payload, evaluator, replay, audit, threshold and resource
+contract. They do not constitute full-release approval or measured acceptance.
 The first reproducible current-path measurements and remaining limits are in
 `research/experiments/0001-replay-baseline-protocol.md`.

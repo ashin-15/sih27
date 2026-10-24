@@ -1,17 +1,22 @@
 # O-001 release profile decision brief
 
-Status: DRAFT gate with CUDA platform, deadline, evaluator-receipt endpoint and evidence-only output selected, 2026-09-25. The complete sequences 08/00, sequence 10 frame 206 cold start and 130,000-point cap were selected for future release validation in the staged contract on 2026-09-26. The original
+Status: Release gate contract frozen for implementation and evaluation under
+[decision 0013](decisions/0013-g0-complete-result-quality-resource-release-freeze.md)
+on 2026-10-24; acceptance remains NOT VERIFIED. The complete sequences 08/00,
+sequence 10 frame 206 cold start and 130,000-point cap were selected for future
+release validation in the staged contract on 2026-09-26. The original
 current-laptop release-machine choice was superseded by [decision 0002](decisions/0002-cuda-replay-release-platform.md):
 the CUDA-backed replay gate will run on an identified NVIDIA host. The 100 ms per-scan deadline
-and zero-miss policy remain selected. This does not freeze the remaining D-001/D-005 fields,
-approve the full product contract, or
+and zero-miss policy remain selected. Decision 0013 now freezes the complete schema, D-005
+policy, resource envelope, stable failure/rejection codes and run-stop matrix. This does not
 establish a real-time guarantee. See [the open-item register](open-items.md),
 [draft PRD](../Drishti-2.5/docs/spec-driven/drishti-perception/PRD.md) and
 [draft acceptance contract](../Drishti-2.5/docs/spec-driven/drishti-perception/ACCEPTANCE.md).
 
-2026-10-24 implementation addendum: G0 now has a schema-6 complete-result
-adapter and approved D-005/resource bundle. This does not turn the current
-diagnostic CLI into a complete release producer or establish AC-008.
+2026-10-24 implementation and freeze addendum: G0 now has a schema-6
+complete-result adapter and frozen D-005/resource/replay bundle. This does not
+turn the current diagnostic CLI into a complete release producer or establish
+AC-008.
 
 ## Established evidence
 
@@ -71,17 +76,18 @@ for evaluation and visualization, not planner-facing or a navigation-safe verdic
 
 A receipt for a digest-only report, visualization projection or partially populated payload
 is insufficient. The current geometric receipt is a diagnostic, not the complete future
-payload. Schema fields and exact validation checks still need a frozen technical contract.
+payload. Schema fields and exact validation checks are frozen in decision 0013; the current
+producer still needs integration with that contract.
 Rerun recording and display remain outside the deadline and are measured separately.
 
 | Field | Measurement contract or proposal | Decision still needed |
 | --- | --- | --- |
-| Workload | Record sequences/splits, cadence, scan count/density, poses, calibration, mode, checkpoint and code/config hashes. Complete sequences 08/00 at 10 Hz, separate sequence 10 frame 206 cold start and explicit rejection above 130,000 points are selected. | Quality-evaluation splits and complete model configuration remain open. |
-| Throughput | Count arrivals, receipts, drops, backlog and queue age over the accepted full-sequence windows. | Headroom, queue limits and overload behavior. |
-| Output age | Scheduled arrival to complete-product evaluator receipt on one monotonic clock; report p50/p95/p99/max and every miss. Strict 100 ms and zero misses are selected. | Complete fused payload schema and validation checks. |
-| Audit | Persist receipts and audit evidence without silently losing records or hiding their effect on later scan ages. | Bounded audit scheduling, drain/failure behavior and retention. |
-| Resources | Measure process-tree RSS, GPU memory, queue depth and artifact/disk use, not just snapshot bytes. | Physical host inventory, numeric ceilings, reserve and stop thresholds. |
-| Evidence quality | Preserve explicit unknown/stale states and validate learned, object, motion, temporal and free-space evidence without a navigation-safe claim. | D-002 model and D-005 numeric quality/recovery gates. |
+| Workload | Record sequences/splits, cadence, scan count/density, poses, calibration, mode, checkpoint and code/config hashes. Complete sequences 08/00 at 10 Hz, separate sequence 10 frame 206 cold start and explicit rejection above 130,000 points are selected. | Final quality labels/splits and the measured complete-producer configuration remain open. |
+| Throughput | Count arrivals, receipts, drops, backlog and queue age over the accepted full-sequence windows. | Queue depth 2, oldest age 100 ms, explicit overflow failure and no unbounded backlog. |
+| Output age | Scheduled arrival to complete-product evaluator receipt on one monotonic clock; report p50/p95/p99/max and every miss. Strict 100 ms and zero misses are selected. | Complete fused payload schema and validation checks are frozen in decision 0013. |
+| Audit | Persist receipts and audit evidence without silently losing records or hiding their effect on later scan ages. | Receipt 2 MiB, audit 8 MiB, end-of-run drain/flush/reopen verification; failure stops the run. |
+| Resources | Measure process-tree RSS, GPU allocated/reserved memory, logical map allocation, queue depth and artifact/disk use, not just snapshot bytes. | Frozen ceilings: 12 GiB RSS, 5,500 MiB allocated, 5,500 MiB reserved, 64 MiB logical map, zero swap growth and 10 GiB free reserve. |
+| Evidence quality | Preserve explicit unknown/stale states and validate learned, object, motion, temporal and free-space evidence without a navigation-safe claim. | D-005 v0.2 and the blocking `not-verified` policy are frozen in decision 0013. |
 
 DESIGN CONSTRAINT: a finite queue cannot keep output fresh when arrival rate sustainably
 exceeds service rate. Parallel throughput alone is not a per-scan latency guarantee.
@@ -90,30 +96,32 @@ AC-008 remains BLOCKED by the incomplete product path and remaining acceptance c
 ## Replay workload selected after the initial handoff
 
 The product owner deferred this proposal during the 2026-09-25 handoff review, then approved
-the windows and cap in the 2026-09-26 staged contract. This selection is for later release
-validation; it does not establish a quality split, configured runtime capacity or gate pass.
+the windows and cap in the 2026-09-26 staged contract. Decision 0013 freezes the replay and
+failure protocol for later validation; it does not establish a quality split, configured runtime
+capacity or gate pass.
 
 | Gate field | Proposed rule | Basis and open decision |
 | --- | --- | --- |
 | Release replay | All 4,071 scans of SemanticKITTI sequence 08 and all 4,541 scans of sequence 00 as separate ordered 10 Hz replays, with a new engine per sequence and complete product mode. | Counts are in local manifests. Selected performance windows; these are not both held-out quality splits. |
 | Density boundary | Sequence 10 frame 206, the extracted dataset's 129,392-point maximum, as a cold-start first-scan check; explicitly reject scans above 130,000 points. | The historical one-frame check missed at 129.13 ms. Selected release cap; current saved default configs allow 150,000 points outside complete mode. |
 | Accepted window | Count every selected scan including the first. Initialize/load the checkpoint before arrival without processing or discarding selected scans during warmup. | The no-excluded-slow-scans rule follows the selected zero-miss policy and full windows. |
-| Integrity and service | One ordered complete output per arrival with zero drops/duplicates/skips. After timing misses, continue valid processing for diagnostics but fail the gate and expose stale results. | This proposal does not yet freeze fault/overload behavior. Zero deadline misses remains selected. |
-| Resources | Set RSS, VRAM and artifact ceilings from the host; require no run-induced swap growth. | Former Intel-laptop 8 GiB RSS/32 GiB artifact candidates are not adopted for NVIDIA; numeric limits remain open. |
+| Integrity and service | One ordered complete output per arrival with zero drops/duplicates/skips. Timing misses fail the gate immediately but valid remaining frames continue for diagnostics; invalid frames, queue overflow, evaluator failure, resource/audit/disk failure and ordering errors stop immediately. | Zero deadline misses and the fail-closed stop matrix are frozen in decision 0013. |
+| Resources | Set RSS, GPU allocated/reserved memory and logical map allocation ceilings from the host; require no run-induced swap growth. | Frozen limits are 12 GiB RSS, 5,500 MiB allocated, 5,500 MiB reserved, 64 MiB logical map, zero swap growth and 10 GiB free reserve. |
 
 The original receipt proposal also suggested bounded post-receipt label scoring, one saved
-receipt per arrival and queues that drain by sequence end. Those technical details, audit
-scheduling and failure behavior still need review alongside the payload schema. Selecting the
-receipt endpoint does not approve the whole prior proposal or broader implementation.
+receipt per arrival and queues that drain by sequence end. Decision 0013 freezes the required
+receipt, audit drain and failure behavior. Selecting the receipt endpoint still does not approve
+the implementation or establish AC-008.
 
 NOT SELECTED: durable full-payload writer or external-process acknowledgement as the 100 ms
 endpoint. Either would require a revised contract. The
 [current-snapshot format screen](research/experiments/0017-snapshot-output-screen.md)
 remains useful evidence of persistence cost, not a required release output format.
 
-The current code cannot pass the full product gate: learned inference, detection, tracking,
-temporal mapping and complete product publication are absent, and current-slice replay has
-missed the strict deadline. D-001/D-002/D-005 and explicit full-contract approval remain open.
+The current code cannot pass the full product gate: complete product publication and the
+controlled release replay are not integrated, and current-slice replay has missed the strict
+deadline. Independent final evidence, target-host measurements and AC-008 remain open under
+the frozen D-001/D-005 contract.
 
 A [ten-frame current-snapshot format screen](research/experiments/0017-snapshot-output-screen.md)
 adds a resource constraint to this proposal. Its median uncompressed archive

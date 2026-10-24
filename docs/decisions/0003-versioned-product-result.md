@@ -1,5 +1,8 @@
 # 0003 - Version-1 product result and evaluator receipt
 
+Detail note: decision 0013 (2026-10-24) later freezes the schema-6 complete
+result and release policy while preserving this schema-1 contract.
+
 Status: DESIGN DECISION, staged T-002 contract, 2026-09-26.
 
 ## Context

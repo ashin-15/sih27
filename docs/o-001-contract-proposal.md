@@ -9,10 +9,11 @@ in [decision 0002](decisions/0002-cuda-replay-release-platform.md). The workload
 point cap below are selected for later release validation. Checkpoint, numeric gates, physical
 CUDA host and final proof remain open.
 
-2026-10-24 implementation addendum: decision 0012 adds the G0 implementation
-candidate `drishti-g0-v1` / schema 6, approved D-005 v0.2 checks and approved
-host-derived resource ceilings. Independent final labels, release-producer
-wiring and full-path evidence remain open.
+2026-10-24 freeze addendum: [decision 0013](decisions/0013-g0-complete-result-quality-resource-release-freeze.md)
+supersedes this proposal for G0 field detail, schemas 1-5 compatibility,
+rejection/failure codes, D-005/resource values and release-run handling. The
+implementation candidate is `drishti-g0-v1` / schema 6. Independent final
+labels, release-producer wiring and full-path evidence remain open.
 
 ## Two milestones
 

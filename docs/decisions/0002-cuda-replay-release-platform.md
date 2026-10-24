@@ -1,5 +1,8 @@
 # Decision: CUDA host for the replay release gate
 
+Detail note: decision 0013 (2026-10-24) later freezes the complete-result,
+D-005, resource and replay details that were intentionally left open here.
+
 Status: Accepted
 Date: 2026-09-25
 Scope: Release-platform direction, with separately dated viewer and replay-output selections below; the full product specification remains draft.
