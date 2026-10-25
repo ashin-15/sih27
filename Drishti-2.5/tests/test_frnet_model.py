@@ -11,6 +11,7 @@ torch = pytest.importorskip("torch")
 from drishti.frnet_model import (  # noqa: E402
     FRNetSegmentor,
     TorchFRNetPredictor,
+    _group_frustum_coordinates,
     range_interpolation,
     range_interpolation_torch,
 )
@@ -18,6 +19,25 @@ from drishti.frnet_model import (  # noqa: E402
 CHECKPOINT = os.environ.get("DRISHTI_FRNET_CHECKPOINT")
 CHECKPOINT_SHA256 = "09adea9005215641aea915cc3aa2bebf74582ce240cca91dedd07940ad94285e"
 SCAN = os.environ.get("DRISHTI_TEST_SCAN")
+
+
+@pytest.mark.parametrize("stride", [1, 2, 4, 8])
+@pytest.mark.parametrize("device", ["cpu", pytest.param("cuda", marks=pytest.mark.cuda)])
+def test_frustum_groups_match_row_unique(stride: int, device: str) -> None:
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA PyTorch build and NVIDIA device required")
+    pixels = torch.arange(2 * 64 * 512, dtype=torch.int64)
+    coordinates = torch.stack((pixels // (64 * 512), (pixels // 512) % 64, pixels % 512), dim=1)
+    generator = torch.Generator().manual_seed(26053)
+    coordinates = torch.cat((coordinates, coordinates[::2]))
+    coordinates = coordinates[torch.randperm(len(coordinates), generator=generator)].to(device)
+    coordinates[:, 1:] //= stride
+    for values in (coordinates, coordinates[:1], coordinates[:0]):
+        expected, inverse = torch.unique(values, return_inverse=True, dim=0)
+        actual, actual_inverse = _group_frustum_coordinates(values)
+        assert torch.equal(actual, expected)
+        assert torch.equal(actual_inverse, inverse)
+        assert torch.equal(actual[actual_inverse], values)
 
 
 def _authors_range_interpolation(points: np.ndarray) -> np.ndarray:

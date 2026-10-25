@@ -11,14 +11,16 @@ The fused map is evidence, not a navigation guarantee.
 import math
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 
 from drishti.arrays import BoolArray, ByteArray, FloatArray, IntArray, immutable
 from drishti.config import MappingConfig
+from drishti.foveation import MAX_STRETCH, FoveationState, forward_block_distance
 from drishti.ground import GroundClass
 from drishti.semantics import CLASS_NAMES
+from drishti.temporal_cuda import CudaTemporalSteps
 
 CLASS_COUNT = len(CLASS_NAMES)
 TEMPORAL_METHOD = "rolling-kalman-logodds-v1"
@@ -207,20 +209,44 @@ class _Window:
 class TemporalMap:
     """Fused map for one ordered sequence; create a new one for every sequence."""
 
-    def __init__(self, config: MappingConfig, settings: TemporalSettings | None = None) -> None:
+    def __init__(
+        self,
+        config: MappingConfig,
+        settings: TemporalSettings | None = None,
+        *,
+        device: Literal["cpu", "cuda"] = "cpu",
+    ) -> None:
+        if device not in ("cpu", "cuda"):
+            raise ValueError("temporal device must be cpu or cuda")
+        self.device = device
         self.config = config
+        self.foveation: FoveationState | None = None
         self.settings = TemporalSettings() if settings is None else settings
         self._windows = [
-            _Window(ratio, size_cm / 100, radius)
+            _Window(
+                ratio,
+                size_cm / 100,
+                radius
+                * (MAX_STRETCH if config.foveation_enabled and radius < config.radii_m[-1] else 1),
+            )
             for ratio, size_cm, radius in zip(
                 config.ratios, config.cell_sizes_cm, config.radii_m, strict=True
             )
         ]
         self._last_ns = -1
+        self._cuda_steps = (
+            CudaTemporalSteps(max(window.size**2 for window in self._windows))
+            if device == "cuda"
+            else None
+        )
 
     @property
     def allocated_bytes(self) -> int:
         return sum(window.nbytes for window in self._windows)
+
+    @property
+    def device_workspace_bytes(self) -> int:
+        return self._cuda_steps.allocated_bytes if self._cuda_steps is not None else 0
 
     def update(
         self,
@@ -368,6 +394,10 @@ class TemporalMap:
     def _steps(self, window: _Window, slots: IntArray) -> tuple[FloatArray, FloatArray]:
         """Largest rise and drop to same-level 4-neighbours with valid ground, per slot."""
         limit = np.float32(self.settings.valid_sigma_m**2)
+        if self._cuda_steps is not None:
+            return self._cuda_steps.compute(
+                window.key, window.height, window.variance, slots, window.size, limit
+            )
         size = window.size
         keys = window.key[slots]
         height = window.height[slots].astype(np.float64)
@@ -405,34 +435,46 @@ class TemporalMap:
         A cell is owned at its level when every coarser ancestor block was promoted (its
         footprint is nearer than the next finer radius) and the cell itself was not.
         """
+        adaptive = self.foveation is not None and self.foveation.stretch > 1
+        if self._cuda_steps is not None and not adaptive:
+            return self._cuda_steps.owned(level, keys, sensor_xy_m, self.config)
+        xp: Any = self._cuda_steps.cp if self._cuda_steps is not None else np
+        keys = xp.asarray(keys)
+        sensor_xy_m = xp.asarray(sensor_xy_m)
         config = self.config
         ratios = config.ratios
-        owned = np.ones(len(keys), dtype=np.bool_)
+        owned = xp.ones(len(keys), dtype=np.bool_)
         for current in range(level, len(ratios)):
             if current == 0:
                 continue
             width_m = config.cell_sizes_cm[current] / 100
             lower_m = ((keys * ratios[level]) // ratios[current]) * width_m
-            dx_m = np.maximum(
-                np.maximum(
+            dx_m = xp.maximum(
+                xp.maximum(
                     lower_m[:, 0] - sensor_xy_m[0], sensor_xy_m[0] - (lower_m[:, 0] + width_m)
                 ),
                 0,
             )
-            dy_m = np.maximum(
-                np.maximum(
+            dy_m = xp.maximum(
+                xp.maximum(
                     lower_m[:, 1] - sensor_xy_m[1], sensor_xy_m[1] - (lower_m[:, 1] + width_m)
                 ),
                 0,
             )
             closest_m = (
-                np.sqrt(dx_m * dx_m + dy_m * dy_m)
+                xp.sqrt(dx_m * dx_m + dy_m * dy_m)
                 if config.footprint == "radial"
-                else np.maximum(dx_m, dy_m)
+                else xp.maximum(dx_m, dy_m)
             )
             promoted = closest_m < config.radii_m[current - 1]
+            if adaptive:
+                assert self.foveation is not None
+                promoted |= (
+                    forward_block_distance(xp, lower_m, width_m, sensor_xy_m, self.foveation)
+                    < config.radii_m[current - 1]
+                )
             owned &= ~promoted if current == level else promoted
-        return owned
+        return np.asarray(xp.asnumpy(owned) if xp is not np else owned, dtype=np.bool_)
 
     def _view(self, sensor_xy_m: FloatArray, timestamp_ns: int) -> FusedMapView:
         settings = self.settings

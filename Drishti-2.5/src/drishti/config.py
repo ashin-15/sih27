@@ -26,8 +26,11 @@ class MappingConfig:
     fov_up_deg: float = 2.0
     ambiguous_ground_span_m: float = 0.5
     frame_budget_ms: float = 100.0
+    foveation_enabled: bool = False
 
     def __post_init__(self) -> None:
+        if type(self.foveation_enabled) is not bool:
+            raise ValueError("foveation_enabled must be boolean")
         if not isinstance(self.cell_sizes_cm, tuple) or not isinstance(self.radii_m, tuple):
             raise ValueError("resolutions and radii must be immutable tuples")
         if not 1 <= len(self.cell_sizes_cm) <= 8 or len(self.cell_sizes_cm) != len(self.radii_m):
@@ -79,7 +82,12 @@ class MappingConfig:
 
     @property
     def digest(self) -> str:
-        encoded = json.dumps(asdict(self), sort_keys=True, allow_nan=False).encode()
+        values = asdict(self)
+        if not self.foveation_enabled:
+            del values["foveation_enabled"]  # Preserve existing static-policy config digests.
+        else:
+            values["foveation_method"] = "forward-half-ellipse-refine-only-v1"
+        encoded = json.dumps(values, sort_keys=True, allow_nan=False).encode()
         return hashlib.sha256(encoded).hexdigest()
 
 

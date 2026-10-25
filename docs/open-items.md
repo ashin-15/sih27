@@ -21,6 +21,35 @@ The O-001 table row below retains older wording about owner acceptance for
 historical continuity; the current approval boundary is the one recorded above
 and in decisions 0012 and 0013.
 
+2026-10-22 workflow implementation: [0054](research/experiments/0054-feature-preserving-screen.md)
+records 60 accepted but late configuration-screen frames; FP16 changes terrain
+summaries, so model defaults remain unchanged. [0055](research/experiments/0055-temporal-cuda-screen.md)
+integrates exact CUDA temporal neighbours, with six real full-fused-array parity
+checks and fixed device buffers. T-008/O-006 and T-017 remain IN PROGRESS.
+The [workflow](sub100ms-workflow.md) preserves drivable/non-drivable/unknown/stale
+states and all remaining planned features. Full GPU residency, fused receipts,
+quality gates and under-100 ms acceptance remain open.
+
+2026-10-22 research follow-up: [review 0053](research/experiments/0053-sub100ms-pragyaam-review.md)
+provides an actionable experiment sequence using pinned Pragyaam kernels and
+official Autoware/CUDA integration references. Research and current-contract
+exact-output screens can continue; altered semantics, proof rules or public
+schema need their specific acceptance review. Under-100 ms on the RTX 4050
+remains UNKNOWN for a future complete implementation and failed for the current
+path. O-001/O-006 and T-008 remain IN PROGRESS; no new benchmark was run.
+
+2026-10-22 T-008/O-006 update: [experiment 0051](research/experiments/0051-exact-path-screen.md)
+records retained exact receipt/visibility optimizations, six-frame source/wheel
+schema-5 replay and new paced learned timing. Both runs accepted every receipt
+but missed all six deadlines; warm service through receipt was 1,383.73 ms
+(source) and 4,285.68 ms (wheel) in uncontrolled conditions. T-006 wheel evidence
+is resolved for this slice, while the complete fused schema, independent final
+labels, D-005 quality/resource gates and 100 ms acceptance remain unresolved.
+[Experiment 0052](research/experiments/0052-frnet-repeatability-screen.md)
+retains exact CPU grouping but rejects the GPU candidate; repeated reference
+GPU confidences also differ slightly. O-001/O-002/O-005/O-006 stay IN PROGRESS;
+O-003 remains BLOCKED. No draft feature or numeric gate was silently approved.
+
 2026-10-15 T-008/O-006 visibility update: [experiment 0050](research/experiments/0050-visibility-chunk-screen.md)
 retains a 16,384-beam CUDA batch after two six-frame order pairs and exact
 large-boundary evidence parity. All 24 receipts were accepted but every frame
@@ -33,7 +62,7 @@ screen reduced three-level step calculation from 149.005 to 117.044 ms and
 all 30 saved fused summaries matched. This does not change the IN PROGRESS
 status or establish the complete 100 ms deadline.
 
-Updated 2026-10-15. This register records blockers and next evidence, not promises of delivery.
+Updated 2026-10-22. This register records blockers and next evidence, not promises of delivery.
 Close an item only with a linked decision, implementation, and validation record.
 
 2026-10-15 G0 audit: the staged contract and acceptance text already select the

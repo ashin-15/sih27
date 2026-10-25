@@ -1,5 +1,41 @@
 # Research log
 
+## 2026-10-22 - RQ-004 Pragyaam comparison and implementation research
+
+- R-SYSTEM/R-MODEL/R-TIME: [review 0053](experiments/0053-sub100ms-pragyaam-review.md)
+  pins external source f3a59c23 through the GitHub API after conflicting cached
+  READMEs. Inspected source and reports without executing external code.
+- FACT: the newer path supports online FP16 semantics; oracle motion, different
+  proof rules, lazy host output and different hardware prevent direct transfer
+  of its reported 79.5 ms p99 to the Drishti receipt requirement. Historical
+  mapping-only and FP32 contention numbers remain separate.
+- HYPOTHESIS: persistent GPU intermediates, fused exact proof/temporal kernels,
+  optimized model adapter and compiled evaluator are the strongest combined
+  route. Official Autoware source provides a concrete preprocessing/TensorRT
+  split. Proposed serial work budget 90 ms leaves 10 ms margin but is unmeasured.
+- No runtime benchmark or package-code change in this research turn. Updated
+  task/open-item records without promoting status or requesting new permission
+  merely to research. Exact-output screens remain available under current scope.
+
+## 2026-10-22 - RQ-004 receipt, visibility, FRNet and paced evidence
+
+- Module: R-SYSTEM. [Experiment 0051](experiments/0051-exact-path-screen.md)
+  records the 2026-10-20 exact digest/visibility screen and 2026-10-22 learned
+  pacing/source-wheel checks. Retained the byte-compatible scalar encoder,
+  bounded field metadata cache and consecutive sample reduction. Source/wheel
+  evidence matched but all deadlines failed. Large uncontrolled timing
+  variation is retained, not hidden by selecting the faster run.
+- [Experiment 0052](experiments/0052-frnet-repeatability-screen.md) followed
+  the measured model grouping bottleneck and official PyTorch unique semantics.
+  Integer coordinates/inverse indices matched exhaustively. CPU predictions
+  and confidences matched exactly on one real scan with lower inference time;
+  retain CPU grouping. GPU grouping lacked consistent gain and was rejected.
+  Repeated reference GPU confidence also varied slightly. The failed strict
+  confidence screen remains saved; no new tolerance or quality gate was adopted.
+- Impact: diagnostic learned pacing now includes its product receipt under
+  decision 0012. T-006 installed-wheel evidence exists for the bounded slice.
+  Complete schema, final labels, D-005 gates and AC-008 remain open.
+
 ## 2026-10-15 - RQ-004 CUDA visibility batch screen
 
 - [Experiment 0050](experiments/0050-visibility-chunk-screen.md) compares
@@ -838,3 +874,11 @@ Future sessions append entries with date, question, sources, findings, support/c
 - Engineering impact: T-008 remains IN PROGRESS; O-001/O-006 remain open.
   Freeze the full result and numeric D-005 gates, then measure each candidate
   with exact-output, quality, memory and paced receipt evidence.
+
+## 2026-10-22 - RQ-004 feature-preserving implementation
+
+Experiments 0054/0055 implement the owner's requested workflow. Sixty screened
+frames all missed the deadline; precision changes alter terrain summaries.
+Keep model defaults. Exact CUDA neighbours reduce isolated dense calculation
+179.64 to 11.29 ms; six real full-view byte comparisons pass. Normal replay
+still takes 1329.37 ms warm load-through-receipt median. No release claim.

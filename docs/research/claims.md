@@ -4,6 +4,10 @@ Use category REQUIREMENT, OBSERVATION, HYPOTHESIS, MEASURED RESULT, LITERATURE F
 
 | ID | Claim | Category | Evidence | Confidence / last verified | Affected components |
 | --- | --- | --- | --- | --- | --- |
+| C-064 | Pragyaam's reported online FP16 sub-100 ms p99 motivates device residency and fused kernels but does not prove Drishti's zero-miss receipt goal. | OBSERVATION | E-071, pinned source review 0053 | High for source boundaries; external timing not reproduced, 2026-10-22 | T-003/T-006/T-008 |
+| C-065 | Coordinated device residency, fused visibility/temporal work, optimized FRNet and a compiled evaluator could fit a 90 ms work budget on the selected host. | HYPOTHESIS | E-071; 0053 proposed experiment sequence | UNKNOWN until controlled full-path measurement; budget is a design target, 2026-10-22 | T-008/O-001/O-006 |
+| C-062 | Faster exact receipt serialization does not by itself bring the current learned path under 100 ms. | MEASURED RESULT | E-069; experiment 0051 | Six source and six wheel receipts accepted, all deadlines missed; warm service p50 1.38/4.29 s under uncontrolled conditions, 2026-10-22 | T-008/O-001/O-006 |
+| C-063 | Packed integer FRNet grouping improves the measured CPU reference while the GPU candidate lacks a consistent inference gain. | MEASURED RESULT | E-070; experiment 0052 | CPU one-scan byte parity and lower inference time; GPU candidate rejected, confidence repeatability limited even in reference, 2026-10-22 | T-003/T-008 |
 | C-001 | The default `MapSnapshot` is single-frame; an optional diagnostic fused layer now exists outside the receipt schema. | OBSERVATION | E-001, decision 0011, `FrameResult.fused` | High for current source, 2026-10-14 | Pipeline, README |
 | C-002 | Geometric mode does not infer semantic or motion labels. | OBSERVATION | E-001, `MappingEngine.process` | High, 2026-09-24 | Pipeline, viewer |
 | C-003 | Existing 42 tests pass in the checked environment. | MEASURED RESULT | E-002 | High for that run, 2026-09-24 | Testing |
@@ -68,3 +72,8 @@ Use category REQUIREMENT, OBSERVATION, HYPOTHESIS, MEASURED RESULT, LITERATURE F
 | C-061 | Diagnostic temporal full-view work is costly as published cells accumulate, despite fixed retained allocation. | MEASURED RESULT | E-068; experiment 0044 | High for the 30-frame CPU synthetic pair and isolated late-frame profile; real-data and complete receipt cost NOT VERIFIED, 2026-10-14 | RQ-004/T-008/O-006 |
 
 The SIH problem statement is a REQUIREMENT source, not evidence that Drishti implements its requested behavior.
+
+C-066 (MEASURED RESULT, 2026-10-22): bounded CUDA temporal neighbours preserve
+all fused bytes on six real scans and reduce dense isolated calculation from
+179.64 to 11.29 ms. Evidence E-072/experiment 0055. Does not establish full-path
+speedup, full GPU fusion, terrain quality or 100 ms acceptance.

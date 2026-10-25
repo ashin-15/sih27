@@ -115,6 +115,26 @@ def _scatter_mean(values: Tensor, inverse: Tensor, groups: int) -> Tensor:
     return total / count[:, None]
 
 
+def _group_frustum_coordinates(coors: Tensor) -> tuple[Tensor, Tensor]:
+    """Group the internal clamped (batch, row, column) lattice in lexical order.
+
+    CPU scalar-key sorting avoids row comparisons while preserving exact group
+    coordinates and inverse indices. Keep the original CUDA path: the measured
+    GPU candidate did not consistently improve complete model inference.
+    """
+    if coors.device.type != "cpu":
+        coordinates, inverse = torch.unique(coors, return_inverse=True, dim=0)
+        return coordinates, inverse
+    # Rows are clamped to [0, 64), columns to [0, 512), also after striding.
+    packed = (coors[:, 0] * _RANGE_H + coors[:, 1]) * _MODEL_W + coors[:, 2]
+    unique, inverse = torch.unique(packed, sorted=True, return_inverse=True)
+    coordinates = torch.stack(
+        (unique // (_RANGE_H * _MODEL_W), (unique // _MODEL_W) % _RANGE_H, unique % _MODEL_W),
+        dim=1,
+    )
+    return coordinates, inverse
+
+
 def _conv3(inputs: int, outputs: int, stride: int = 1) -> nn.Conv2d:
     return nn.Conv2d(inputs, outputs, 3, stride=stride, padding=1, bias=False)
 
@@ -187,7 +207,7 @@ class _FrustumFeatureEncoder(nn.Module):
         self.compression_layers = nn.Sequential(nn.Linear(256, 16), nn.ReLU(inplace=True))
 
     def forward(self, points: Tensor, coors: Tensor) -> tuple[Tensor, Tensor, list[Tensor]]:
-        voxel_coors, inverse = torch.unique(coors, return_inverse=True, dim=0)
+        voxel_coors, inverse = _group_frustum_coordinates(coors)
         groups = len(voxel_coors)
         distance = torch.norm(points[:, :3], 2, 1, keepdim=True)
         mean = _scatter_mean(points, inverse, groups)[inverse]
@@ -260,7 +280,7 @@ class _Backbone(nn.Module):
     def _to_frustum(features: Tensor, coors: Tensor, stride: int) -> tuple[Tensor, Tensor]:
         strided = coors.clone()
         strided[:, 1:] = coors[:, 1:] // stride
-        frustum_coors, inverse = torch.unique(strided, return_inverse=True, dim=0)
+        frustum_coors, inverse = _group_frustum_coordinates(strided)
         return frustum_coors, _scatter_max(features, inverse, len(frustum_coors))
 
     def forward(

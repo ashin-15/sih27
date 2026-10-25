@@ -14,9 +14,11 @@ import numpy as np
 from drishti.arrays import BoolArray, ByteArray, FloatArray, IntArray, immutable
 from drishti.config import MappingConfig
 from drishti.cuda_backend import CudaFramePath, owner_keys
+from drishti.foveation import FoveationState
 from drishti.ground import GroundClass
 from drishti.mapping import MapSnapshot, resolve_owners
 from drishti.obstacles import InstanceEvidence
+from drishti.visibility_cuda import CudaConflictQuery, corridor_kernel
 
 if TYPE_CHECKING:
     from drishti.pipeline import PointObservations
@@ -173,8 +175,11 @@ class CurrentScanVisibility:
             raise ValueError("visibility device must be cpu or cuda")
         self.settings = VisibilitySettings() if settings is None else settings
         self.device = device
+        self.foveation: FoveationState | None = None
         # CPU is the reference; CUDA only moves corridor sampling and ownership to the device.
         self._xp: Any = CudaFramePath().cp if device == "cuda" else np
+        self._sample_kernel = corridor_kernel(self._xp) if device == "cuda" else None
+        self._conflict_query = CudaConflictQuery(self._xp) if device == "cuda" else None
 
     def _corridor_pairs(
         self,
@@ -198,15 +203,34 @@ class CurrentScanVisibility:
         position = xp.arange(total, dtype=xp.int64)
         owner = xp.searchsorted(ends, position, side="right")
         step = position - (ends - samples)[owner]
+        if self._sample_kernel is not None and (
+            self.foveation is None or self.foveation.stretch == 1
+        ):
+            packed, ids, inside = self._sample_kernel(
+                owner,
+                step,
+                fraction,
+                distance,
+                delta,
+                xp.asarray(point_ids),
+                np.float64(origin_xy[0]),
+                np.float64(origin_xy[1]),
+                xp.asarray(config.ratios, dtype=xp.int64),
+                xp.asarray(config.cell_sizes_cm, dtype=xp.float64) / 100,
+                xp.asarray(config.radii_m, dtype=xp.float64),
+                np.int64(len(config.ratios)),
+                config.footprint == "radial",
+            )
+            return self._reduce_pairs(packed[inside], ids[inside])
         u = fraction[owner] + step * SAMPLE_STEP_M / distance[owner]
         keep = u < 1.0
         owner, u = owner[keep], u[keep]
         xy = origin + u[:, None] * delta[owner]
         if xp is np:
-            owners = resolve_owners(xy, origin_xy, config)
+            owners = resolve_owners(xy, origin_xy, config, self.foveation)
             keys = np.column_stack((owners.level, owners.indices))
         else:
-            keys = owner_keys(xp, xy, origin, config)
+            keys = owner_keys(xp, xy, origin, config, self.foveation)
         width = xp.asarray(config.cell_sizes_cm, dtype=xp.float64)[keys[:, 0]] / 100
         low = keys[:, 1:3] * width[:, None]
         high = low + width[:, None]
@@ -214,8 +238,19 @@ class CurrentScanVisibility:
         inside = xp.all((xy - low > epsilon) & (high - xy > epsilon), axis=1)
         packed = pack_cells(keys[inside, 0], keys[inside, 1:3])
         ids = xp.asarray(point_ids)[owner[inside]]
+        return self._reduce_pairs(packed, ids)
+
+    def _reduce_pairs(self, packed: Any, ids: Any) -> IntArray:
+        """Reduce exactly distinct (cell, beam) pairs, preserving support and proof IDs."""
+        xp = self._xp
         if not len(packed):
             return np.empty((0, 3), dtype=np.int64)
+        # Adjacent samples of one beam often land in the same cell, especially at
+        # coarse levels. Remove identical neighbours before the global sort; retain
+        # the distinct-pair check below for nonadjacent repeats and arbitrary IDs.
+        changed = xp.ones(len(packed), dtype=xp.bool_)
+        changed[1:] = (packed[1:] != packed[:-1]) | (ids[1:] != ids[:-1])
+        packed, ids = packed[changed], ids[changed]
         # Reduce on the device: distinct beams per cell and the lowest supporting point ID.
         order = xp.lexsort(xp.stack((ids, packed)))
         packed, ids = packed[order], ids[order]
@@ -303,14 +338,20 @@ class CurrentScanVisibility:
         for level, width_m in enumerate(sizes_m):
             keys = np.floor(points[:, :2] / width_m).astype(np.int64)
             occupied.append(pack_cells(np.full(n, level, dtype=np.int64), keys))
-        allowed = ~np.isin(packed, np.concatenate(occupied))
+        all_occupied = np.concatenate(occupied)
+        allowed = (
+            ~np.isin(packed, all_occupied)
+            if self._conflict_query is None
+            else self._conflict_query.exclude(packed, all_occupied)
+        )
         base = np.floor(points[~clean, :2] / 0.05).astype(np.int64)
         for level, width_m in enumerate(sizes_m):
             selected = allowed & (cells[:, 0] == level)
             if not np.any(selected) or not len(base):
                 continue
             steps = math.ceil(settings.conflict_margin_m / width_m) + 1
-            blocked = _near_window(cells[selected, 1:3], base // config.ratios[level], steps)
+            query = _near_window if self._conflict_query is None else self._conflict_query.near
+            blocked = query(cells[selected, 1:3], base // config.ratios[level], steps)
             allowed[np.flatnonzero(selected)[blocked]] = False
         cells, counts, beam_ids = cells[allowed], counts[allowed], beam_ids[allowed]
         order = np.lexsort((cells[:, 2], cells[:, 1], cells[:, 0]))

@@ -8,12 +8,15 @@ from drishti.arrays import ByteArray, FloatArray, IntArray, PointArray, immutabl
 from drishti.config import MappingConfig
 from drishti.contracts import Accounting, Mode, ScanFrame
 from drishti.cuda_backend import CudaFramePath
+from drishti.foveation import FoveationEstimator, FoveationState
 from drishti.geometry import transform_points
 from drishti.ground import GroundClass, GroundSegmenter, PatchworkGround
 from drishti.learned import SemanticPredictor
 from drishti.mapping import MapSnapshot, aggregate_cells
+from drishti.motion import MotionEstimator, MotionView
 from drishti.obstacles import InstanceEvidence, ObstacleDetector
 from drishti.projection import RangeImage, project
+from drishti.semantics import Motion
 from drishti.temporal import FusedMapView, TemporalMap
 from drishti.tracking import CandidateTracker, TrackingUpdate
 from drishti.visibility import CurrentScanVisibility, VisibilityEvidence
@@ -51,6 +54,7 @@ class StageTimings:
     association_ms: float | None = None
     visibility_ms: float | None = None
     temporal_ms: float | None = None
+    motion_ms: float | None = None
 
 
 @dataclass(frozen=True)
@@ -64,6 +68,8 @@ class FrameResult:
     tracking: TrackingUpdate | None = None
     visibility: VisibilityEvidence | None = None
     fused: FusedMapView | None = None
+    estimated_motion: MotionView | None = None
+    foveation: FoveationState | None = None
 
 
 class MappingEngine:
@@ -78,6 +84,7 @@ class MappingEngine:
         tracker: CandidateTracker | None = None,
         visibility: CurrentScanVisibility | None = None,
         temporal: TemporalMap | None = None,
+        motion_estimator: MotionEstimator | None = None,
         device: Literal["cpu", "cuda"] = "cpu",
     ) -> None:
         if mode not in (Mode.GEOMETRIC, Mode.ORACLE, Mode.LEARNED):
@@ -92,6 +99,8 @@ class MappingEngine:
             raise ValueError("tracking requires the learned candidate stage")
         if visibility is not None and tracker is None:
             raise ValueError("visibility requires the learned tracking stage")
+        if motion_estimator is not None and tracker is None:
+            raise ValueError("motion estimation requires the learned tracking stage")
         # The published backend names one device; stages may not silently mix devices.
         for stage in (detector, visibility):
             if stage is not None and getattr(stage, "device", "cpu") != device:
@@ -100,6 +109,8 @@ class MappingEngine:
             raise ValueError("temporal map must use the engine mapping config")
         self.visibility = visibility
         self.temporal = temporal
+        self.motion_estimator = motion_estimator
+        self._foveation = FoveationEstimator() if config.foveation_enabled else None
         self.tracker = tracker
         self._pending_tracking: FrameResult | None = None
         self._tracking_failed = False
@@ -172,6 +183,17 @@ class MappingEngine:
             semantic_confidence = np.where(semantic == 0, 0.0, 1.0).astype(np.float64)
             semantic_unknown_reason = np.where(semantic == 0, 2, 0).astype(np.uint8)
             motion = annotations.motion[accepted]
+        foveation = (
+            self._foveation.update(
+                frame.sequence, round(frame.timestamp_s * 1e9), frame.map_from_sensor[:2, 3]
+            )
+            if self._foveation is not None
+            else None
+        )
+        if self.visibility is not None:
+            self.visibility.foveation = foveation
+        if self.temporal is not None:
+            self.temporal.foveation = foveation
         preprocessed = perf_counter()
         if self.mode == Mode.LEARNED:
             if self.predictor is None:
@@ -210,6 +232,7 @@ class MappingEngine:
             mode=self.mode,
             pose_source=frame.pose_source,
             ground_method=self.ground.method,
+            foveation=foveation,
         )
         observations = PointObservations(
             points,
@@ -263,12 +286,30 @@ class MappingEngine:
             else None
         )
         association_completed = perf_counter()
+        estimated_motion = (
+            self.motion_estimator.update(
+                frame.sequence,
+                frame.frame_id,
+                round(frame.timestamp_s * 1e9),
+                ids,
+                instances,
+                tracking.tracks,
+            )
+            if self.motion_estimator is not None and tracking is not None
+            else None
+        )
+        motion_completed = perf_counter()
+        static_evidence = (
+            estimated_motion.point_state != Motion.MOVING
+            if estimated_motion is not None
+            else slice(None)
+        )
         # Diagnostic sequence layer (decision 0011); fused after every per-scan stage succeeds.
         fused = (
             self.temporal.update(
-                points_map_m=mapped,
-                ground=ground,
-                semantic=semantic,
+                points_map_m=mapped[static_evidence],
+                ground=ground[static_evidence],
+                semantic=semantic[static_evidence],
                 sensor_xy_m=frame.map_from_sensor[:2, 3],
                 timestamp_ns=round(frame.timestamp_s * 1e9),
                 free_level=visibility.free_level if visibility is not None else None,
@@ -298,8 +339,9 @@ class MappingEngine:
             (visibility_completed - detector_completed) * 1000
             if self.visibility is not None
             else None,
-            (temporal_completed - association_completed) * 1000
-            if self.temporal is not None
+            (temporal_completed - motion_completed) * 1000 if self.temporal is not None else None,
+            (motion_completed - association_completed) * 1000
+            if self.motion_estimator is not None
             else None,
         )
         result = FrameResult(
@@ -312,6 +354,8 @@ class MappingEngine:
             tracking,
             visibility,
             fused,
+            estimated_motion,
+            foveation,
         )
         if tracking is not None:
             self._pending_tracking = result

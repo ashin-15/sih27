@@ -1,5 +1,25 @@
 # Research to engineering bridge
 
+2026-10-22 research follow-up: [0053](experiments/0053-sub100ms-pragyaam-review.md)
+prioritizes a bounded shared GPU workspace, exact fused visibility and temporal
+outputs, existing FP16/interpolation screens followed by an Autoware-inspired
+TensorRT adapter, and native receipt checks. Pragyaam's range-image cleanup and
+lazy host mirror are not equivalent to current Drishti proof/output contracts.
+No runtime, schema, precision default or acceptance gate changed. Research and
+exact-output screens remain actionable; changed public behavior needs its
+specific contract. T-008 remains IN PROGRESS.
+
+2026-10-22 RQ-004 impact: experiments [0051](experiments/0051-exact-path-screen.md)
+and [0052](experiments/0052-frnet-repeatability-screen.md) retain exact receipt,
+visibility and CPU-only model grouping improvements. CUDA model grouping stays
+unchanged after its candidate lacked consistent gain. Decision 0012 adds
+current learned receipt pacing; it exposes schedule backlog rather than
+equating per-frame means with a deadline pass. Six source and six installed-wheel
+receipts were accepted, with matching predictions/reported evidence and all
+deadlines missed. The next bottlenecks remain GPU model inference, visibility,
+temporal publication and evaluator work. A device-resident rewrite still needs
+the complete output contract; these changes do not close D-005 or AC-008.
+
 Rows preserve the decision state when each finding was recorded; later rows
 and the current [task register](../open-items.md) supersede earlier proposed
 or blocked states. In particular, current-scan evidence-only free cells now
@@ -76,3 +96,9 @@ evidence but saved only about 12.5 ms in isolated late-frame calls, so it was
 not integrated. Profile the full view construction and wait for the complete
 result contract before a layout change. This CPU synthetic screen does not
 change AC-008 or any release gate.
+
+2026-10-22, RQ-004/T-008/T-017: decision 0013 adopts bounded CUDA temporal
+neighbours after fixture and six real fused-view byte parity checks (0055).
+CLI temporal follows device; manifest separates GPU workspace and host bytes.
+Fusion/publication remain on CPU. Experiment 0054 retains model defaults due
+to changed predictions/terrain; controlled timing and quality remain open.

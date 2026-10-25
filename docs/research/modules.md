@@ -1,5 +1,18 @@
 # Research modules tied to development
 
+2026-10-22 R-SYSTEM/RQ-004 research follow-up: [review 0053](experiments/0053-sub100ms-pragyaam-review.md)
+pins Pragyaam source and distinguishes its mapping/online-model reports from
+Drishti's receipt gate. Priorities are shared GPU residency, fused exact
+visibility/temporal work, controlled FP16 then a TensorRT adapter, and compiled
+receipt checks. A proposed 90 ms work budget is a hypothesis, not a benchmark.
+
+2026-10-22 R-SYSTEM/RQ-004: [experiment 0051](experiments/0051-exact-path-screen.md)
+adds exact receipt/visibility improvements, learned pacing and source/wheel
+evidence; [experiment 0052](experiments/0052-frnet-repeatability-screen.md)
+retains CPU grouping and rejects GPU grouping. All twelve paced scan deadlines
+failed. The complete-result, final-quality and controlled resource gates remain
+open; next work must address the dominant stage costs without dropping evidence.
+
 Each module produces a short decision memo: question, primary sources, candidate options,
 evidence with conditions, contradictions, conclusion (or UNKNOWN), and the concrete task affected.
 Log new topics and failed candidates in `research-log.md`. A module does not approve a product

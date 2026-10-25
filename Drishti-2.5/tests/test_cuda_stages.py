@@ -221,3 +221,47 @@ def test_stage_devices_must_match_engine() -> None:
         ConnectedComponentDetector(device=cast(Any, "tpu"))
     with pytest.raises(ValueError, match="device"):
         CurrentScanVisibility(device=cast(Any, "tpu"))
+
+
+@pytest.mark.cuda
+@pytest.mark.parametrize("footprint", ["radial", "square"])
+def test_fused_corridor_matches_array_path_at_seams(footprint: str) -> None:
+    if not CudaFramePath.available():
+        pytest.skip("working CUDA required")
+    rng = np.random.default_rng(57)
+    points = rng.uniform(-55, 55, (1700, 2))
+    points[:8] = [[10, 0], [25, 0], [-10, 0], [-25, 0], [0, 10], [0, 25], [0, -10], [0, -25]]
+    points = np.concatenate([points, np.nextafter(points, np.inf), np.nextafter(points, -np.inf)])
+    ids = rng.permutation(len(points)).astype(np.int64) * 7 + 3
+    origin = np.array([-0.13, 0.07])
+    fraction = np.maximum(0, 1 - 4.7 / np.linalg.norm(points - origin, axis=1))
+    config = MappingConfig(footprint=cast(Literal["radial", "square"], footprint))
+    engine = CurrentScanVisibility(device="cuda")
+    actual = engine._corridor_pairs(points, ids, fraction, origin, config)
+    engine._sample_kernel = None
+    expected = engine._corridor_pairs(points, ids, fraction, origin, config)
+    np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.cuda
+def test_cuda_conflict_query_matches_reference_with_duplicates_and_negative_keys() -> None:
+    if not CudaFramePath.available():
+        pytest.skip("working CUDA required")
+    engine = CurrentScanVisibility(device="cuda")
+    assert engine._conflict_query is not None
+    rng = np.random.default_rng(58)
+    cells = rng.integers(-200, 201, (900, 2), dtype=np.int64)
+    conflicts = np.repeat(rng.integers(-200, 201, (700, 2), dtype=np.int64), 2, axis=0)
+    for steps in (0, 1, 4, 7):
+        np.testing.assert_array_equal(
+            engine._conflict_query.near(cells, conflicts, steps),
+            visibility_module._near_window(cells, conflicts, steps),
+        )
+    assert not engine._conflict_query.near(cells, conflicts[:0], 7).any()
+    assert len(engine._conflict_query.near(cells[:0], conflicts, 7)) == 0
+    packed = visibility_module.pack_cells(np.zeros(len(cells), dtype=np.int64), cells)
+    occupied = visibility_module.pack_cells(np.zeros(len(conflicts), dtype=np.int64), conflicts)
+    np.testing.assert_array_equal(
+        engine._conflict_query.exclude(packed, occupied), ~np.isin(packed, occupied)
+    )
+    assert engine._conflict_query.exclude(packed, occupied[:0]).all()

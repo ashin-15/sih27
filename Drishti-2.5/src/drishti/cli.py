@@ -7,7 +7,7 @@ import platform
 import sys
 from collections.abc import Iterator, Sequence
 from contextlib import ExitStack
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from time import perf_counter, sleep
 from typing import TYPE_CHECKING, Protocol
@@ -17,7 +17,9 @@ import numpy as np
 from drishti.config import load_config
 from drishti.contracts import Mode, PoseSource, ScanFrame, make_frame
 from drishti.dataset import DatasetSource
+from drishti.fused_result import FUSED_RECEIPT_SCHEMA, finish_fused_receipt, prepare_fused_receipt
 from drishti.learned import FRNET_CLASS_MAP_VERSION, FRNET_REVISION, FRNetPredictor
+from drishti.motion import MOTION_METHOD, MotionEstimator, MotionSettings
 from drishti.obstacles import ConnectedComponentDetector, panoptic_raw_labels
 from drishti.output import InProcessFrameConsumer
 from drishti.pipeline import FrameResult, MappingEngine
@@ -130,6 +132,16 @@ def _parser() -> argparse.ArgumentParser:
             help="fuse scans into the rolling elevation/occupancy/terrain map (diagnostic layer)",
         )
         command.add_argument(
+            "--foveation",
+            action="store_true",
+            help="enable bounded pose-derived forward refinement",
+        )
+        command.add_argument(
+            "--motion",
+            action="store_true",
+            help="estimate motion from consecutive observed tracks (uncalibrated diagnostic)",
+        )
+        command.add_argument(
             "--write-panoptic-predictions",
             action="store_true",
             help="write point-aligned SemanticKITTI candidate predictions for offline scoring",
@@ -143,6 +155,11 @@ def _parser() -> argparse.ArgumentParser:
             "--evaluate-product-contract",
             action="store_true",
             help="validate a versioned product result; not release acceptance",
+        )
+        command.add_argument(
+            "--evaluate-fused-contract",
+            action="store_true",
+            help="validate and digest fused arrays and optional motion before the final receipt",
         )
         if name == "replay":
             command.add_argument(
@@ -163,7 +180,7 @@ def _parser() -> argparse.ArgumentParser:
             command.add_argument(
                 "--check-100ms",
                 action="store_true",
-                help="pace replay at 10 Hz and check a current-frame receipt; not release proof",
+                help="pace label-free replay at 10 Hz through its receipt; not release proof",
             )
         else:
             command.add_argument("--frames", type=int, default=3)
@@ -242,10 +259,12 @@ def _run_ready(
     args: argparse.Namespace, predictor: "FRNetPredictor | TorchFRNetPredictor | None"
 ) -> int:
     config = load_config(args.config)
+    if args.foveation:
+        config = replace(config, foveation_enabled=True)
     mode = Mode(args.mode)
     check_deadline = bool(args.command == "replay" and args.check_100ms)
-    if check_deadline and mode != Mode.GEOMETRIC:
-        raise ValueError("the 100 ms replay check requires label-free geometric mode")
+    if check_deadline and mode == Mode.ORACLE:
+        raise ValueError("the 100 ms replay check requires label-free geometric or learned mode")
     if check_deadline and args.view != "none":
         raise ValueError("the 100 ms replay check requires --view none; measure Rerun separately")
     output = args.output.expanduser().resolve()
@@ -300,9 +319,10 @@ def _run_ready(
         device=args.device,
         tracker=CandidateTracker(args.max_tracks) if args.track_obstacles else None,
         visibility=CurrentScanVisibility(device=args.device) if args.visibility else None,
-        temporal=TemporalMap(config) if args.temporal else None,
+        temporal=TemporalMap(config, device=args.device) if args.temporal else None,
+        motion_estimator=MotionEstimator() if args.motion else None,
     )
-    consumer = InProcessFrameConsumer() if check_deadline else None
+    consumer = InProcessFrameConsumer() if check_deadline and mode == Mode.GEOMETRIC else None
     product_evaluator = (
         InProcessProductEvaluator(audit_every=args.audit_every)
         if args.evaluate_product_contract or mode == Mode.LEARNED
@@ -320,7 +340,11 @@ def _run_ready(
         "mode": mode.value,
         "device": args.device,
         "report_schema_version": (
-            7
+            9
+            if args.evaluate_fused_contract or args.motion
+            else 8
+            if check_deadline and mode == Mode.LEARNED
+            else 7
             if args.visibility
             else 6
             if args.track_obstacles
@@ -413,6 +437,10 @@ def _run_ready(
         "temporal": (
             {
                 "method": TEMPORAL_METHOD,
+                "neighbour_backend": args.device,
+                "device_workspace_bytes": engine.temporal.device_workspace_bytes
+                if engine.temporal is not None
+                else None,
                 **asdict(TemporalSettings()),
                 "allocated_bytes": engine.temporal.allocated_bytes
                 if engine.temporal is not None
@@ -426,6 +454,16 @@ def _run_ready(
             if args.temporal
             else None
         ),
+        "estimated_motion": (
+            {
+                "method": MOTION_METHOD,
+                **asdict(MotionSettings()),
+                "meaning": "uncalibrated observed-centre displacement; outside current receipt",
+            }
+            if args.motion
+            else None
+        ),
+        "fused_receipt_schema": FUSED_RECEIPT_SCHEMA if args.evaluate_fused_contract else None,
         "tracker": (
             {
                 "method": "map-center-prediction-greedy-v1",
@@ -461,17 +499,37 @@ def _run_ready(
             "scheduled-scan-arrival-on-monotonic-clock" if check_deadline else None
         ),
         "replay_publication_event": (
-            "current-frame-inprocess-receipt-diagnostic" if check_deadline else None
+            "fused-envelope-inprocess-receipt-diagnostic"
+            if check_deadline and args.evaluate_fused_contract
+            else "current-product-inprocess-receipt-diagnostic"
+            if check_deadline and mode == Mode.LEARNED
+            else "current-frame-inprocess-receipt-diagnostic"
+            if check_deadline
+            else None
         ),
-        "replay_consumer": "in-process-current-frame-diagnostic" if check_deadline else None,
+        "replay_consumer": (
+            "in-process-fused-envelope-evaluator"
+            if check_deadline and args.evaluate_fused_contract
+            else "in-process-current-product-evaluator"
+            if check_deadline and mode == Mode.LEARNED
+            else "in-process-current-frame-diagnostic"
+            if check_deadline
+            else None
+        ),
         "replay_audit_event": "frame-jsonl-flushed-from-python" if check_deadline else None,
         "replay_viewer_flush_each_frame": False,
         "limits": [
-            "diagnostic temporal fusion outside receipt schema"
+            "diagnostic fused arrays receipt-validated; historical evidence quality unverified"
+            if args.evaluate_fused_contract
+            else "diagnostic temporal fusion outside receipt schema"
             if args.temporal
             else "no temporal fusion",
-            "no motion estimation",
-            "no refinement",
+            "uncalibrated motion estimates; motion quality unverified"
+            if args.motion
+            else "no motion estimation",
+            "pose-derived forward refinement; quality unverified"
+            if config.foveation_enabled
+            else "no refinement",
             "no clearance or passability verdict",
             "no real-time claim",
         ],
@@ -533,6 +591,7 @@ def _run_ready(
                 receipt = consumer.receive(frame, result) if consumer is not None else None
                 receipt_ready = perf_counter()
                 product_receipt = None
+                fused_receipt = None
                 if product_evaluator is not None:
                     arrival_ns = (
                         round(scheduled_capture * 1_000_000_000)
@@ -570,6 +629,11 @@ def _run_ready(
                             cell_sizes_cm=config.cell_sizes_cm,
                             scheduled_arrival_ns=arrival_ns,
                         )
+                    fused_draft = (
+                        prepare_fused_receipt(frame, result, config, engine.temporal.settings)
+                        if args.evaluate_fused_contract and engine.temporal is not None
+                        else None
+                    )
                     product_receipt = (
                         engine.receive_tracking(frame, result, product, product_evaluator)
                         if args.track_obstacles
@@ -577,7 +641,13 @@ def _run_ready(
                     )
                     if product_receipt.status != ReceiptStatus.ACCEPTED:
                         raise ValueError(f"product result rejected: {product_receipt.error_code}")
+                    if fused_draft is not None:
+                        fused_receipt = finish_fused_receipt(fused_draft, product_receipt)
                     product_receipts += 1
+                    if check_deadline and (mode == Mode.LEARNED or args.evaluate_fused_contract):
+                        # The learned deadline includes sealing, validation, digesting and
+                        # tracking commit. Its current schema still excludes fused evidence.
+                        receipt_ready = perf_counter()
                 if args.write_panoptic_predictions:
                     panoptic = panoptic_raw_labels(
                         frame.point_ids,
@@ -668,6 +738,19 @@ def _run_ready(
                     "temporal_summary": (
                         asdict(result.fused.summary) if result.fused is not None else None
                     ),
+                    "foveation": asdict(result.foveation) if result.foveation else None,
+                    "fused_receipt": asdict(fused_receipt) if fused_receipt is not None else None,
+                    "estimated_motion": (
+                        {
+                            "method": result.estimated_motion.method,
+                            "point_counts": np.bincount(
+                                result.estimated_motion.point_state, minlength=3
+                            ).tolist(),
+                            "tracks": [asdict(item) for item in result.estimated_motion.estimates],
+                        }
+                        if result.estimated_motion is not None
+                        else None
+                    ),
                     "candidate_instances": (
                         [
                             {
@@ -683,11 +766,9 @@ def _run_ready(
                         if args.detect_obstacles
                         else None
                     ),
-                    "receipt_ms": (
-                        (receipt_ready - processed) * 1000 if receipt is not None else None
-                    ),
+                    "receipt_ms": ((receipt_ready - processed) * 1000 if check_deadline else None),
                     "load_process_receipt_ms": (
-                        (receipt_ready - start) * 1000 if receipt is not None else None
+                        (receipt_ready - start) * 1000 if check_deadline else None
                     ),
                     "accounting": asdict(result.accounting),
                     "timings_ms": asdict(result.timings),
@@ -842,6 +923,12 @@ def _peak_rss_bytes() -> int | None:
 
 
 def _run(args: argparse.Namespace) -> int:
+    if args.evaluate_fused_contract:
+        if not args.temporal:
+            raise ValueError("--evaluate-fused-contract requires --temporal")
+        args.evaluate_product_contract = True
+    if args.motion and not args.track_obstacles:
+        raise ValueError("--motion requires --track-obstacles")
     mode = Mode(args.mode)
     if args.track_obstacles and not args.detect_obstacles:
         raise ValueError("tracking requires --detect-obstacles")

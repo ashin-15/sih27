@@ -13,6 +13,7 @@ import numpy as np
 from drishti.arrays import ByteArray, FloatArray, IntArray, PointArray, immutable
 from drishti.config import MappingConfig
 from drishti.contracts import Mode, PoseSource
+from drishti.foveation import FoveationState, forward_block_distance
 from drishti.ground import GroundClass
 from drishti.mapping import MapSnapshot, aggregate_cells
 from drishti.projection import RangeImage
@@ -37,7 +38,13 @@ def import_cupy() -> Any:
         return importlib.import_module("cupy")
 
 
-def owner_keys(xp: Any, xy: Any, sensor: Any, config: MappingConfig) -> Any:
+def owner_keys(
+    xp: Any,
+    xy: Any,
+    sensor: Any,
+    config: MappingConfig,
+    foveation: FoveationState | None = None,
+) -> Any:
     """Array-module form of ``mapping.resolve_owners``; returns (level, x, y) rows.
 
     ``xy`` and ``sensor`` must already be validated and live on ``xp``'s device.
@@ -61,6 +68,9 @@ def owner_keys(xp: Any, xy: Any, sensor: Any, config: MappingConfig) -> Any:
             else xp.maximum(dx_m, dy_m)
         )
         promote = (level == current) & (closest_m < config.radii_m[current - 1])
+        if foveation is not None and foveation.stretch > 1:
+            forward = forward_block_distance(xp, lower_m, width_m, sensor, foveation)
+            promote |= (level == current) & (forward < config.radii_m[current - 1])
         level[promote] -= 1
     ratios = xp.asarray(config.ratios, dtype=xp.int64)[level]
     return xp.column_stack((level, base // ratios[:, None]))
@@ -105,7 +115,11 @@ class CudaFramePath:
         return np.asarray(self.cp.asnumpy(values))
 
     def _cell_keys(
-        self, xyz_map_m: FloatArray, sensor_xy_m: FloatArray, config: MappingConfig
+        self,
+        xyz_map_m: FloatArray,
+        sensor_xy_m: FloatArray,
+        config: MappingConfig,
+        foveation: FoveationState | None = None,
     ) -> Any:
         xy_map_m = xyz_map_m[:, :2]
         if xy_map_m.ndim != 2 or xy_map_m.shape[1] != 2 or sensor_xy_m.shape != (2,):
@@ -116,7 +130,7 @@ class CudaFramePath:
             raise ValueError("ownership coordinates exceed the configured lattice bound")
 
         cp = self.cp
-        return owner_keys(cp, cp.asarray(xy_map_m), cp.asarray(sensor_xy_m), config)
+        return owner_keys(cp, cp.asarray(xy_map_m), cp.asarray(sensor_xy_m), config, foveation)
 
     def project(self, points: PointArray, point_ids: IntArray, config: MappingConfig) -> RangeImage:
         if points.ndim != 2 or points.shape[1] != 4 or point_ids.shape != (len(points),):
@@ -183,6 +197,7 @@ class CudaFramePath:
         mode: Mode,
         pose_source: PoseSource,
         ground_method: str,
+        foveation: FoveationState | None = None,
     ) -> tuple[MapSnapshot, IntArray]:
         if not len(xyz_map_m):
             return aggregate_cells(
@@ -199,10 +214,11 @@ class CudaFramePath:
                 mode=mode,
                 pose_source=pose_source,
                 ground_method=ground_method,
+                foveation=foveation,
             )
 
         cp = self.cp
-        keys = self._cell_keys(xyz_map_m, sensor_xy_m, config)
+        keys = self._cell_keys(xyz_map_m, sensor_xy_m, config, foveation)
         # CuPy requires one stacked key array; NumPy also accepts this form.
         order = cp.lexsort(cp.stack((keys[:, 2], keys[:, 1], keys[:, 0])))
         ordered = keys[order]

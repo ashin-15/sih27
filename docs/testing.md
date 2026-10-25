@@ -2,6 +2,42 @@
 
 Run package commands from `Drishti-2.5/`. Use a new output directory for each run and do not alter source scans or existing run evidence.
 
+## 2026-10-22 performance and paced learned verification
+
+- With `DRISHTI_FRNET_CHECKPOINT` and `DRISHTI_TEST_SCAN` set to the pinned
+  local checkpoint and sequence-08 scan 000000, model plus digest tests passed
+  **37/37**. This includes the previously optional checkpoint load/hash checks,
+  real CPU/CUDA prediction comparison and existing precision/interpolation
+  checks. It does not change the runtime's fp32/interpolation defaults or supply
+  a full held-out quality result.
+
+- `uv run --no-sync python -m pytest -q -W error -p no:cacheprovider`:
+  **182 passed, 4 skipped**. The focused CLI/visibility/product/digest run
+  passed 67 with one optional skip. New fixtures cover the frozen digest byte
+  stream, duplicate visibility samples, CPU/CUDA frustum grouping, and delayed
+  product validation in paced learned mode. Authored semantics in the clock
+  fixtures are not real-model quality evidence.
+- Full Ruff lint/format, strict mypy (51 files), and `uv build --no-sources`
+  passed. Experiment harnesses also passed Ruff. Initial sandbox attempts hit
+  Windows cache/temp ACL errors; authorized external runs succeeded. No tests
+  were removed or skipped to resolve these errors. Earlier lint/type errors
+  in the changed code were corrected before the passing checks.
+- Installed the wheel with `uv pip install --no-cache --no-deps --target
+  ../artifacts/wheel-site-20261022 dist/drishti_25-0.1.0-py3-none-any.whl`.
+  Replayed six real learned CUDA scans from the repository root after verifying
+  imports resolve inside that target. This reuses locked dependencies from
+  the existing environment, rather than claiming a clean dependency install.
+  All 27 installed Python files match current source bytes. Source/wheel map,
+  input, accounting, candidate/track/visibility/temporal summaries and all six
+  exported prediction files match; each accepted six schema-5 receipts.
+  The wheel launcher explicitly returned CLI code 2 for six deadline misses.
+- MEASURED RESULT: source/wheel warm service-through-receipt p50 was
+  1,383.73/4,285.68 ms. Both missed all scheduled deadlines. Large timing
+  variation is preserved; these short uncontrolled runs do not prove tails,
+  process/device memory bounds or complete-path acceptance. See
+  [experiment 0051](research/experiments/0051-exact-path-screen.md) and its
+  [saved verification](research/experiments/0051-validation-20261022.json).
+
 ## 2026-10-14 follow-up: local CI definition and temporal cost screen
 
 - Added `.github/workflows/package-quality.yml` for Python 3.12 on Ubuntu
@@ -239,3 +275,11 @@ Use the distinction: command executes; tests pass; requirements are satisfied. T
 
 The recorded-view paced commands above are historical experiment commands. Current
 `--check-100ms` requires `--view none` so Rerun is measured in a separate run.
+
+2026-10-22 CUDA temporal slice: 15 temporal tests passed on actual CUDA hardware.
+Full suite: 182 passed, four skipped, two viewer failures from missing Rerun
+on PATH. Rerun `.venv/Scripts/python.exe -m pytest tests/test_visualization.py
+-q -W error -p no:cacheprovider` with `.venv/Scripts` on PATH: four passed.
+Combined coverage 184 passed/four skipped. Ruff check and format, strict mypy
+(52 files), and `uv build --no-sources` passed. See experiment 0055 for six real
+full-fused-array parity checks and six normal paced receipts (all late).

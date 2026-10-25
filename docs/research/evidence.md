@@ -2,6 +2,9 @@
 
 | ID | Category | Source | Scope and limit | Checked |
 | --- | --- | --- | --- | --- |
+| E-071 | FACT / SOURCE-REPORTED RESULT / HYPOTHESIS | [Review 0053](experiments/0053-sub100ms-pragyaam-review.md), pinned Pragyaam f3a59c23 source/logs, official Autoware/CuPy/NVIDIA sources | Device residency and fused kernels are concrete implementation references; reported online FP16 71.8/79.5 ms is a different-host/result benchmark, not reproduced here. Explicitly separates label-fed mapping, learned semantics with oracle motion, lazy readback and receipt timing. Proposed 90 ms budget is unmeasured. | 2026-10-22 |
+| E-069 | MEASURED RESULT | [Experiment 0051](experiments/0051-exact-path-screen.md), A/B reports and source/wheel verification | Exact digest p50 124.03 -> 56.16 ms; visibility reductions matched on 30 real chunks. Source/wheel each accepted six receipts and matched predictions/reported evidence, but missed every paced deadline. Warm service through receipt 1,383.73/4,285.68 ms; uncontrolled short runs, no release claim. | 2026-10-22 |
+| E-070 | MEASURED RESULT | [Experiment 0052](experiments/0052-frnet-repeatability-screen.md), CPU/CUDA repeatability artifacts | Exact one-scan CPU grouping reduced repeated inference 4,209.33 -> 3,086.21 ms. GPU grouping had no consistent gain and was not integrated. Reference GPU confidence itself was not byte-repeatable; compared class/unknown outputs matched on three scans. | 2026-10-22 |
 | E-001 | FACT | `Drishti-2.5/src/drishti/pipeline.py`, `contracts.py`, `mapping.py` | Current frame, mode, array and cell contracts. Code inspection does not prove field performance. | 2026-09-24 |
 | E-002 | MEASURED RESULT | `uv run --frozen --extra viz pytest -q -W error`; 42 passed | Current tests only, not future features. | 2026-09-24 |
 | E-003 | MEASURED RESULT | `/tmp/drishti-review-baseline-20260924/{manifest.json,frames.jsonl,summary.json}` | Three synthetic frames, headless, current single-frame path; release gate false. Temporary path may not persist across machines. | 2026-09-24 |
@@ -72,3 +75,10 @@
 | E-068 | MEASURED RESULT | [Experiment 0044](experiments/0044-temporal-cost-and-neighbour-screen.md); retained 30-frame source CLI reports and exact-output/isolated profile scripts | Thirty same-seed synthetic frames matched input/map/accounting output with and without temporal fusion. The temporal stage p50/p95/max was 324.454/583.305/630.851 ms as published cells grew 15,576 to 164,214; retained allocation stayed 53,737,911 bytes. A neighbour-index candidate matched final-state rise/drop exactly but offered about 12.5 ms isolated late-frame savings and was not integrated. Unpaced CPU synthetic only; no learned/visibility/receipt or AC-008 inference. | 2026-10-14 |
 
 Historical files under `research/sih26053/` may support old research questions. The retired reference identifier in archival text and test XML was replaced by `legacy-reference` on 2026-09-24; the original paths are recoverable from Git history. Numerical results were not changed by that text replacement. Verify source, date and exact pipeline before using them. Do not treat them as current Drishti benchmarks.
+
+E-072 (MEASURED RESULT, 2026-10-22): experiments 0054/0055, their executable
+screens and local artifact directories. Sixty configuration-screen receipts
+accepted but late; precision changes affect terrain summaries. Exact temporal
+CUDA fixtures and six real full-view comparisons pass. Independent normal
+six-frame run: warm receipt-service median 1329.37 ms, all deadlines missed.
+Power uncontrolled; quality and release acceptance NOT VERIFIED.

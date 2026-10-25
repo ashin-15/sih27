@@ -307,6 +307,9 @@ class RerunView:
                         rrb.Spatial3DView(
                             name="Accepted raw points", origin="world", contents=["world/raw/**"]
                         ),
+                        rrb.Spatial3DView(
+                            name="Estimated motion", origin="world", contents=["world/motion/**"]
+                        ),
                         rrb.TextDocumentView(
                             name="Semantic class legend", origin="semantic_legend"
                         ),
@@ -381,12 +384,27 @@ class RerunView:
         )
         self._publish_visibility(result)
         self._publish_fused(result.fused)
+        if result.estimated_motion is not None:
+            palette = np.array([[140, 140, 140], [65, 190, 130], [245, 95, 65]], dtype=np.uint8)
+            stream.log(
+                "world/motion/points",
+                rr.Points3D(
+                    result.observations.points_map_m,
+                    colors=palette[result.estimated_motion.point_state],
+                    radii=0.035,
+                ),
+            )
         if snapshot.mode == Mode.ORACLE:
             badge = "ORACLE semantics and motion. Mapping evaluation, not autonomous perception."
         elif snapshot.mode == Mode.LEARNED:
             badge = "LEARNED point semantics from a checkpoint. Object motion is unknown."
         else:
             badge = "LABEL-FREE geometry. Semantic and motion classes are unknown."
+        if result.estimated_motion is not None:
+            badge = (
+                "LEARNED semantics. Motion is an uncalibrated observed-centre displacement "
+                "estimate: grey unknown, green stationary, red moving."
+            )
         status = (
             f"# Drishti-2.5\n\n**{badge}**\n\n"
             f"Sequence: {snapshot.sequence} | Frame: {snapshot.frame_id}\n\n"

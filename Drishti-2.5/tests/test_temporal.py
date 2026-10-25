@@ -1,11 +1,13 @@
 from collections.abc import Sequence
-from typing import Literal
+from dataclasses import fields
+from typing import Any, Literal
 
 import numpy as np
 import pytest
 
 from drishti.config import MappingConfig
 from drishti.contracts import make_frame
+from drishti.cuda_backend import CudaFramePath
 from drishti.ground import GroundClass
 from drishti.mapping import resolve_owners
 from drishti.pipeline import MappingEngine
@@ -24,6 +26,62 @@ CAR = 1
 SECOND = 1_000_000_000
 G = GroundClass.GROUND
 N = GroundClass.NONGROUND
+
+
+@pytest.mark.cuda
+def test_cuda_temporal_preserves_full_views_across_motion_and_expiry() -> None:
+    if not CudaFramePath.available():
+        pytest.skip("CUDA unavailable")
+    cpu = TemporalMap(MappingConfig())
+    gpu = TemporalMap(MappingConfig(), device="cuda")
+    allocated = gpu.device_workspace_bytes
+    rng = np.random.default_rng(51)
+    for step, sensor_x in enumerate((0.0, 0.0, 31.0, -31.0, 0.0)):
+        points = np.column_stack(
+            [rng.uniform(-60, 60, (12000, 2)), rng.choice([0.0, 0.15, 1.0, 3.0], 12000)]
+        )
+        kwargs: dict[str, Any] = dict(
+            points_map_m=points,
+            ground=rng.choice([G, N], len(points)).astype(np.uint8),
+            semantic=rng.choice([0, ROAD, SIDEWALK, CAR], len(points)).astype(np.uint8),
+            sensor_xy_m=np.array([sensor_x, 0.0]),
+            timestamp_ns=(step + 1) * 3 * SECOND,
+            free_level=np.array([0, 0], dtype=np.int64),
+            free_indices=np.array([[100, 100], [-100, -100]], dtype=np.int64),
+        )
+        expected, actual = cpu.update(**kwargs), gpu.update(**kwargs)
+        for field in fields(expected):
+            left, right = getattr(expected, field.name), getattr(actual, field.name)
+            if isinstance(left, np.ndarray):
+                assert left.tobytes() == right.tobytes(), field.name
+                assert not right.flags.writeable
+            else:
+                assert left == right
+        assert gpu.device_workspace_bytes == allocated
+    assert allocated == 48 * max(window.size**2 for window in gpu._windows)
+
+
+@pytest.mark.cuda
+def test_cuda_steps_wrap_variance_and_reused_workspace() -> None:
+    if not CudaFramePath.available():
+        pytest.skip("CUDA unavailable")
+    cpu = TemporalMap(MappingConfig())
+    gpu = TemporalMap(MappingConfig(), device="cuda")
+    rng = np.random.default_rng(52)
+    for window in cpu._windows:
+        axis = np.arange(-window.half, window.half + 1, dtype=np.int64)
+        keys = np.stack(np.meshgrid(axis, axis, indexing="ij"), axis=-1).reshape(-1, 2)
+        slots = window.claim(keys)
+        window.height[:] = rng.normal(size=len(slots)).astype(np.float32)
+        window.variance[:] = rng.choice([0, np.inf, np.nan, 0.01], len(slots))
+        for selected in (slots[::3], slots[-20:], slots[:0]):
+            expected = cpu._steps(window, selected)
+            actual = gpu._steps(window, selected)
+            for left, right in zip(expected, actual, strict=True):
+                assert left.tobytes() == right.tobytes()
+        window.claim(np.array([[window.size * 3, 0]], dtype=np.int64))
+        for left, right in zip(cpu._steps(window, slots), gpu._steps(window, slots), strict=True):
+            assert left.tobytes() == right.tobytes()
 
 
 def _cloud(x: float, y: float, z: float, count: int = 10, spread: float = 0.0) -> np.ndarray:
@@ -287,9 +345,14 @@ def test_engine_publishes_the_fused_layer_on_the_shared_path() -> None:
 
 
 @pytest.mark.parametrize("footprint", ["radial", "square"])
-def test_ownership_matches_the_snapshot_rule(footprint: Literal["radial", "square"]) -> None:
+@pytest.mark.parametrize("device", ["cpu", pytest.param("cuda", marks=pytest.mark.cuda)])
+def test_ownership_matches_the_snapshot_rule(
+    footprint: Literal["radial", "square"], device: Literal["cpu", "cuda"]
+) -> None:
+    if device == "cuda" and not CudaFramePath.available():
+        pytest.skip("working CUDA required")
     config = MappingConfig(footprint=footprint)
-    fused = TemporalMap(config)
+    fused = TemporalMap(config, device=device)
     rng = np.random.default_rng(11)
     sensor = np.array([3.37, -1.81])
     xy = rng.uniform(-110, 110, (50000, 2)) + sensor

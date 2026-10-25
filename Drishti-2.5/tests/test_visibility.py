@@ -1,7 +1,7 @@
 """Frozen T-006 current-scan visibility fixtures (docs/t-006-visibility-proposal.md)."""
 
 from dataclasses import replace
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pytest
@@ -13,6 +13,7 @@ from drishti.config import MappingConfig
 from drishti.contracts import Mode, ScanFrame, make_frame
 from drishti.ground import GroundClass
 from drishti.learned import SemanticPrediction
+from drishti.mapping import resolve_owners
 from drishti.obstacles import ConnectedComponentDetector
 from drishti.pipeline import FrameResult, MappingEngine
 from drishti.product_result import (
@@ -508,3 +509,44 @@ def test_schema_five_raw_digest_is_stable_and_value_sensitive() -> None:
     )
     moved = replace(product, frame_id=product.frame_id + 1)
     assert canonical_result_digest(moved) != canonical_result_digest(product)
+
+
+@pytest.mark.parametrize("footprint", ["radial", "square"])
+def test_corridor_reduction_preserves_distinct_beams_and_minimum_id(
+    footprint: Literal["radial", "square"],
+) -> None:
+    config = replace(MappingConfig(), footprint=footprint)
+    origin = np.array([-0.13, 0.07])
+    # Duplicate geometry, shuffled noncontiguous IDs, seams and negative coordinates.
+    points = np.array([[20.03, 0.02], [20.03, 0.02], [-50.03, -1.02], [0.07, 8.03], [9.99, 10.01]])
+    ids = np.array([90, 2, 170, 8, 40], dtype=np.int64)
+    fraction = np.array([0.76, 0.76, 0.91, 0.42, 0.70])
+    support: dict[int, set[int]] = {}
+    sample_count = 0
+    for point, point_id, start in zip(points, ids, fraction, strict=True):
+        delta = point - origin
+        distance = np.hypot(*delta)
+        count = int(np.ceil(distance * (1 - start) / visibility_module.SAMPLE_STEP_M))
+        u = start + np.arange(count) * visibility_module.SAMPLE_STEP_M / distance
+        xy = origin + u[u < 1, None] * delta
+        owners = resolve_owners(xy, origin, config)
+        width = np.asarray(config.cell_sizes_cm)[owners.level] / 100
+        low = owners.indices * width[:, None]
+        high = low + width[:, None]
+        inside = np.all(
+            (xy - low > visibility_module.INTERIOR_EPSILON_M)
+            & (high - xy > visibility_module.INTERIOR_EPSILON_M),
+            axis=1,
+        )
+        packed = visibility_module.pack_cells(owners.level[inside], owners.indices[inside])
+        sample_count += len(packed)
+        for key in packed:
+            support.setdefault(int(key), set()).add(int(point_id))
+    expected = np.array(
+        [(key, len(beam_ids), min(beam_ids)) for key, beam_ids in sorted(support.items())],
+        dtype=np.int64,
+    )
+    actual = CurrentScanVisibility()._corridor_pairs(points, ids, fraction, origin, config)
+    np.testing.assert_array_equal(actual, expected)
+    assert sample_count > expected[:, 1].sum()  # Repeated samples actually exercised.
+    assert expected[:, 1].max() == 2

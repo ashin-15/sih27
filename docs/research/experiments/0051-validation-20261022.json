@@ -1,0 +1,84 @@
+{
+  "runs": [
+    {
+      "run": "learned-paced-source-20261022",
+      "warm_processing_p50_ms": 1157.8933999990113,
+      "warm_service_to_receipt_p50_ms": 1383.7327000001096,
+      "first_receipt_age_ms": 3687.6482000006945,
+      "last_receipt_age_ms": 10181.28660000366,
+      "deadline_misses": 6,
+      "warm_stages_p50_ms": {
+        "association_ms": 4.6099999963189475,
+        "detector_ms": 90.27849999984028,
+        "ground_ms": 58.96280000160914,
+        "mapping_ms": 84.96990000276128,
+        "model_ms": 190.18019999930402,
+        "preprocess_ms": 17.546200004289858,
+        "projection_ms": 13.057500000286382,
+        "temporal_ms": 295.7670000032522,
+        "total_ms": 1157.8933999990113,
+        "visibility_ms": 314.2692999972496
+      }
+    },
+    {
+      "run": "learned-paced-wheel-20261022",
+      "warm_processing_p50_ms": 3637.0682999986457,
+      "warm_service_to_receipt_p50_ms": 4285.683699999936,
+      "first_receipt_age_ms": 10688.564199997927,
+      "last_receipt_age_ms": 31507.860199999413,
+      "deadline_misses": 6,
+      "warm_stages_p50_ms": {
+        "association_ms": 13.581599996541627,
+        "detector_ms": 379.5257000019774,
+        "ground_ms": 156.3389000002644,
+        "mapping_ms": 237.85979999956908,
+        "model_ms": 676.7904999942402,
+        "preprocess_ms": 72.25910000124713,
+        "projection_ms": 31.524300000455696,
+        "temporal_ms": 848.5801999995601,
+        "total_ms": 3637.0682999986457,
+        "visibility_ms": 970.2909999978147
+      }
+    }
+  ],
+  "evidence_fields_matched": [
+    "frame_id",
+    "input_digest",
+    "map_digest",
+    "accounting",
+    "cells",
+    "candidate_instances",
+    "tracks",
+    "tracking_summary",
+    "visibility_summary",
+    "temporal_summary",
+    "snapshot_array_bytes"
+  ],
+  "predictions": [
+    {
+      "file": "predictions\\sequences\\08\\predictions\\000000.label",
+      "sha256": "65031f249df8fa04f2795efdd80ff6cd1e6529f3a79c359703a58a4c49f647ef"
+    },
+    {
+      "file": "predictions\\sequences\\08\\predictions\\000001.label",
+      "sha256": "2283772581fb34b254ad29b1ffa3410a55bf0cf7918772fad4eada4bb05c5aa4"
+    },
+    {
+      "file": "predictions\\sequences\\08\\predictions\\000002.label",
+      "sha256": "6849bf1d5b69fd3d00bfa3909f943beb253c8bb96a2c85d32c69dc4a665439a7"
+    },
+    {
+      "file": "predictions\\sequences\\08\\predictions\\000003.label",
+      "sha256": "be459772ffddeb06e9dc12b0447aba36ef5fbb3af7b34078fd882926f5a24882"
+    },
+    {
+      "file": "predictions\\sequences\\08\\predictions\\000004.label",
+      "sha256": "3ef30548d5d7933af9f96a75751e0fca97fc523b7d06191bc5cb203e8cd45d19"
+    },
+    {
+      "file": "predictions\\sequences\\08\\predictions\\000005.label",
+      "sha256": "a56b74d76d4dfd88591d83bd81fc6f37d90d5d59e219d91c9e567e3c675b7e02"
+    }
+  ],
+  "package_python_files_equal": 27
+}

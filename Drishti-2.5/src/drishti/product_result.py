@@ -10,6 +10,8 @@ import json
 import math
 from dataclasses import dataclass, fields, is_dataclass, replace
 from enum import IntEnum, StrEnum
+from functools import lru_cache
+from json.encoder import encode_basestring_ascii
 from time import monotonic_ns
 from typing import Any, Literal
 
@@ -280,6 +282,12 @@ def _canonical(value: object) -> object:
     return value
 
 
+@lru_cache(maxsize=32)
+def _raw_fields(cls: type[Any]) -> tuple[tuple[str, bytes], ...]:
+    """Cache only immutable field names, never frame values or array buffers."""
+    return tuple((field.name, f"{field.name}=".encode()) for field in fields(cls))
+
+
 def _result_excluded_fields(value: ProductFrameResult) -> set[str]:
     excluded: set[str] = set()
     if value.schema_version < COMPLETE_SCHEMA_VERSION:
@@ -308,33 +316,46 @@ def _canonical_diagnostics(value: ProductDiagnostics, *, include_resource_fields
 
 def _feed_raw(digest: Any, value: object, *, include_resource_fields: bool = True) -> None:
     """Typed, length-prefixed stream: array headers then raw bytes, no hex or JSON bodies."""
-    if isinstance(value, ProductFrameResult):
+    kind = type(value)
+    if kind is int:
+        digest.update(f"S{value};".encode())
+    elif isinstance(value, float) and kind is float:
+        if not math.isfinite(value):
+            raise ValueError("nonfinite scalar cannot be digested")
+        digest.update(f"S{value!r};".encode())
+    elif isinstance(value, str) and kind is str:
+        digest.update(b"S" + encode_basestring_ascii(value).encode() + b";")
+    elif value is None:
+        digest.update(b"Snull;")
+    elif kind is bool:
+        digest.update(b"Strue;" if value else b"Sfalse;")
+    elif isinstance(value, ProductFrameResult):
         excluded = _result_excluded_fields(value)
         digest.update(f"D{type(value).__name__}{{".encode())
-        for field in fields(value):
-            if field.name in excluded:
+        for name, prefix in _raw_fields(type(value)):
+            if name in excluded:
                 continue
-            digest.update(f"{field.name}=".encode())
+            digest.update(prefix)
             _feed_raw(
                 digest,
-                getattr(value, field.name),
+                getattr(value, name),
                 include_resource_fields=value.schema_version >= COMPLETE_SCHEMA_VERSION,
             )
         digest.update(b"}")
     elif isinstance(value, ProductDiagnostics):
         digest.update(f"D{type(value).__name__}{{".encode())
-        for field in fields(value):
-            if not include_resource_fields and field.name in {
+        for name, prefix in _raw_fields(type(value)):
+            if not include_resource_fields and name in {
                 "swap_delta_bytes",
                 "receipt_bytes",
                 "audit_bytes",
                 "disk_free_bytes",
             }:
                 continue
-            digest.update(f"{field.name}=".encode())
+            digest.update(prefix)
             _feed_raw(
                 digest,
-                getattr(value, field.name),
+                getattr(value, name),
                 include_resource_fields=include_resource_fields,
             )
         digest.update(b"}")
@@ -349,10 +370,12 @@ def _feed_raw(digest: Any, value: object, *, include_resource_fields: bool = Tru
             digest.update(memoryview(value.reshape(-1)).cast("B"))
     elif is_dataclass(value) and not isinstance(value, type):
         digest.update(f"D{type(value).__name__}{{".encode())
-        for field in fields(value):
-            digest.update(f"{field.name}=".encode())
+        for name, prefix in _raw_fields(type(value)):
+            digest.update(prefix)
             _feed_raw(
-                digest, getattr(value, field.name), include_resource_fields=include_resource_fields
+                digest,
+                getattr(value, name),
+                include_resource_fields=include_resource_fields,
             )
         digest.update(b"}")
     elif isinstance(value, tuple):
@@ -1142,8 +1165,10 @@ def _validate_arrays(value: object) -> None:
         if not value.flags.c_contiguous or value.dtype.byteorder not in ("<", "=", "|"):
             raise ValueError("noncanonical-array")
     elif is_dataclass(value) and not isinstance(value, type):
-        for field in fields(value):
-            _validate_arrays(getattr(value, field.name))
+        for name, _ in _raw_fields(type(value)):
+            item = getattr(value, name)
+            if type(item) not in (int, float, str, bool) and item is not None:
+                _validate_arrays(item)
     elif isinstance(value, tuple):
         for item in value:
             # Plain scalars and beam proofs (ints and float triples) cannot hold arrays.

@@ -1,5 +1,33 @@
 # Drishti-2.5 perception delivery loop
 
+## 2026-10-22 - Feature-preserving workflow and CUDA terrain neighbours
+
+Implemented the first W2 optimization under the owner's instruction to start:
+bounded CUDA neighbour calculation, CPU reference retained, full terrain arrays
+preserved on fixtures and six real scans. See [0055](../../../../docs/research/experiments/0055-temporal-cuda-screen.md).
+The normal six-frame run accepted all receipts but missed all deadlines
+(warm load-through-receipt p50 1329.37 ms). No release gate or quality approval
+is inferred. T-008/T-017 remain IN PROGRESS; remaining planned features stay in
+the [workflow](../../../../docs/sub100ms-workflow.md).
+
+## 2026-10-22 - T-008 paced learned diagnostic and exact optimizations
+
+- Scope: existing approved learned/candidate/tracking/visibility paths; the
+  fused temporal map remains diagnostic. [Decision 0012](../../../../docs/decisions/0012-paced-learned-diagnostic.md)
+  records the report-schema-8 learned pacing endpoint through product receipt.
+- Evidence: [experiments 0051](../../../../docs/research/experiments/0051-exact-path-screen.md)
+  and [0052](../../../../docs/research/experiments/0052-frnet-repeatability-screen.md)
+  retain receipt/visibility and CPU FRNet grouping improvements. Source and
+  installed wheel accepted six schema-5 receipts each, with matching reported
+  evidence and prediction bytes, but both missed six of six deadlines. Warm
+  service through receipt p50 was 1,383.73/4,285.68 ms, respectively, in
+  uncontrolled conditions. GPU model grouping was rejected after no consistent
+  inference gain. Current suite 182 passed, four optional skips; Ruff, mypy and
+  source/wheel build passed; real-checkpoint model plus digest tests 37 passed.
+- Judgment: T-008/O-001/O-006 remain IN PROGRESS, AC-008 not met. Bounded
+  T-006 installed-wheel evidence now exists, while its numeric false-free gate,
+  complete fused output and final data remain open. No full-release gate is DONE.
+
 Current state: accepted
 Current loop: LOOP-008
 Frozen specification: decision 0013's G0 complete-result, D-005, resource and

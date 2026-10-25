@@ -1,5 +1,8 @@
 # Drishti-2.5 project record
 
+The active [feature-preserving sub-100 ms workflow](sub100ms-workflow.md)
+keeps drivability and all remaining planned features in scope.
+
 Start with [project context](project-context.md), [current assessment](project-assessment.md),
 and the [execution plan](execution-plan.md). Read [open items](open-items.md) before choosing work
 and append a short entry to the [work log](work-log.md) after meaningful changes.

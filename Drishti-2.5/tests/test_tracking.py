@@ -9,6 +9,7 @@ from drishti.config import MappingConfig
 from drishti.contracts import Mode, ScanFrame, make_frame
 from drishti.ground import GroundClass
 from drishti.learned import SemanticPrediction
+from drishti.motion import MotionEstimator
 from drishti.obstacles import ConnectedComponentDetector, InstanceEvidence
 from drishti.pipeline import FrameResult, MappingEngine
 from drishti.product_result import (
@@ -18,6 +19,8 @@ from drishti.product_result import (
     canonical_result_digest,
     tracking_product_result,
 )
+from drishti.semantics import Motion
+from drishti.temporal import TemporalMap
 from drishti.tracking import CandidateTracker, TrackingUpdate
 
 
@@ -138,7 +141,7 @@ class Nonground:
         return immutable(np.full(len(points), GroundClass.NONGROUND, dtype=np.uint8))
 
 
-def _engine() -> MappingEngine:
+def _engine(*, motion: bool = False) -> MappingEngine:
     return MappingEngine(
         MappingConfig(),
         mode=Mode.LEARNED,
@@ -146,7 +149,40 @@ def _engine() -> MappingEngine:
         ground=Nonground(),
         detector=ConnectedComponentDetector(),
         tracker=CandidateTracker(),
+        motion_estimator=MotionEstimator() if motion else None,
+        temporal=TemporalMap(MappingConfig()) if motion else None,
     )
+
+
+def test_motion_on_shared_path_compensates_ego_pose_and_keeps_legacy_receipts() -> None:
+    engine = _engine(motion=True)
+    evaluator = InProcessProductEvaluator()
+    for index in range(4):
+        frame = _frame(index)
+        result = engine.process(frame)
+        assert result.estimated_motion is not None and result.timings.motion_ms is not None
+        if index >= 2:
+            assert np.all(result.estimated_motion.point_state == Motion.STATIONARY)
+        assert result.tracking is not None
+        assert all(track.velocity_world_mps is None for track in result.tracking.tracks)
+        receipt = engine.receive_tracking(frame, result, _product(frame, result), evaluator)
+        assert receipt.status == ReceiptStatus.ACCEPTED
+
+
+def test_estimated_moving_points_remain_in_snapshot_but_not_static_fusion() -> None:
+    engine = _engine(motion=True)
+    evaluator = InProcessProductEvaluator()
+    for index in range(3):
+        points = _frame(0).points_sensor.copy()
+        points[:, 0] += index * 0.3
+        frame = make_frame(points, sequence="fixture", frame_id=index, timestamp_s=index * 0.1)
+        result = engine.process(frame)
+        receipt = engine.receive_tracking(frame, result, _product(frame, result), evaluator)
+        assert receipt.status == ReceiptStatus.ACCEPTED
+    assert result.estimated_motion is not None and result.fused is not None
+    assert np.all(result.estimated_motion.point_state == Motion.MOVING)
+    assert result.snapshot.point_count.sum() == 3
+    assert result.fused.last_seen_ns.max() == 100_000_000
 
 
 def _frame(index: int, *, empty: bool = False) -> ScanFrame:

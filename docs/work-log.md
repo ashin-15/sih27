@@ -57,6 +57,73 @@
   false-free evidence; complete-producer CLI integration; controlled RTX 4050
   resource/timing validation; hosted CI and final release judgment.
 
+## 2026-10-22 - Sub-100 ms implementation research
+
+- SCOPE: user requested research and pointed to Pragyaam-SIH26053. Inspected
+  current local bottlenecks and pinned external commit f3a59c23; downloaded
+  reference files via GitHub API for read-only analysis after raw-file access
+  failed. Source files and their hash manifest are under ignored artifacts.
+- FACT: the reference implements persistent GPU maps and online FP16 semantics,
+  while its motion labels, proof rules, host publication and timing boundary
+  differ. Its reported 79.5 ms p99 is not a Drishti zero-miss receipt result.
+- DELIVERED: [review 0053](research/experiments/0053-sub100ms-pragyaam-review.md)
+  gives source links, measured local bottlenecks, native/GPU implementation
+  targets, Autoware TensorRT guidance, failure checks and a proposed 90 ms
+  work budget. Updated research registries, task plan and open items.
+- VALIDATION: source review and saved-report arithmetic only; no external code
+  executed, runtime changed or new model benchmark claimed. Local relative
+  links and `git diff --check` checked. T-008/O-001/O-006 remain IN PROGRESS.
+
+## 2026-10-22 - Exact-path latency pass and paced learned receipts
+
+- IMPLEMENTED: preserve schema-5 raw digest bytes while streaming ordinary
+  scalar encodings and caching only bounded dataclass field metadata; remove
+  adjacent duplicate visibility (cell, beam) samples before the existing
+  distinct-pair reduction. CPU FRNet grouping uses exact mixed-radix keys;
+  the proposed CUDA grouping change was rejected after its confidence output
+  failed strict parity. Added a paced learned `--check-100ms` diagnostic that
+  ends at the accepted product receipt, including the evaluator, while keeping
+  the diagnostic temporal layer inside processing. See
+  [decision 0012](decisions/0012-paced-learned-diagnostic.md).
+- VERIFIED: [experiment 0051](research/experiments/0051-exact-path-screen.md)
+  records 24/24 accepted matched GPU receipts, 30 exact visibility chunks and
+  six exact schema-5 digests. Isolated digest p50 fell 124.03 to 56.16 ms;
+  visibility chunk p50 fell 12.57 to 10.35 ms, with no p95 improvement. The
+  current complete source path still took about 1.35 to 1.39 seconds per frame
+  in the matched short runs. [Experiment 0052](research/experiments/0052-frnet-repeatability-screen.md)
+  records byte-identical real-scan CPU predictions and confidences and the
+  nonrepeatable reference GPU confidences that prevent a strict CUDA change.
+- VERIFIED: a six-frame source and installed-wheel replay each accepted 6/6
+  schema-5 receipts and missed 6/6 paced deadlines. Warm processing p50 was
+  1,157.89 ms source / 3,637.07 ms wheel; warm load-through-receipt p50
+  was 1,383.73 / 4,285.68 ms. All six prediction files and eleven compared
+  evidence fields matched; the 27 installed Python files matched source.
+  Power, thermals and concurrent load were uncontrolled, so the wheel slowdown
+  has no supported cause. See the [saved verification](research/experiments/0051-validation-20261022.json).
+- VERIFIED: full package suite 182 passed, four optional skips; real-checkpoint
+  focused suite 37 passed; Ruff lint/format, strict mypy over 51 files,
+  source/wheel build and `git diff --check` passed. The paced schema-2 and
+  schema-5 fixture uses the real mapper/evaluator and detects delayed receipt
+  completion after three scheduled arrivals. See [testing](testing.md).
+- LIMIT: the 100 ms goal, complete fused schema, frozen D-005 numeric gates,
+  independent final quality labels and controlled long-run tail/resource
+  evidence remain open. T-008/O-001/O-006 stay IN PROGRESS; this is diagnostic
+  current-path work, not complete-product or release acceptance.
+
+## 2026-10-20 - Remaining-work and performance implementation plan
+
+- SCOPE: user requested completion of remaining tasks and under-100 ms frames.
+  T-008 exact-output optimizations proceed under the existing contracts.
+  Draft feature contracts and unresolved D-005 decisions remain explicit;
+  neither synthetic throughput nor omitted stages can close AC-008.
+- PLAN: reproduce the complete current learned CUDA/temporal path through
+  the CLI; profile evaluator and stage costs; implement measured bottleneck
+  reductions with parity and rejection regression coverage; run package checks
+  and matched replay; record timings and the remaining release blockers.
+- ENVIRONMENT: RTX 4050 Laptop GPU, driver 561.00, 6,141 MiB VRAM observed.
+  Working tree was clean before this task. Power and thermal state are not
+  controlled, so short runs are diagnostic evidence only.
+
 ## 2026-10-15 - CUDA visibility batch screen
 
 - IMPLEMENTED: raised the internal visibility CUDA/CPU beam batch from 8,192
@@ -1430,3 +1497,36 @@ Detailed test evidence belongs in `testing.md`; active blockers belong in `open-
   and `git diff --check` passed. Source inspection confirms `--temporal`
   remains outside the current receipt schema. These checks do not validate
   the proposed release result or the 100 ms gate.
+
+## 2026-10-22 - Feature-preserving workflow implementation
+
+Owner requested retaining drivability and starting the recommended workflow.
+Created `sub100ms-workflow.md` with current and remaining feature requirements.
+Experiment 0054 ran five 12-frame configurations: all 60 receipts accepted,
+all 60 late; FP16 changed terrain summaries, so model defaults remain unchanged.
+Implemented bounded CUDA temporal neighbours (decision 0013). Exact sequential
+fixtures and six real full-fused-view comparisons pass; workspace 12,144,432
+bytes. Isolated three-level dense screen: 179.64 ms CPU versus 11.29 ms CUDA.
+Normal six-frame replay: 1329.37 ms warm load-through-receipt p50, six misses.
+This is progress on W2, not complete GPU fusion or under-100 ms acceptance.
+Verification: combined suite coverage 184 passed/four skipped after correcting
+Rerun PATH for four viewer tests; Ruff, format, mypy (52 files), source/wheel
+build and diff checks pass. Installed-wheel replay and controlled AC-power tails
+remain NOT VERIFIED. Evidence: research experiments 0054/0055 and artifacts
+`feature-preserving-screen-20261022`, `temporal-cuda-parity-20261022`,
+`temporal-cuda-replay-20261022`. T-008/O-006/T-017 stay IN PROGRESS.
+
+## 2026-10-23 - Workflow continuation, verified AC baseline and development motion
+
+User requested continuing until the workflow is complete, then confirmed AC
+power and said to do what is needed. Exact CUDA corridor/conflict/ownership
+changes passed fixtures and six real full-array comparisons (experiment 0057).
+The 200-frame AC run accepted all receipts but missed all deadlines; warm
+load-through-receipt median 1555.87 ms. W0 measured; release still fails.
+TensorRT 10.6 research environment installed separately. Full FRNet legacy
+export fails at duplicate-index accumulation; the stem exports and parses.
+No production model change. The full pre-motion suite passed 189/four skipped.
+Diagnostic motion implementation and fused-envelope receipt extension are now
+being tested under the proposed development workflow; quality thresholds and
+independent final labels remain unresolved. Do not report these in-progress
+additions or the workflow as finished. See workflow-completion-contract-v1.md.

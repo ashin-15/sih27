@@ -2,7 +2,9 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import cast
 
+import numpy as np
 import pytest
 
 
@@ -177,6 +179,85 @@ def test_paced_replay_rejects_oracle_labels(dataset_root: Path, tmp_path: Path) 
     assert not output.exists()
 
 
+@pytest.mark.parametrize("visibility", [False, True])
+def test_learned_pacing_waits_for_product_validation(
+    dataset_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, visibility: bool
+) -> None:
+    from drishti import cli
+    from drishti.arrays import IntArray, PointArray
+    from drishti.contracts import ScanFrame
+    from drishti.learned import FRNetPredictor, SemanticPrediction
+    from drishti.product_result import (
+        InProcessProductEvaluator,
+        ProductFrameResult,
+        ProductReceipt,
+    )
+
+    class AuthoredSemantics:
+        # Authored point labels isolate the clock boundary; native mapping and the
+        # actual product evaluator still execute. Real FRNet is tested separately.
+        checkpoint_sha256 = "a" * 64
+        weights_sha256 = "b" * 64
+        environment: dict[str, str] = {"runtime": "authored-timing-fixture"}
+
+        def predict(self, points: PointArray, point_ids: IntArray) -> SemanticPrediction:
+            return SemanticPrediction(
+                np.full(len(points), 9, dtype=np.uint8),
+                np.full(len(points), 0.75, dtype=np.float64),
+                np.zeros(len(points), dtype=np.uint8),
+            )
+
+    clock = [10.0]
+    arrivals: list[int | None] = []
+    receive = InProcessProductEvaluator.receive
+
+    def delayed_receive(
+        self: InProcessProductEvaluator, frame: ScanFrame, product: ProductFrameResult
+    ) -> ProductReceipt:
+        arrivals.append(product.scheduled_arrival_ns)
+        receipt = receive(self, frame, product)
+        clock[0] += 0.125
+        return receipt
+
+    monkeypatch.setattr(cli, "perf_counter", lambda: clock[0])
+    monkeypatch.setattr(InProcessProductEvaluator, "receive", delayed_receive)
+    output = tmp_path / "learned-paced"
+    argv = [
+        "replay",
+        "--dataset",
+        str(dataset_root),
+        "--sequence",
+        "08",
+        "--mode",
+        "learned",
+        "--output",
+        str(output),
+        "--check-100ms",
+    ]
+    if visibility:
+        argv += ["--detect-obstacles", "--track-obstacles", "--visibility", "--temporal"]
+    args = cli._parser().parse_args(argv)
+    assert cli._run_ready(args, cast(FRNetPredictor, AuthoredSemantics())) == 2
+    assert arrivals == [10_000_000_000, 10_100_000_000, 10_200_000_000]
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["report_schema_version"] == 8
+    assert manifest["replay_consumer"] == "in-process-current-product-evaluator"
+    assert manifest["replay_publication_event"] == "current-product-inprocess-receipt-diagnostic"
+    records = [json.loads(line) for line in (output / "frames.jsonl").read_text().splitlines()]
+    assert all(row["result_receipt"] is None for row in records)
+    assert all(row["product_result_receipt"]["status"] == "accepted" for row in records)
+    assert [row["receipt_ms"] for row in records] == pytest.approx([125, 125, 125])
+    timings = [
+        json.loads(line) for line in (output / "replay-timing.jsonl").read_text().splitlines()
+    ]
+    assert [row["receipt_age_ms"] for row in timings] == pytest.approx([125, 150, 175])
+    summary = json.loads((output / "summary.json").read_text())
+    assert summary["product_receipts"] == 3
+    assert summary["replay_deadline_misses"] == 3
+    assert summary["replay_deadline_check_met"] is False
+    assert summary["realtime_release_gate_met"] is False
+
+
 def test_replay_evaluates_product_contract_on_same_mapping_path(
     dataset_root: Path, tmp_path: Path
 ) -> None:
@@ -340,3 +421,37 @@ def test_replay_with_temporal_reports_fused_map_on_the_same_path(
     assert all(record["timings_ms"]["temporal_ms"] is not None for record in records)
     # Geometric mode has no semantics, so nothing may be judged drivable.
     assert all(summary["terrain_counts"][1] == 0 for summary in summaries)
+
+
+def test_fused_receipt_cli_includes_temporal_payload(dataset_root: Path, tmp_path: Path) -> None:
+    from drishti.cli import main
+
+    output = tmp_path / "fused-contract"
+    result = main(
+        [
+            "replay",
+            "--dataset",
+            str(dataset_root),
+            "--sequence",
+            "08",
+            "--output",
+            str(output),
+            "--max-frames",
+            "3",
+            "--temporal",
+            "--evaluate-fused-contract",
+            "--view",
+            "none",
+        ]
+    )
+    assert result == 0
+    rows = [json.loads(line) for line in (output / "frames.jsonl").read_text().splitlines()]
+    assert len(rows) == 3
+    for row in rows:
+        receipt = row["fused_receipt"]
+        assert receipt["schema"] == "drishti-fused-envelope-v1"
+        assert receipt["status"] == "accepted"
+        assert len(receipt["result_digest"]) == 64
+        assert (
+            receipt["receipt_monotonic_ns"] >= row["product_result_receipt"]["receipt_monotonic_ns"]
+        )

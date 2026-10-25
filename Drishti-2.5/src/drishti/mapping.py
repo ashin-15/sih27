@@ -8,6 +8,7 @@ from numpy.typing import NDArray
 from drishti.arrays import BoolArray, ByteArray, FloatArray, IntArray, immutable
 from drishti.config import MappingConfig
 from drishti.contracts import Mode, PoseSource
+from drishti.foveation import FoveationState, forward_block_distance
 from drishti.ground import GroundClass
 from drishti.semantics import CLASS_NAMES, Motion
 
@@ -19,7 +20,10 @@ class CellOwners:
 
 
 def resolve_owners(
-    xy_map_m: FloatArray, sensor_xy_m: FloatArray, config: MappingConfig
+    xy_map_m: FloatArray,
+    sensor_xy_m: FloatArray,
+    config: MappingConfig,
+    foveation: FoveationState | None = None,
 ) -> CellOwners:
     if xy_map_m.ndim != 2 or xy_map_m.shape[1] != 2 or sensor_xy_m.shape != (2,):
         raise ValueError("ownership requires (N, 2) map points and a (2,) sensor position")
@@ -46,6 +50,9 @@ def resolve_owners(
             else np.maximum(dx_m, dy_m)
         )
         promote = (level == current) & (closest_m < config.radii_m[current - 1])
+        if foveation is not None and foveation.stretch > 1:
+            forward = forward_block_distance(np, lower_m, width_m, sensor_xy_m, foveation)
+            promote |= (level == current) & (forward < config.radii_m[current - 1])
         level[promote] -= 1
     ratios = np.asarray(config.ratios, dtype=np.int64)[level]
     return CellOwners(immutable(level), immutable(base // ratios[:, None]))
@@ -156,8 +163,9 @@ def aggregate_cells(
     mode: Mode,
     pose_source: PoseSource,
     ground_method: str,
+    foveation: FoveationState | None = None,
 ) -> tuple[MapSnapshot, IntArray]:
-    owners = resolve_owners(xyz_map_m[:, :2], sensor_xy_m, config)
+    owners = resolve_owners(xyz_map_m[:, :2], sensor_xy_m, config, foveation)
     keys = np.column_stack((owners.level, owners.indices))
     unique, inverse, count = _group_cells(keys)
     inverse = inverse.astype(np.int64)

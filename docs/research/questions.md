@@ -44,6 +44,11 @@ Status vocabulary: TODO, IN PROGRESS, BLOCKED, VALIDATION, DONE. A DONE question
 
 ## RQ-004 - Real-time feasibility
 
+- 2026-10-22 research update: [review 0053](experiments/0053-sub100ms-pragyaam-review.md)
+  compares pinned Pragyaam GPU kernels/online FP16 and official Autoware TensorRT
+  integration against current stage costs. It specifies falsifiable prototypes
+  and a proposed 90 ms work budget. No new runtime benchmark; feasibility remains
+  UNKNOWN and the question stays IN PROGRESS.
 - Question: Can the complete model, detection, temporal map and same-process evaluator receipt meet the selected deadline on target hardware for representative sequences, with viewer display measured separately?
 - Why: FR-008 is an end-to-end requirement.
 - Current understanding: MEASURED RESULT, the RTX 4050 is the selected host and short learned CUDA current-path runs exist. Experiment 0042 measured 1,278.6 ms warm processing p50 plus 547-703 ms current schema-5 validation, with diagnostic temporal fusion. The frozen complete product result does not yet exist.
